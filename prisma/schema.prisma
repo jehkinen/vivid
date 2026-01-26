@@ -1,0 +1,134 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["vivid_react"]
+}
+
+model Post {
+  id              String       @id @default(cuid()) @db.VarChar(24)
+  uuid            String       @unique @db.VarChar(36)
+  title           String?       @db.VarChar(2000)
+  slug            String
+  lexical         String?      @db.Text
+  plaintext       String?      @db.Text
+  featured        Boolean      @default(false)
+  type            String       @default("post") @db.VarChar(50)
+  status          String       @default("draft") @db.VarChar(50)
+  visibility      String       @default("public") @db.VarChar(50)
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  publishedAt     DateTime?    @map("published_at")
+  publishedBy     String?      @map("published_by") @db.VarChar(24)
+  authorId        String?      @map("author_id") @db.VarChar(24)
+  deletedAt       DateTime?    @map("deleted_at")
+  featuredMediaId String?      @map("featured_media_id") @db.VarChar(24)
+  featuredMedia   Media?       @relation("FeaturedMedia", fields: [featuredMediaId], references: [id])
+  tags            PostTag[]
+  authors         PostAuthor[]
+
+  @@unique([slug, type])
+  @@index([type, status, updatedAt])
+  @@index([deletedAt])
+  @@map("posts")
+  @@schema("vivid_react")
+}
+
+model Tag {
+  id              String    @id @default(cuid()) @db.VarChar(24)
+  name            String    @db.VarChar(191)
+  slug            String    @unique @db.VarChar(191)
+  description     String?   @db.VarChar(500)
+  featureImage    String?   @map("feature_image") @db.VarChar(2000)
+  color           String?   @db.VarChar(7)
+  visibility      String    @default("public") @db.VarChar(50)
+  metaTitle       String?   @map("meta_title") @db.VarChar(2000)
+  metaDescription String?   @map("meta_description") @db.VarChar(2000)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  posts           PostTag[]
+
+  @@map("tags")
+  @@schema("vivid_react")
+}
+
+model PostTag {
+  id     String @id @default(cuid())
+  postId String @map("post_id") @db.VarChar(24)
+  tagId  String @map("tag_id") @db.VarChar(24)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+  @@index([postId])
+  @@index([tagId])
+  @@map("posts_tags")
+  @@schema("vivid_react")
+}
+
+model Author {
+  id           String       @id @default(cuid()) @db.VarChar(24)
+  name         String       @db.VarChar(191)
+  slug         String       @unique @db.VarChar(191)
+  email        String       @unique @db.VarChar(191)
+  passwordHash String?      @map("password_hash") @db.VarChar(255)
+  profileImage String?      @map("profile_image") @db.VarChar(2000)
+  coverImage   String?      @map("cover_image") @db.VarChar(2000)
+  bio          String?      @db.VarChar(2000)
+  website      String?      @db.VarChar(2000)
+  location     String?      @db.VarChar(191)
+  facebook     String?      @db.VarChar(2000)
+  twitter      String?      @db.VarChar(2000)
+  accessibility String?     @db.VarChar(50)
+  status       String       @default("active") @db.VarChar(50)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  posts        PostAuthor[]
+
+  @@map("authors")
+  @@schema("vivid_react")
+}
+
+model PostAuthor {
+  id        String @id @default(cuid())
+  postId    String @map("post_id") @db.VarChar(24)
+  authorId  String @map("author_id") @db.VarChar(24)
+  sortOrder Int    @default(0) @map("sort_order")
+  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, authorId])
+  @@index([postId])
+  @@index([authorId])
+  @@map("posts_authors")
+  @@schema("vivid_react")
+}
+
+model Media {
+  id                   String   @id @default(cuid()) @db.VarChar(24)
+  featuredForPosts     Post[]   @relation("FeaturedMedia")
+  mediableType         String   @map("mediable_type") @db.VarChar(50)
+  mediableId           String   @map("mediable_id") @db.VarChar(24)
+  collection           String   @default("default") @db.VarChar(50)
+  key                  String   @unique @db.VarChar(2000)
+  filename             String   @db.VarChar(255)
+  mimeType             String?  @map("mime_type") @db.VarChar(100)
+  size                 Int?
+  order                Int      @default(0)
+  customProperties     Json?    @map("custom_properties")
+  generatedConversions Json?    @map("generated_conversions")
+  deletedAt            DateTime? @map("deleted_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@index([mediableType, mediableId])
+  @@index([mediableType, mediableId, collection])
+  @@index([deletedAt])
+  @@map("media")
+  @@schema("vivid_react")
+}

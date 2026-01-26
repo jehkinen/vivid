@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Запускает Next.js в режиме разработки
+    cmds:
+      - npm run dev
+
+  build:
+    desc: Собирает проект для production
+    cmds:
+      - npm run build
+
+  test:
+    desc: Запускает тесты
+    cmds:
+      - npm run test
+
+  prisma:generate:
+    desc: Генерирует Prisma Client
+    cmds:
+      - npm run prisma:generate
+
+  prisma:push:
+    desc: Применяет схему Prisma к базе данных
+    cmds:
+      - npm run prisma:push
+
+  prisma:studio:
+    desc: Открывает Prisma Studio
+    cmds:
+      - npm run prisma:studio
