@@ -12,7 +12,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
   const tagSlug = searchParams.get('tagSlug') || undefined
   const search = searchParams.get('search')?.trim() || undefined
 
-  const posts = await postsService.findMany({
+  const result = await postsService.findMany({
     status: POST_STATUS.PUBLISHED,
     visibility: POST_VISIBILITY.PUBLIC,
     tagSlug,
@@ -23,7 +23,8 @@ export const GET = apiHandler(async (request: NextRequest) => {
   })
 
   return NextResponse.json({
-    posts,
-    nextOffset: posts.length === limit ? offset + limit : null,
+    posts: result.posts,
+    hasMore: result.hasMore,
+    nextOffset: result.hasMore ? offset + result.posts.length : null,
   })
 })

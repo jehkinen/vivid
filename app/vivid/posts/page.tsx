@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -39,9 +39,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { POST_SORT_OPTIONS, POST_STATUS, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
-import { usePosts, useSoftDeletePost, useRestorePost, useHardDeletePost } from '@/hooks/api/use-posts'
+import { useInfinitePosts, useSoftDeletePost, useRestorePost, useHardDeletePost } from '@/hooks/api/use-posts'
 import { useTags, type Tag } from '@/hooks/api/use-tags'
 import { formatDateRelative } from '@/lib/utils'
+import Loader from '@/components/ui/Loader'
 
 export default function PostsPage() {
   const router = useRouter()
@@ -53,18 +54,40 @@ export default function PostsPage() {
   const [sort, setSort] = useState<PostSortOption>(POST_SORT_OPTIONS.NEWEST)
   const [postToDelete, setPostToDelete] = useState<{ id: string; title: string } | null>(null)
   const [permanentDeletePost, setPermanentDeletePost] = useState<{ id: string; title: string } | null>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const statusParam = searchParams.get('status')
     setStatus(statusParam || '')
   }, [searchParams])
 
-  const { data: posts = [], isLoading: postsLoading } = usePosts({
+  const {
+    data,
+    isLoading: postsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfinitePosts({
     tagIds: tagId ? [tagId] : undefined,
     status: status || undefined,
     visibility: visibility || undefined,
     sort,
   })
+
+  const posts = data?.pages.flatMap((p: { posts: any[] }) => p.posts) ?? []
+
+  useEffect(() => {
+    const el = loadMoreRef.current
+    if (!el || !hasNextPage || isFetchingNextPage) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchNextPage()
+      },
+      { rootMargin: '200px', threshold: 0 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const { data: tags = [] } = useTags()
   const softDeletePost = useSoftDeletePost()
@@ -207,11 +230,12 @@ export default function PostsPage() {
         ) : posts.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground">No posts found</div>
         ) : (
-          posts.map((post: any) => (
-            <div
-              key={post.id}
-              className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
-            >
+          <>
+            {posts.map((post: any) => (
+              <div
+                key={post.id}
+                className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
+              >
               <Link
                 href={`/vivid/editor/post/${post.id}`}
                 className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
@@ -313,7 +337,11 @@ export default function PostsPage() {
                 )}
               </div>
             </div>
-          ))
+            ))}
+            <div ref={loadMoreRef} className="min-h-12 flex items-center justify-center py-4">
+              {isFetchingNextPage && <Loader />}
+            </div>
+          </>
         )}
       </div>
 

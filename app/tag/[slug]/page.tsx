@@ -15,7 +15,7 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
 
   if (!tag) notFound()
 
-  const [posts, tagsWithCount] = await Promise.all([
+  const [postsResult, tagsWithCount] = await Promise.all([
     postsService.findMany({
       status: POST_STATUS.PUBLISHED,
       visibility: POST_VISIBILITY.PUBLIC,
@@ -26,6 +26,7 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
     }),
     tagsService.findManyWithPublishedPostCount(),
   ])
+  const posts = postsResult.posts
 
   const postCount = tagsWithCount.find((t) => t.slug === slug)?.postCount ?? 0
   const tags = tagsWithCount.map((t) => ({

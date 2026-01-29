@@ -1,8 +1,10 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { POST_SORT_OPTIONS, type PostSortOption } from '@/shared/constants'
+
+const POSTS_PAGE_SIZE = 20
 
 interface Post {
   id: string
@@ -23,6 +25,8 @@ interface FindPostsParams {
   authorIds?: string[]
   sort?: PostSortOption
   includeDeleted?: boolean
+  limit?: number
+  offset?: number
 }
 
 async function fetchPosts(params: FindPostsParams = {}) {
@@ -33,6 +37,8 @@ async function fetchPosts(params: FindPostsParams = {}) {
   if (params.visibility) searchParams.set('visibility', params.visibility)
   if (params.authorIds?.length) searchParams.set('authorIds', params.authorIds.join(','))
   if (params.sort) searchParams.set('sort', params.sort)
+  if (params.limit != null) searchParams.set('limit', String(params.limit))
+  if (params.offset != null) searchParams.set('offset', String(params.offset))
 
   const response = await fetch(`/api/posts?${searchParams.toString()}`)
   if (!response.ok) {
@@ -117,17 +123,35 @@ export function usePosts(params: FindPostsParams = {}) {
   })
 }
 
+export function useInfinitePosts(params: Omit<FindPostsParams, 'limit' | 'offset'> = {}) {
+  return useInfiniteQuery({
+    queryKey: ['posts', 'infinite', params],
+    queryFn: ({ pageParam }) =>
+      fetchPosts({
+        ...params,
+        limit: POSTS_PAGE_SIZE,
+        offset: pageParam,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: { posts: unknown[]; hasMore: boolean }, allPages) => {
+      if (!lastPage?.hasMore) return undefined
+      return allPages.length * POSTS_PAGE_SIZE
+    },
+  })
+}
+
 export function useDeletedPosts() {
   return useQuery({
     queryKey: ['posts', 'deleted'],
     queryFn: async () => {
-      const response = await fetch('/api/posts?includeDeleted=true')
+      const response = await fetch('/api/posts?includeDeleted=true&limit=500')
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error || 'Failed to fetch deleted posts')
       }
-      const allPosts = await response.json()
-      return allPosts.filter((post: any) => post.deletedAt)
+      const result = await response.json()
+      const list = result.posts ?? []
+      return list.filter((post: any) => post.deletedAt)
     },
   })
 }

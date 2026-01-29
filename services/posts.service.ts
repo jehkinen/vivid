@@ -151,14 +151,14 @@ export class PostsService {
       params.status === POST_STATUS.PUBLISHED && sort === POST_SORT_OPTIONS.NEWEST
         ? { publishedAt: 'desc' as const }
         : (SORT_ORDER_BY[sort] ?? { updatedAt: 'desc' })
-    const limit = params.limit ?? 100
+    const limit = params.limit ?? 20
     const offset = params.offset ?? 0
 
-    const posts = await prisma.post.findMany({
+    const raw = await prisma.post.findMany({
       where,
       orderBy,
       skip: offset,
-      take: limit,
+      take: limit + 1,
       include: {
         tags: {
           include: {
@@ -173,14 +173,19 @@ export class PostsService {
       },
     })
 
+    const hasMore = raw.length > limit
+    const posts = raw.slice(0, limit)
     const featuredIds = [...new Set(posts.map((p) => p.featuredMediaId).filter(Boolean))] as string[]
     const featuredList = featuredIds.length > 0 ? await this.mediaService.findManyByIds(featuredIds) : []
     const featuredMap = Object.fromEntries(featuredList.map((m) => [m.id, m]))
 
-    return posts.map((p) => ({
-      ...p,
-      featuredMedia: p.featuredMediaId ? featuredMap[p.featuredMediaId] ?? null : null,
-    }))
+    return {
+      posts: posts.map((p) => ({
+        ...p,
+        featuredMedia: p.featuredMediaId ? featuredMap[p.featuredMediaId] ?? null : null,
+      })),
+      hasMore,
+    }
   }
 
   async create(data: CreatePostData) {
@@ -210,16 +215,23 @@ export class PostsService {
       publishedAt,
       tags,
     }
-    return prisma.post.create({
-      data: createData,
-      include: {
-        tags: {
-          include: {
-            tag: true,
+    try {
+      return await prisma.post.create({
+        data: createData,
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
           },
         },
-      },
-    })
+      })
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new Error('Slug must be unique for this post type')
+      }
+      throw err
+    }
   }
 
   async update(id: string, data: UpdatePostData) {

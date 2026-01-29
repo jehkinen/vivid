@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import PostCard from './PostCard'
-import { Button } from '@/components/ui/button'
+import Loader from '@/components/ui/Loader'
 
 interface Post {
   id: string
@@ -20,25 +20,30 @@ interface PostListWithLoadMoreProps {
   search?: string
 }
 
+const PAGE_SIZE = 10
+
 export default function PostListWithLoadMore({
   initialPosts,
   tagSlug,
   search,
 }: PostListWithLoadMoreProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts)
-  const [nextOffset, setNextOffset] = useState<number | null>(initialPosts.length === 10 ? 10 : null)
+  const [nextOffset, setNextOffset] = useState<number | null>(
+    initialPosts.length === PAGE_SIZE ? PAGE_SIZE : null
+  )
   const [loading, setLoading] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setPosts(initialPosts)
-    setNextOffset(initialPosts.length === 10 ? 10 : null)
+    setNextOffset(initialPosts.length === PAGE_SIZE ? PAGE_SIZE : null)
   }, [initialPosts, search])
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (nextOffset == null || loading) return
     setLoading(true)
     try {
-      const params = new URLSearchParams({ limit: '10', offset: String(nextOffset) })
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset) })
       if (tagSlug) params.set('tagSlug', tagSlug)
       if (search) params.set('search', search)
       const res = await fetch(`/api/public/posts?${params}`)
@@ -50,7 +55,20 @@ export default function PostListWithLoadMore({
     } finally {
       setLoading(false)
     }
-  }
+  }, [nextOffset, loading, tagSlug, search])
+
+  useEffect(() => {
+    const el = loadMoreRef.current
+    if (!el || nextOffset == null || loading) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore()
+      },
+      { rootMargin: '200px', threshold: 0 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [nextOffset, loading, loadMore])
 
   return (
     <div>
@@ -67,13 +85,9 @@ export default function PostListWithLoadMore({
           />
         ))}
       </div>
-      {nextOffset != null && (
-        <div className="pt-8 flex justify-center">
-          <Button variant="outline" onClick={loadMore} disabled={loading}>
-            {loading ? 'Loading...' : 'Load More'}
-          </Button>
-        </div>
-      )}
+      <div ref={loadMoreRef} className="min-h-12 flex items-center justify-center py-8">
+        {loading && <Loader />}
+      </div>
     </div>
   )
 }

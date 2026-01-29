@@ -45,8 +45,10 @@ export const GET = apiHandler(async (request: NextRequest) => {
   const statusParam = searchParams.get('status') || undefined
   const deletedOnly = statusParam === 'deleted'
   const status = deletedOnly ? undefined : statusParam
+  const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10) || 20, 100)
+  const offset = parseInt(searchParams.get('offset') || '0', 10) || 0
 
-  const posts = await postsService.findMany({
+  const result = await postsService.findMany({
     search: search || undefined,
     tagIds,
     status,
@@ -54,9 +56,11 @@ export const GET = apiHandler(async (request: NextRequest) => {
     authorIds: authorIds?.length ? authorIds : undefined,
     sort,
     deletedOnly,
+    limit,
+    offset,
   })
 
-  return NextResponse.json(posts)
+  return NextResponse.json(result)
 })
 
 export const POST = apiHandler(async (request: NextRequest) => {

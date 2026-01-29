@@ -125,6 +125,11 @@ export default function PostEditorPage() {
       updatePost.mutate(
         { id, data: { status: newStatus }, silent: true },
         {
+          onSuccess: () => {
+            if (postId === 'new') {
+              router.replace(`/vivid/editor/post/${id}`)
+            }
+          },
           onError: () => {
             setStatus(prevStatus)
             if (newStatus === POST_STATUS.PUBLISHED && !prevPublishedAt) setPublishedAt(prevPublishedAt)
@@ -132,7 +137,7 @@ export default function PostEditorPage() {
         }
       )
     },
-    [status, publishedAt, updatePost]
+    [status, publishedAt, updatePost, postId, router]
   )
 
   const performSave = useCallback(
@@ -184,13 +189,17 @@ export default function PostEditorPage() {
           },
         })
       } else {
+        const id = resolvedIdRef.current
         updatePost.mutate(
-          { id: resolvedIdRef.current, data: { ...data, status: s } },
-          { 
+          { id, data: { ...data, status: s } },
+          {
             onSuccess: () => {
               setStatus(s)
               setHasUserTyped(false)
-            }
+              if (postId === 'new') {
+                router.replace(`/vivid/editor/post/${id}`)
+              }
+            },
           }
         )
       }

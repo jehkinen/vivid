@@ -13,7 +13,7 @@ export default async function HomePage({
   const { search } = await searchParams
   const searchQuery = search?.trim() || undefined
 
-  const [posts, tagsWithCount] = await Promise.all([
+  const [postsResult, tagsWithCount] = await Promise.all([
     postsService.findMany({
       status: POST_STATUS.PUBLISHED,
       visibility: POST_VISIBILITY.PUBLIC,
@@ -24,6 +24,7 @@ export default async function HomePage({
     }),
     tagsService.findManyWithPublishedPostCount(),
   ])
+  const posts = postsResult.posts
 
   const tags = tagsWithCount
     .filter((t) => (t.postCount ?? 0) > 0)
