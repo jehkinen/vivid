@@ -66,7 +66,7 @@ export default function PublicHeaderProfile() {
             onClick={() => setProfileOpen(false)}
             className="block w-full rounded-md px-2 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Управление постами
+            Управление
           </Link>
           {user && (
             <>

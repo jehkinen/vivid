@@ -165,11 +165,20 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
         const runs: ReactNode[] = []
         let inlines: ReactNode[] = []
         const key = node.key || Math.random()
+        const alignClass =
+          node.format === 'center'
+            ? 'text-center'
+            : node.format === 'right'
+              ? 'text-right'
+              : node.format === 'justify'
+                ? 'text-justify'
+                : ''
+        const pClassName = alignClass ? `mb-4 ${alignClass}` : 'mb-4'
         for (const c of node.children || []) {
           const r = renderNode(c)
           if (c?.type === LEXICAL_NODE_TYPE.IMAGE || c?.type === LEXICAL_NODE_TYPE.GALLERY) {
             if (inlines.length > 0) {
-              runs.push(<p key={`${key}-p-${runs.length}`} className="mb-4">{inlines}</p>)
+              runs.push(<p key={`${key}-p-${runs.length}`} className={pClassName}>{inlines}</p>)
               inlines = []
             }
             runs.push(r)
@@ -178,10 +187,10 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
           }
         }
         if (inlines.length > 0) {
-          runs.push(<p key={`${key}-p-${runs.length}`} className="mb-4">{inlines}</p>)
+          runs.push(<p key={`${key}-p-${runs.length}`} className={pClassName}>{inlines}</p>)
         }
         if (runs.length === 0) {
-          return <p key={key} className="mb-4" />
+          return <p key={key} className={pClassName} />
         }
         return <Fragment key={key}>{runs}</Fragment>
       }

@@ -342,21 +342,19 @@ export class PostsService {
   }
 
   async hardDelete(id: string) {
-    return prisma.$transaction(async (tx) => {
-      const media = await tx.media.findMany({
-        where: {
-          mediableType: 'Post',
-          mediableId: id,
-        },
-      })
+    const media = await prisma.media.findMany({
+      where: {
+        mediableType: 'Post',
+        mediableId: id,
+      },
+    })
 
-      for (const m of media) {
-        await this.mediaService.hardDelete(m.id)
-      }
+    for (const m of media) {
+      await this.mediaService.hardDelete(m.id)
+    }
 
-      return tx.post.delete({
-        where: { id },
-      })
+    return prisma.post.delete({
+      where: { id },
     })
   }
 }

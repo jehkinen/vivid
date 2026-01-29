@@ -50,7 +50,9 @@ export function renderLexicalToHtml(
       }
       if (node.type === LEXICAL_NODE_TYPE.PARAGRAPH) {
         const children = (node.children || []).map(renderNode).join('')
-        return `<p class="mb-4">${children}</p>`
+        const alignClass =
+          node.format === 'center' ? ' text-center' : node.format === 'right' ? ' text-right' : node.format === 'justify' ? ' text-justify' : ''
+        return `<p class="mb-4${alignClass}">${children}</p>`
       }
       if (node.type === LEXICAL_NODE_TYPE.HEADING) {
         const level = node.tag || 'h1'

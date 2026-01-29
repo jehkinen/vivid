@@ -130,6 +130,37 @@ interface LexicalEditorProps {
   onEditorLoaded?: () => void
 }
 
+const ROOT_ELEMENT_TYPES = new Set([
+  'paragraph',
+  'heading',
+  'quote',
+  'list',
+  'code',
+  'image',
+  'gallery',
+  'audio',
+])
+
+function sanitizeLexicalRoot(parsed: { root?: { children?: unknown[] } }): typeof parsed {
+  const root = parsed?.root
+  if (!root?.children || !Array.isArray(root.children)) return parsed
+  root.children = root.children.map((child: { type?: string; children?: unknown[] }) => {
+    const type = child?.type
+    if (type === 'text' || (type && !ROOT_ELEMENT_TYPES.has(type))) {
+      return {
+        type: 'paragraph',
+        children: type === 'text' ? [child] : [],
+        direction: null,
+        format: '',
+        indent: 0,
+        version: 1,
+      }
+    }
+    return child
+  })
+  return parsed
+}
+
 function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoaded?: () => void }) {
   const [editor] = useLexicalComposerContext()
   const [loaded, setLoaded] = useState(false)
@@ -168,7 +199,8 @@ function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoad
     let editorState
     try {
       const parsed = JSON.parse(currentContent)
-      editorState = editor.parseEditorState(parsed)
+      const sanitized = sanitizeLexicalRoot(parsed)
+      editorState = editor.parseEditorState(sanitized)
     } catch (error) {
       console.error('Error loading initial state:', error)
       lastLoadedContentRef.current = currentContent

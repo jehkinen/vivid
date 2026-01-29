@@ -15,6 +15,8 @@
     "import:ghost": "tsx scripts/import-ghost.ts",
     "import:ghost:test": "tsx scripts/import-ghost-test.ts",
     "update:tag-slugs": "tsx scripts/update-tag-slugs.ts",
+    "import:rgp-journal": "tsx scripts/import-rgp-journal.ts",
+    "import:rgp-journal-to-vivid": "tsx scripts/import-rgp-journal-to-vivid.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -75,6 +77,7 @@
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
+    "iconv-lite": "^0.6.3",
     "eslint-config-next": "16.1.4",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
