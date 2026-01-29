@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -9,13 +10,20 @@ import { POST_VISIBILITY, type PostVisibility } from '@/shared/constants'
 function toDateLocal(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function toTimeLocal(iso: string | null): string {
   if (!iso) return '00:00'
   const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '00:00'
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function todayLocal(): string {
+  const t = new Date()
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
 }
 
 export interface PostSettingsPanelProps {
@@ -49,6 +57,12 @@ export default function PostSettingsPanel({
   postId,
   onClose,
 }: PostSettingsPanelProps) {
+  const [timeInputValue, setTimeInputValue] = useState<string>(() => toTimeLocal(publishedAt))
+
+  useEffect(() => {
+    setTimeInputValue(toTimeLocal(publishedAt))
+  }, [publishedAt])
+
   return (
     <aside className="w-[360px] shrink-0 border-l border-border bg-card flex flex-col">
       <div className="p-4 border-b border-border flex items-center justify-between">
@@ -67,7 +81,8 @@ export default function PostSettingsPanel({
               onChange={(e) => {
                 const v = e.target.value
                 if (v) {
-                  onPublishedAtChange(new Date(v + 'T' + (toTimeLocal(publishedAt) || '00:00')).toISOString())
+                  const d = new Date(v + 'T' + (toTimeLocal(publishedAt) || '00:00'))
+                  if (!Number.isNaN(d.getTime())) onPublishedAtChange(d.toISOString())
                 } else {
                   onPublishedAtChange(null)
                 }
@@ -76,13 +91,13 @@ export default function PostSettingsPanel({
             />
             <input
               type="time"
-              value={toTimeLocal(publishedAt)}
+              value={timeInputValue}
               onChange={(e) => {
                 const v = e.target.value
-                const dateVal = toDateLocal(publishedAt)
-                if (dateVal) {
-                  onPublishedAtChange(new Date(dateVal + 'T' + (v || '00:00')).toISOString())
-                }
+                setTimeInputValue(v)
+                const dateVal = toDateLocal(publishedAt) || todayLocal()
+                const d = new Date(dateVal + 'T' + (v || '00:00'))
+                if (!Number.isNaN(d.getTime())) onPublishedAtChange(d.toISOString())
               }}
               className="w-[100px] h-9 rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:[filter:brightness(0)_invert(1)]"
             />
