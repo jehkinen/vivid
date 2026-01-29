@@ -7,7 +7,7 @@ export default function PublicLogo() {
   return (
     <Link
       href="/"
-      className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity"
+      className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity logo-blur-pulse"
     >
       <FlowerLotus className="size-8 text-[#3eb8b5]" weight="regular" />
       <span className="text-2xl font-bold font-sans uppercase logo-gradient">

@@ -37,9 +37,10 @@ interface InsertBlockPlusProps {
   editor: LexicalEditor | null
   mediableType?: string
   mediableId?: string
+  triggerClassName?: string
 }
 
-export default function InsertBlockPlus({ editor, mediableType, mediableId }: InsertBlockPlusProps) {
+export default function InsertBlockPlus({ editor, mediableType, mediableId, triggerClassName }: InsertBlockPlusProps) {
   const [showDialog, setShowDialog] = useState(false)
   const [blockType, setBlockType] = useState<InsertBlockType | null>(null)
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -98,7 +99,7 @@ export default function InsertBlockPlus({ editor, mediableType, mediableId }: In
           <Button
             variant="outline"
             size="icon"
-            className="h-9 w-9 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+            className={['h-9 w-9 rounded-full transition-opacity', triggerClassName ?? 'opacity-70 hover:opacity-100'].filter(Boolean).join(' ')}
             aria-label="Add block"
             disabled={!editor}
           >

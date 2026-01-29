@@ -4,14 +4,6 @@
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
-  font-family: "Tiempo Text";
-  src: url("/fonts/Tiempo.woff2") format("woff2");
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
   font-family: "Bookerly";
   src: url("/fonts/Bookerly/Bookerly%20Light.ttf") format("truetype");
   font-weight: 400;
@@ -187,16 +179,11 @@
 }
 
 :root {
-  --font-tiempo: "Tiempo Text", Georgia, serif;
   --font-bookerly: "Bookerly", Georgia, serif;
 }
 
 body[data-reading-font="bitter"] {
   --font-reading: var(--font-bitter);
-}
-
-body[data-reading-font="tiempo"] {
-  --font-reading: var(--font-tiempo);
 }
 
 body[data-reading-font="bookerly"] {
@@ -218,6 +205,16 @@ body:not([data-reading-font]) {
 @keyframes logo-gradient-shift {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
+}
+
+@keyframes logo-blur-pulse {
+  0%, 94% { filter: blur(0); opacity: 1; }
+  97% { filter: blur(3px); opacity: 0.85; }
+  100% { filter: blur(0); opacity: 1; }
+}
+
+.logo-blur-pulse {
+  animation: logo-blur-pulse 15s ease-in-out infinite;
 }
 
 .logo-gradient {

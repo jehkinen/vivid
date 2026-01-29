@@ -7,7 +7,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import FloatingToolbarPlugin from './FloatingToolbarPlugin'
-import FloatingInsertPlusPlugin from './FloatingInsertPlusPlugin'
+import FloatingInsertPlusPlugin, { FloatingPanelContext } from './FloatingInsertPlusPlugin'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
@@ -31,7 +31,7 @@ const EDITOR_NODES = [
   GalleryNode,
   AudioNode,
 ]
-import { EditorState } from 'lexical'
+import { EditorState, type SerializedEditorState } from 'lexical'
 import { useEffect, useState, useRef, Component, ReactElement } from 'react'
 import { $generateHtmlFromNodes } from '@lexical/html'
 
@@ -128,6 +128,7 @@ interface LexicalEditorProps {
   mediableId?: string
   onEditorMount?: (editor: LexicalEditorInstance) => void
   onEditorLoaded?: () => void
+  renderFloatingPanel?: (props: { editor: LexicalEditorInstance }) => React.ReactNode
 }
 
 const ROOT_ELEMENT_TYPES = new Set([
@@ -141,22 +142,38 @@ const ROOT_ELEMENT_TYPES = new Set([
   'audio',
 ])
 
+const NODE_TYPE_ALIASES: Record<string, string> = {
+  'extended-text': 'text',
+  'extended-heading': 'heading',
+}
+
+function sanitizeNode(node: { type?: string; children?: unknown[] }): typeof node {
+  if (!node || typeof node !== 'object') return node
+  const type = node.type
+  const normalizedType = type ? (NODE_TYPE_ALIASES[type] ?? type) : type
+  const children = Array.isArray(node.children)
+    ? node.children.map((c) => sanitizeNode(c as { type?: string; children?: unknown[] }))
+    : node.children
+  return { ...node, type: normalizedType, children }
+}
+
 function sanitizeLexicalRoot(parsed: { root?: { children?: unknown[] } }): typeof parsed {
   const root = parsed?.root
   if (!root?.children || !Array.isArray(root.children)) return parsed
-  root.children = root.children.map((child: { type?: string; children?: unknown[] }) => {
-    const type = child?.type
+  root.children = root.children.map((child: unknown) => {
+    const sanitized = sanitizeNode(child as { type?: string; children?: unknown[] })
+    const type = sanitized?.type
     if (type === 'text' || (type && !ROOT_ELEMENT_TYPES.has(type))) {
       return {
         type: 'paragraph',
-        children: type === 'text' ? [child] : [],
+        children: type === 'text' ? [sanitized] : [],
         direction: null,
         format: '',
         indent: 0,
         version: 1,
       }
     }
-    return child
+    return sanitized
   })
   return parsed
 }
@@ -200,7 +217,7 @@ function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoad
     try {
       const parsed = JSON.parse(currentContent)
       const sanitized = sanitizeLexicalRoot(parsed)
-      editorState = editor.parseEditorState(sanitized)
+      editorState = editor.parseEditorState(sanitized as unknown as SerializedEditorState)
     } catch (error) {
       console.error('Error loading initial state:', error)
       lastLoadedContentRef.current = currentContent
@@ -237,26 +254,29 @@ function EditorContentArea({
   placeholder,
   onChange,
   onEditorLoaded,
+  renderFloatingPanel,
 }: {
   initialEditorState?: string | null
   placeholder: string
   onChange?: (editorState: EditorState, html: string, lexical: string) => void
   onEditorLoaded?: () => void
+  renderFloatingPanel?: (props: { editor: LexicalEditorInstance }) => React.ReactNode
 }) {
   const { setTyping } = useEditorTyping()
   const handleChange = (editorState: EditorState, html: string, lexical: string) => {
     if (onChange) onChange(editorState, html, lexical)
   }
   return (
-    <div
-      className="flex-1 relative min-w-0 flex flex-col bg-transparent"
-      onKeyDown={setTyping}
-    >
-      <LoadInitialStatePlugin 
-        content={initialEditorState || ''} 
-        onLoaded={onEditorLoaded} 
-      />
-      <RichTextPlugin
+    <FloatingPanelContext.Provider value={renderFloatingPanel ?? null}>
+      <div
+        className="flex-1 relative min-w-0 flex flex-col bg-transparent"
+        onKeyDown={setTyping}
+      >
+        <LoadInitialStatePlugin 
+          content={initialEditorState || ''} 
+          onLoaded={onEditorLoaded} 
+        />
+        <RichTextPlugin
         contentEditable={
           <ContentEditable className="min-h-[500px] outline-none pl-0 pr-6 pt-6 pb-6 prose prose-lg max-w-none dark:prose-invert focus:outline-none text-left" />
         }
@@ -275,7 +295,8 @@ function EditorContentArea({
       <FloatingToolbarPlugin />
       <FloatingInsertPlusPlugin />
       <CustomOnChangePlugin onChange={handleChange} />
-    </div>
+      </div>
+    </FloatingPanelContext.Provider>
   )
 }
 
@@ -288,6 +309,7 @@ export default function LexicalEditor({
   mediableId,
   onEditorMount,
   onEditorLoaded,
+  renderFloatingPanel,
 }: LexicalEditorProps) {
   const initialConfig = {
     namespace: 'VividEditor',
@@ -315,6 +337,7 @@ export default function LexicalEditor({
               placeholder={placeholder}
               onChange={handleChange}
               onEditorLoaded={onEditorLoaded}
+              renderFloatingPanel={renderFloatingPanel}
             />
           </LexicalComposer>
         </MediableProvider>

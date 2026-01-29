@@ -22,9 +22,13 @@ export default function PublicLayout({ children, sidebar, headerRight, showReadi
           <Suspense fallback={<div className="h-9 w-48 sm:w-56" />}>
             <HeaderSearch />
           </Suspense>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {headerRight}
-            {showReadingSettingsInHeader && <ReadingSettingsPanel />}
+            {showReadingSettingsInHeader && (
+              <span className="mr-4">
+                <ReadingSettingsPanel variant="popover" />
+              </span>
+            )}
             <PublicHeaderProfile />
           </div>
         </div>

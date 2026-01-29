@@ -131,3 +131,11 @@ export const LEXICAL_NODE_TYPE = {
 export type LexicalNodeType = (typeof LEXICAL_NODE_TYPE)[keyof typeof LEXICAL_NODE_TYPE]
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024
+
+export const READING_FONTS = [
+  { id: 'bitter', label: 'Bitter' },
+  { id: 'bookerly', label: 'Bookerly Light' },
+  { id: 'source', label: 'Source Serif 4' },
+] as const
+
+export type ReadingFontId = (typeof READING_FONTS)[number]['id']

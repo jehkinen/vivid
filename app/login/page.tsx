@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ShaderBackground from '@/components/login/ShaderBackground'
@@ -89,10 +88,8 @@ export default function LoginPage() {
               {pending ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
-          <p className="mt-5 text-center text-[0.8125rem] text-white/40">
-            <Link href="/vivid/posts" className="text-white/60 hover:text-white/90 transition-colors">
-              Back to app
-            </Link>
+          <p className="mt-5 text-center text-[0.8125rem] text-white/40 italic">
+            Into the Pensieve, the memories swirl.
           </p>
         </div>
       </div>

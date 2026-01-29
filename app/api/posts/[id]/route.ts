@@ -18,6 +18,12 @@ export const PUT = apiHandler(async (
   }
 
   const body = await request.json()
+  if (body === null || typeof body !== 'object' || Object.keys(body).length === 0) {
+    return NextResponse.json(
+      { error: 'Request body must be a non-empty object' },
+      { status: 400 }
+    )
+  }
   const validation = validateRequest(postUpdateSchema, body)
 
   if (!validation.success) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from 'lexical'
+import { $getSelection, $isRangeSelection, $getRoot, FORMAT_TEXT_COMMAND } from 'lexical'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
 import { $createCodeNode } from '@lexical/code'
 import { useEffect, useState, useCallback } from 'react'
@@ -41,7 +41,51 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
     setTimeout(updateFormat, 10)
   }
 
+  const handleWrapQuote = () => {
+    editor.update(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection) || selection.isCollapsed()) return
+      const anchorNode = selection.anchor.getNode()
+      const focusNode = selection.focus.getNode()
+      const anchorBlock = anchorNode.getTopLevelElementOrThrow()
+      const focusBlock = focusNode.getTopLevelElementOrThrow()
+      const startBlock = selection.anchor.isBefore(selection.focus) ? anchorBlock : focusBlock
+      const endBlock = selection.anchor.isBefore(selection.focus) ? focusBlock : anchorBlock
+      const nodesToWrap: ReturnType<typeof anchorBlock.getTopLevelElementOrThrow>[] = []
+      let current: ReturnType<typeof anchorBlock.getTopLevelElementOrThrow> | null = startBlock
+      while (current) {
+        nodesToWrap.push(current)
+        if (current.getKey() === endBlock.getKey()) break
+        current = current.getNextSibling()
+      }
+      if (nodesToWrap.length === 0) return
+      const lastBlock = nodesToWrap[nodesToWrap.length - 1]
+      const nodeAfter = lastBlock.getNextSibling()
+      const parent = startBlock.getParentOrThrow()
+      const root = $getRoot()
+      const quoteNode = $createQuoteNode()
+      for (const n of nodesToWrap) {
+        n.remove()
+        quoteNode.append(n)
+      }
+      if (parent.getKey() === root.getKey()) {
+        const index = nodeAfter ? nodeAfter.getIndexWithinParent() : root.getChildrenSize()
+        root.splice(index, 0, quoteNode)
+      } else {
+        if (nodeAfter) {
+          parent.insertBefore(quoteNode, nodeAfter)
+        } else {
+          parent.append(quoteNode)
+        }
+      }
+    })
+  }
+
   const handleInsertBlock = (type: string, options?: any) => {
+    if (type === 'quote') {
+      handleWrapQuote()
+      return
+    }
     editor.update(() => {
       const selection = $getSelection()
       if (selection) {
@@ -49,9 +93,6 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
         switch (type) {
           case 'heading':
             node = $createHeadingNode(options?.tag || 'h1')
-            break
-          case 'quote':
-            node = $createQuoteNode()
             break
           case 'code':
             node = $createCodeNode()

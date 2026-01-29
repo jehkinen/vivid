@@ -24,20 +24,29 @@ async function isLoggedIn(): Promise<boolean> {
   }
 }
 
-export default async function PostBySlugPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PostBySlugPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const { slug } = await params
+  const resolvedSearchParams = await searchParams
   if (RESERVED_SLUGS.includes(slug)) notFound()
 
   const [post, loggedIn] = await Promise.all([
     postsService.findOne({ slug }),
     isLoggedIn(),
   ])
-  if (!post || post.status !== POST_STATUS.PUBLISHED || post.visibility !== POST_VISIBILITY.PUBLIC) {
+  const isPreview = Boolean(loggedIn && resolvedSearchParams?.preview)
+  if (!post) notFound()
+  if (!isPreview && (post.status !== POST_STATUS.PUBLISHED || post.visibility !== POST_VISIBILITY.PUBLIC)) {
     notFound()
   }
 
   const tags = 'tags' in post && Array.isArray(post.tags)
-    ? (post.tags as { tag: { id: string; name: string; slug: string } }[]).map((t) => t.tag)
+    ? (post.tags as { tag: { id: string; name: string; slug: string; color?: string | null } }[]).map((t) => t.tag)
     : []
 
   return (
@@ -57,12 +66,19 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
                 <span className="text-border select-none">·</span>
                 <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                   {tags.map((tag, i) => (
-                    <span key={tag.id} className="inline-flex items-center">
+                    <span key={tag.id} className="inline-flex items-center gap-1">
                       {i > 0 && <span className="text-border select-none">·</span>}
                       <Link
                         href={`/tag/${tag.slug}`}
-                        className="italic hover:text-foreground hover:font-normal rounded px-1.5 py-0.5 -mx-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
+                        className="inline-flex items-center gap-1.5 italic hover:text-foreground hover:font-normal rounded px-1.5 py-0.5 -mx-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
                       >
+                        {tag.color && (
+                          <span
+                            className="shrink-0 w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: tag.color }}
+                            aria-hidden
+                          />
+                        )}
                         {tag.name}
                       </Link>
                     </span>

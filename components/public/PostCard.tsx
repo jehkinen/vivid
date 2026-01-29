@@ -48,17 +48,17 @@ export default function PostCard({ title, slug, plaintext, publishedAt, wordCoun
           {tagList.map((tag, i) => (
             <span key={tag.id} className="inline-flex items-center gap-1">
               {i > 0 && <span className="text-border select-none">·</span>}
-              {tag.color && (
-                <span
-                  className="shrink-0 w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: tag.color }}
-                  aria-hidden
-                />
-              )}
               <Link
                 href={`/tag/${tag.slug}`}
-                className="italic hover:text-foreground hover:font-normal rounded px-1.5 py-0.5 -mx-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
+                className="inline-flex items-center gap-1.5 italic hover:text-foreground hover:font-normal rounded px-1.5 py-0.5 -mx-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
               >
+                {tag.color && (
+                  <span
+                    className="shrink-0 w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                    aria-hidden
+                  />
+                )}
                 {tag.name}
               </Link>
             </span>

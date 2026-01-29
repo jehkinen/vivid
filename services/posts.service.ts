@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { generateId } from '@/shared/id'
 import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
 import { countWords } from '@/lib/utils'
-import { POST_SORT_OPTIONS, POST_STATUS, POST_TYPE, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
+import { MEDIABLE_TYPES, POST_SORT_OPTIONS, POST_STATUS, POST_TYPE, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
 import { mediaService, type MediaService } from './media.service'
 import { storageService } from './storage.service'
 
@@ -235,58 +235,102 @@ export class PostsService {
   }
 
   async update(id: string, data: UpdatePostData) {
-    const generatedPlaintext = data.lexical !== undefined 
-      ? (data.plaintext || extractPlaintextFromLexical(data.lexical))
+    const hasLexical = data.lexical !== undefined && data.lexical !== null
+    const lexicalStr: string | null = hasLexical ? data.lexical ?? null : null
+    const generatedPlaintext = hasLexical
+      ? (data.plaintext || extractPlaintextFromLexical(lexicalStr))
       : data.plaintext
 
-    return prisma.$transaction(async (tx) => {
-      if (data.tagIds !== undefined) {
+    const wouldWipeContent =
+      hasLexical &&
+      generatedPlaintext !== undefined &&
+      countWords(generatedPlaintext) === 0
+
+    let allowContentUpdate = true
+    if (wouldWipeContent) {
+      const current = await prisma.post.findUnique({
+        where: { id },
+        select: { wordCount: true },
+      })
+      if (current?.wordCount != null && current.wordCount > 0) {
+        allowContentUpdate = false
+        const hasOtherUpdates =
+          data.title !== undefined ||
+          !!data.slug ||
+          !!data.status ||
+          data.visibility !== undefined ||
+          data.tagIds !== undefined ||
+          data.publishedAt !== undefined ||
+          data.featuredMediaId !== undefined
+        if (!hasOtherUpdates) {
+          const existing = await prisma.post.findUnique({
+            where: { id },
+            include: { tags: { include: { tag: true } } },
+          })
+          if (existing) return existing
+        }
+      }
+    }
+
+    const updateData: Record<string, unknown> = {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.slug && { slug: data.slug }),
+      ...(allowContentUpdate && hasLexical && { lexical: data.lexical }),
+      ...(allowContentUpdate && generatedPlaintext !== undefined && {
+        plaintext: generatedPlaintext,
+        wordCount: countWords(generatedPlaintext),
+      }),
+      ...(data.status && { status: data.status }),
+      ...(data.visibility && { visibility: data.visibility }),
+      ...(data.featured !== undefined && { featured: data.featured }),
+      ...(data.featuredMediaId !== undefined && { featuredMediaId: data.featuredMediaId }),
+      updatedAt: new Date(),
+    }
+    if (data.publishedAt !== undefined) {
+      updateData.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null
+    } else if (data.status === POST_STATUS.PUBLISHED) {
+      const current = await prisma.post.findUnique({ where: { id }, select: { publishedAt: true } })
+      if (current && !current.publishedAt) {
+        updateData.publishedAt = new Date()
+      }
+    }
+
+    if (data.tagIds !== undefined) {
+      return prisma.$transaction(async (tx) => {
         await tx.postTag.deleteMany({ where: { postId: id } })
-        if (data.tagIds.length > 0) {
+        if (data.tagIds!.length > 0) {
           await tx.postTag.createMany({
-            data: data.tagIds.map((tagId: string) => ({
+            data: data.tagIds!.map((tagId: string) => ({
               postId: id,
               tagId,
             })),
             skipDuplicates: true,
           })
         }
-      }
-
-      const updateData: Record<string, unknown> = {
-          ...(data.title !== undefined && { title: data.title }),
-          ...(data.slug && { slug: data.slug }),
-          ...(data.lexical !== undefined && { lexical: data.lexical }),
-          ...(generatedPlaintext !== undefined && {
-            plaintext: generatedPlaintext,
-            wordCount: countWords(generatedPlaintext),
-          }),
-          ...(data.status && { status: data.status }),
-          ...(data.visibility && { visibility: data.visibility }),
-          ...(data.featured !== undefined && { featured: data.featured }),
-          ...(data.featuredMediaId !== undefined && { featuredMediaId: data.featuredMediaId }),
-          updatedAt: new Date(),
-        }
-        if (data.publishedAt !== undefined) {
-          updateData.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null
-        } else if (data.status === POST_STATUS.PUBLISHED) {
-          const current = await tx.post.findUnique({ where: { id }, select: { publishedAt: true } })
-          if (current && !current.publishedAt) {
-            updateData.publishedAt = new Date()
-          }
-        }
-
         return tx.post.update({
           where: { id },
           data: updateData as any,
           include: {
-          tags: {
-            include: {
-              tag: true,
+            tags: {
+              include: {
+                tag: true,
+              },
             },
           },
-        },
+        })
       })
+    }
+
+    return prisma.post.update({
+      where: { id },
+      data: updateData as any,
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
     })
   }
 
@@ -294,7 +338,7 @@ export class PostsService {
     return prisma.$transaction(async (tx) => {
       const media = await tx.media.findMany({
         where: {
-          mediableType: 'Post',
+          mediableType: MEDIABLE_TYPES.POST,
           mediableId: id,
         },
       })
@@ -302,7 +346,7 @@ export class PostsService {
       if (media.length > 0) {
         await tx.media.updateMany({
           where: {
-            mediableType: 'Post',
+            mediableType: MEDIABLE_TYPES.POST,
             mediableId: id,
           },
           data: {
@@ -324,7 +368,7 @@ export class PostsService {
     return prisma.$transaction(async (tx) => {
       await tx.media.updateMany({
         where: {
-          mediableType: 'Post',
+          mediableType: MEDIABLE_TYPES.POST,
           mediableId: id,
         },
         data: {
@@ -344,7 +388,7 @@ export class PostsService {
   async hardDelete(id: string) {
     const media = await prisma.media.findMany({
       where: {
-        mediableType: 'Post',
+        mediableType: MEDIABLE_TYPES.POST,
         mediableId: id,
       },
     })

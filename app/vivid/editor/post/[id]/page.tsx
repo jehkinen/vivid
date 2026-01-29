@@ -13,10 +13,13 @@ import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
 import { POST_STATUS, POST_VISIBILITY, type PostStatus, type PostVisibility } from '@/shared/constants'
 import { usePost, useCreatePost, useUpdatePost } from '@/hooks/api/use-posts'
 import { useTags, useCreateTag } from '@/hooks/api/use-tags'
-import { slugify, cn } from '@/lib/utils'
+import { slugify, cn, countWords } from '@/lib/utils'
 import { TAG_DEFAULT_COLORS } from '@/shared/constants'
 import { usePostSettings } from '@/lib/post-settings-context'
-import { BookOpenIcon, XIcon, CaretLeftIcon } from '@phosphor-icons/react'
+import { XIcon, CaretLeft, Image as ImageIcon, SlidersHorizontal, Eye, List, Check } from '@phosphor-icons/react'
+import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
+import PublicLogo from '@/components/public/PublicLogo'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import Loader from '@/components/ui/Loader'
 
 const AUTOSAVE_DELAY_MS = 1000
@@ -53,6 +56,8 @@ export default function PostEditorPage() {
   const ignoreLexicalChangeUntil = useRef(0)
   const lastSyncedPostIdRef = useRef<string | null>(null)
   const prevPostIdRef = useRef<string>(postId)
+  const slugManuallyEditedRef = useRef(false)
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
 
   useEffect(() => {
     if (postId !== prevPostIdRef.current) {
@@ -75,6 +80,7 @@ export default function PostEditorPage() {
       autosaveTimer.current = null
     }
     ignoreLexicalChangeUntil.current = Date.now() + 500
+    slugManuallyEditedRef.current = false
     setTitle(post.title || '')
     setSlug(post.slug || '')
     setLexical(post.lexical)
@@ -142,6 +148,7 @@ export default function PostEditorPage() {
 
   const performSave = useCallback(
     (opts?: { publish?: boolean; replaceUrl?: boolean; status?: PostStatus }) => {
+      if (createPost.isPending || updatePost.isPending) return
       const s = opts?.status ?? (opts?.publish ? POST_STATUS.PUBLISHED : status)
       const t = (title || '').trim()
       const sslug = slug.trim() ? slugify(slug.trim()) : slugify(t || 'Untitled')
@@ -162,6 +169,10 @@ export default function PostEditorPage() {
       if (isNewPost && isEmpty) return
       
       if (!isNewPost && isEmpty && hasSavedOnce) {
+        return
+      }
+
+      if (!isNewPost && !safeLexical && (editor == null && (lexical == null || lexical === ''))) {
         return
       }
 
@@ -219,12 +230,15 @@ export default function PostEditorPage() {
     setHasUserTyped(false)
   }, [])
 
+  const isSaving = createPost.isPending || updatePost.isPending
+
   useEffect(() => {
     if (ignoreNextAutosaveCount.current > 0) {
       ignoreNextAutosaveCount.current -= 1
       return
     }
     if (!hasUserTyped) return
+    if (isSaving) return
     if (!isNew && isLoading) return
     if (!isNew && !initialLoadCompleteRef.current) return
     scheduleAutosave()
@@ -243,6 +257,7 @@ export default function PostEditorPage() {
     isNew,
     isLoading,
     hasUserTyped,
+    isSaving,
   ])
 
   const handleEditorChange = (_: any, __: string, lexicalState: string) => {
@@ -271,10 +286,10 @@ export default function PostEditorPage() {
   const handleTitleChange = (value: string) => {
     if (!isNew && !initialLoadCompleteRef.current) return
     setTitle(value)
+    if (!slugManuallyEditedRef.current) setSlug(slugify(value))
     setHasUserTyped(true)
   }
 
-  const isSaving = createPost.isPending || updatePost.isPending
   const resolvedId = isNew ? (hasSavedOnce ? resolvedIdRef.current : null) : postId
   const statusLabel =
     !hasSavedOnce && isNew
@@ -295,24 +310,9 @@ export default function PostEditorPage() {
     <div className="flex flex-col h-full">
       <header className="shrink-0 border-b px-6 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/vivid/posts" className="flex items-center gap-1.5">
-              <CaretLeftIcon size={16} />
-              <span>Posts</span>
-            </Link>
-          </Button>
-          <span className="text-sm text-muted-foreground">{statusLabel}</span>
+          <PublicLogo />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link
-              href={resolvedId ? `/vivid/editor/post/${resolvedId}/preview` : '#'}
-              target="_blank"
-              onClick={(e) => !resolvedId && e.preventDefault()}
-            >
-              Preview
-            </Link>
-          </Button>
           <div className="inline-flex rounded-md border border-border p-0.5">
             <button
               type="button"
@@ -345,21 +345,70 @@ export default function PostEditorPage() {
               Published
             </button>
           </div>
-          <button
-            onClick={handleSettingsToggle}
-            className={`flex items-center justify-center w-9 h-9 rounded-md border transition-colors ${
-              settingsOpen ? 'bg-accent text-accent-foreground border-border' : 'text-muted-foreground hover:text-foreground border-border'
-            }`}
-            aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
-          >
-            <BookOpenIcon size={16} />
-          </button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 min-w-0 overflow-auto">
-          <div className="max-w-3xl mx-auto py-8 px-6 font-reading">
+        <div className="flex-1 min-h-0 overflow-auto">
+        <div className="flex gap-0 md:gap-20 min-h-full w-full max-w-none md:max-w-[calc(48rem+80px+4rem)] mx-auto px-4 md:px-6">
+          <div className="hidden md:flex shrink-0 flex-col w-10">
+            <div className="group sticky top-[50vh] -translate-y-1/2 shrink-0 flex flex-col items-center gap-3 pt-8">
+              <InsertBlockPlus
+                editor={editor}
+                mediableType="Post"
+                mediableId={resolvedId || undefined}
+                triggerClassName="opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn(
+                  'h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100',
+                  settingsOpen && 'opacity-100 bg-accent text-accent-foreground'
+                )}
+                aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
+                onClick={handleSettingsToggle}
+              >
+                <SlidersHorizontal className="size-4" />
+              </Button>
+              <ReadingSettingsPanel iconOnly triggerClassName="opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100" />
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                aria-label="Back to posts"
+                asChild
+              >
+                <Link href="/vivid/posts">
+                  <CaretLeft className="size-4" weight="bold" />
+                </Link>
+              </Button>
+              {slug ? (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                  aria-label="Preview"
+                  asChild
+                >
+                  <Link href={`/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noopener noreferrer">
+                    <Eye className="size-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-full opacity-20 cursor-not-allowed"
+                  aria-label="Preview"
+                  disabled
+                >
+                  <Eye className="size-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 w-full max-w-3xl py-8 font-reading">
             <div className="flex">
               <div className="flex-1 min-w-0 flex flex-col relative">
                 {resolvedId && (
@@ -388,7 +437,9 @@ export default function PostEditorPage() {
                         mediableType="Post"
                         mediableId={resolvedId}
                         collection="featured"
-                        buttonLabel="+ Add feature image"
+                        buttonLabel="Featured Image"
+                        buttonIcon={<ImageIcon size={20} />}
+                        buttonClassName="min-h-[72px] py-4"
                         onUploaded={(m) => {
                           if (m.length) {
                             updatePost.mutate({ id: resolvedId, data: { featuredMediaId: m[0].id } })
@@ -424,16 +475,85 @@ export default function PostEditorPage() {
                       initialLoadCompleteRef.current = true
                     }
                   }}
+                  renderFloatingPanel={() => null}
                 />
               </div>
             </div>
           </div>
         </div>
+        </div>
+        <div className="hidden md:flex fixed bottom-0 left-0 z-10 flex-col gap-0.5 px-6 pb-4 text-xs text-muted-foreground opacity-70 pointer-events-none">
+          <span className="tabular-nums">{countWords(extractPlaintextFromLexical(lexical))} words</span>
+          <span className="inline-flex items-center gap-1.5">
+            {statusLabel}
+            {statusLabel.includes('Saved') && <Check className="size-3.5 shrink-0 text-green-500/70" weight="bold" />}
+          </span>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed bottom-4 left-4 z-20 md:hidden h-11 w-11 rounded-full shadow-lg opacity-90 hover:opacity-100"
+          aria-label="Open panel"
+          onClick={() => setMobilePanelOpen(true)}
+        >
+          <List className="size-5" />
+        </Button>
+        <Sheet open={mobilePanelOpen} onOpenChange={setMobilePanelOpen}>
+          <SheetContent side="left" className="w-[280px] sm:max-w-[280px] flex flex-col gap-6 py-6" showCloseButton={true}>
+            <div className="flex flex-col items-center gap-4">
+              <InsertBlockPlus
+                editor={editor}
+                mediableType="Post"
+                mediableId={resolvedId || undefined}
+                triggerClassName="opacity-80 transition-opacity hover:opacity-100"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn(
+                  'h-9 w-9 rounded-full opacity-80 transition-opacity hover:opacity-100',
+                  settingsOpen && 'opacity-100 bg-accent text-accent-foreground'
+                )}
+                aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
+                onClick={() => { handleSettingsToggle(); setMobilePanelOpen(false) }}
+              >
+                <SlidersHorizontal className="size-4" />
+              </Button>
+              <ReadingSettingsPanel iconOnly triggerClassName="opacity-80 transition-opacity hover:opacity-100" />
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full opacity-80" aria-label="Back to posts" asChild>
+                <Link href="/vivid/posts" onClick={() => setMobilePanelOpen(false)}>
+                  <CaretLeft className="size-4" weight="bold" />
+                </Link>
+              </Button>
+              {slug ? (
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full opacity-80" aria-label="Preview" asChild>
+                  <Link href={`/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noopener noreferrer" onClick={() => setMobilePanelOpen(false)}>
+                    <Eye className="size-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full opacity-50" disabled aria-label="Preview">
+                  <Eye className="size-4" />
+                </Button>
+              )}
+            </div>
+            <div className="mt-auto flex flex-col items-center gap-1 text-xs text-muted-foreground pt-4 border-t">
+              <span className="tabular-nums">{countWords(extractPlaintextFromLexical(lexical))} words</span>
+              <span className="inline-flex items-center gap-1.5">
+                {statusLabel}
+                {statusLabel.includes('Saved') && <Check className="size-3.5 shrink-0 text-green-500/70" weight="bold" />}
+              </span>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         {settingsOpen && (
           <PostSettingsPanel
             slug={slug}
-            onSlugChange={setSlug}
+            onSlugChange={(v) => {
+              slugManuallyEditedRef.current = true
+              setSlug(v)
+            }}
             visibility={visibility}
             onVisibilityChange={setVisibility}
             publishedAt={publishedAt}

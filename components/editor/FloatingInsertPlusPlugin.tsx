@@ -1,14 +1,18 @@
 'use client'
 
+import type { LexicalEditor } from 'lexical'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getSelection, $isRangeSelection } from 'lexical'
-import { useEffect, useState, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useMediable } from './MediableContext'
 import InsertBlockPlus from './InsertBlockPlus'
+
+export const FloatingPanelContext = createContext<((props: { editor: LexicalEditor }) => React.ReactNode) | null>(null)
 
 export default function FloatingInsertPlusPlugin() {
   const [editor] = useLexicalComposerContext()
   const { mediableType, mediableId } = useMediable()
+  const renderFloatingPanel = useContext(FloatingPanelContext)
   const [show, setShow] = useState(false)
   const [top, setTop] = useState<number | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -104,15 +108,27 @@ export default function FloatingInsertPlusPlugin() {
 
   if (!show || top === null) return null
 
+  if (renderFloatingPanel) {
+    const panel = renderFloatingPanel({ editor })
+    if (panel == null) return null
+    return (
+      <div
+        className="absolute z-10 pointer-events-none"
+        style={{ top: `${top}px`, left: '-56px' }}
+      >
+        <div className="pointer-events-auto flex flex-col items-center justify-center">
+          {panel}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="absolute z-10 pointer-events-none"
-      style={{
-        top: `${top}px`,
-        left: '-48px',
-      }}
+      style={{ top: `${top}px`, left: '-56px' }}
     >
-      <div className="pointer-events-auto flex items-center justify-center">
+      <div className="pointer-events-auto flex flex-col items-center justify-center">
         <InsertBlockPlus
           editor={editor}
           mediableType={mediableType}

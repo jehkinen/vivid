@@ -24,6 +24,8 @@ interface MediaUploadProps {
   multiple?: boolean
   onUploaded?: (media: any[]) => void
   buttonLabel?: string
+  buttonIcon?: React.ReactNode
+  buttonClassName?: string
   accept?: string
 }
 
@@ -35,6 +37,8 @@ export default function MediaUpload({
   multiple = false,
   onUploaded,
   buttonLabel = 'Select Files',
+  buttonIcon,
+  buttonClassName,
   accept = 'image/*',
 }: MediaUploadProps) {
   const [items, setItems] = useState<UploadItem[]>([])
@@ -235,9 +239,13 @@ export default function MediaUpload({
             type="button"
             variant="outline"
             disabled={disabled}
-            className="w-full pointer-events-none"
+            className={['w-full pointer-events-none', buttonClassName].filter(Boolean).join(' ')}
           >
-            <UploadSimpleIcon className="mr-2 h-4 w-4" />
+            {buttonIcon ? (
+              <span className="mr-2 inline-flex [&>svg]:h-4 [&>svg]:w-4">{buttonIcon}</span>
+            ) : (
+              <UploadSimpleIcon className="mr-2 h-4 w-4" />
+            )}
             {buttonLabel}
           </Button>
         </div>
