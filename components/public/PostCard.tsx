@@ -17,7 +17,7 @@ interface PostCardProps {
   plaintext: string | null
   publishedAt: string | Date | null
   wordCount: number | null
-  tags?: { tag: { id: string; name: string; slug: string } }[]
+  tags?: { tag: { id: string; name: string; slug: string; color?: string | null } }[]
 }
 
 export default function PostCard({ title, slug, plaintext, publishedAt, wordCount, tags }: PostCardProps) {
@@ -46,8 +46,15 @@ export default function PostCard({ title, slug, plaintext, publishedAt, wordCoun
       {tagList.length > 0 && (
         <p className="text-sm text-muted-foreground mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1">
           {tagList.map((tag, i) => (
-            <span key={tag.id} className="inline-flex items-center">
+            <span key={tag.id} className="inline-flex items-center gap-1">
               {i > 0 && <span className="text-border select-none">·</span>}
+              {tag.color && (
+                <span
+                  className="shrink-0 w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: tag.color }}
+                  aria-hidden
+                />
+              )}
               <Link
                 href={`/tag/${tag.slug}`}
                 className="italic hover:text-foreground hover:font-normal rounded px-1.5 py-0.5 -mx-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"

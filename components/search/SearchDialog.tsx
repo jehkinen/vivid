@@ -16,6 +16,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { FileTextIcon, TagIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
+import { cn } from '@/lib/utils'
 import { useSearch, usePublicSearch, usePublicTagsSearch } from '@/hooks/api/use-search'
 
 const DEBOUNCE_MS = 300
@@ -140,16 +141,26 @@ export default function SearchDialog({
       )}
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
-          className="max-w-xl w-[calc(100%-2rem)] p-0 top-6 left-1/2 -translate-x-1/2 translate-y-0"
+          className={cn(
+            'max-w-xl w-[calc(100%-2rem)] p-0 left-1/2 -translate-x-1/2 translate-y-0',
+            variant === 'public' ? 'top-[70px]' : 'top-6'
+          )}
           aria-describedby={undefined}
         >
           <DialogTitle className="sr-only">{labels.title}</DialogTitle>
-          <Command shouldFilter={false} className="[&_[data-slot=command-list]]:!max-h-[min(400px,70vh)]">
+          <Command
+            shouldFilter={false}
+            className={cn(
+              '[&_[data-slot=command-list]]:!max-h-[min(400px,70vh)]',
+              variant === 'public' && '[&_[data-slot=command-input-wrapper]]:h-14 [&_[data-slot=command-input-wrapper]]:px-4 [&_[data-slot=command-input]]:h-12 [&_[data-slot=command-input]]:text-base [&_[data-slot=command-input]]:py-3'
+            )}
+          >
             <CommandInput
               placeholder={labels.placeholder}
               value={query}
               onValueChange={setQuery}
               onClear={() => setQuery('')}
+              className={variant === 'public' ? 'h-12 text-base' : undefined}
             />
             <CommandList>
               {isLoading && (

@@ -9,7 +9,7 @@ interface Post {
   title: string | null
   slug: string
   plaintext: string | null
-  publishedAt: string | null
+  publishedAt: string | Date | null
   wordCount: number | null
   tags?: { tag: { id: string; name: string; slug: string } }[]
 }

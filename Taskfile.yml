@@ -11,6 +11,11 @@ tasks:
     cmds:
       - npm run build
 
+  start:
+    desc: Запускает Next.js в production режиме (после task build)
+    cmds:
+      - npm run start
+
   test:
     desc: Запускает тесты
     cmds:

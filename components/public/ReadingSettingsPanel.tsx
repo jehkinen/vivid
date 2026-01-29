@@ -114,21 +114,22 @@ export default function ReadingSettingsPanel() {
           <span className="hidden sm:inline">Reading</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-72 sm:w-80">
-        <SheetHeader>
-          <SheetTitle>Reading settings</SheetTitle>
+
+      <SheetContent side="right" className="w-72 sm:w-80 flex flex-col">
+        <SheetHeader className="pb-2">
+          <SheetTitle className="text-base">Reading settings</SheetTitle>
         </SheetHeader>
-        <div className="flex flex-col gap-8 px-1 pt-6">
-          <div>
-            <label className="block text-sm font-medium mb-3">Font</label>
-            <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-6 px-4 overflow-auto">
+          <section className="space-y-2">
+            <label className="block text-sm font-medium text-muted-foreground">Font</label>
+            <div className="flex flex-col gap-0.5">
               {FONTS.map((f) => (
                 <button
                   key={f.id}
                   type="button"
                   onClick={() => handleFont(f.id)}
                   className={cn(
-                    'w-full rounded-md px-3 py-2 text-left text-sm transition-colors',
+                    'w-full rounded-md px-3 py-2.5 text-left text-sm transition-colors',
                     font === f.id
                       ? 'bg-accent text-accent-foreground'
                       : 'hover:bg-muted text-foreground'
@@ -138,11 +139,12 @@ export default function ReadingSettingsPanel() {
                 </button>
               ))}
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-3">
-              Text size: {fontSize} px
-            </label>
+          </section>
+          <section className="space-y-2 pt-1 border-t border-border">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-muted-foreground">Text size</label>
+              <span className="text-sm tabular-nums text-foreground">{fontSize} px</span>
+            </div>
             <input
               type="range"
               min={FONT_MIN}
@@ -153,7 +155,7 @@ export default function ReadingSettingsPanel() {
               className="w-full h-2 rounded-full appearance-none bg-muted accent-foreground [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
               aria-label="Text size"
             />
-          </div>
+          </section>
         </div>
       </SheetContent>
     </Sheet>

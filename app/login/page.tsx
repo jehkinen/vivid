@@ -43,7 +43,7 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex items-center justify-center p-4">
       <ShaderBackground />
       <div className="relative z-10 w-full max-w-[380px] flex flex-col items-center">
-        <div className="mb-6">
+        <div className="mb-6 px-4 py-2 rounded-lg bg-black/30 backdrop-blur-sm">
           <PublicLogo />
         </div>
         <div className="rounded-2xl border border-white/[0.07] bg-black/30 px-8 py-7 shadow-2xl shadow-black/40 backdrop-blur-xl w-full">

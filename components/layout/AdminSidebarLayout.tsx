@@ -33,6 +33,7 @@ import {
 } from '@phosphor-icons/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import GlobalSearch from '@/components/search/GlobalSearch'
+import PublicLogo from '@/components/public/PublicLogo'
 import { PostSettingsProvider, usePostSettings } from '@/lib/post-settings-context'
 import { routes } from '@/lib/routes'
 import { useRoute } from '@/lib/route-context'
@@ -184,7 +185,7 @@ export default function AdminSidebarLayout({ children }: { children: React.React
           <SidebarGroup className="pt-12">
             <SidebarGroupLabel className="px-2 pt-0 pb-6 mb-4">
               <div className="flex w-full items-center justify-between gap-2">
-                <span className="text-xl font-bold">Vivid</span>
+                <PublicLogo />
                 <button
                   type="button"
                   onClick={() => setSearchOpen(true)}

@@ -75,7 +75,7 @@ function CommandInput({
       data-slot="command-input-wrapper"
       className="flex h-9 items-center gap-2 border-b px-3"
     >
-      <MagnifyingGlassIcon className="size-4 shrink-0 opacity-50" />
+      {!showClear && <MagnifyingGlassIcon className="size-4 shrink-0 opacity-50" />}
       {showClear && (
         <button
           type="button"

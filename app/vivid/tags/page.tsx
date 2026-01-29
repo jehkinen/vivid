@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -78,7 +79,14 @@ export default function TagsPage() {
                           style={{ backgroundColor: tag.color }}
                         />
                       )}
-                      <span className="font-medium">{tag.name}</span>
+                      <Link
+                        href={`/tag/${tag.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {tag.name}
+                      </Link>
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{tag.slug}</TableCell>
