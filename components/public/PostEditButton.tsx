@@ -10,12 +10,17 @@ interface PostEditButtonProps {
 
 export default function PostEditButton({ postId }: PostEditButtonProps) {
   return (
-    <Button variant="outline" size="sm" asChild>
+    <Button
+      variant="outline"
+      size="icon"
+      className="h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+      asChild
+    >
       <Link
         href={`/vivid/editor/post/${postId}`}
         aria-label="Редактировать пост"
       >
-        <PencilSimple className="size-4" />
+        <PencilSimple className="size-4" weight="bold" />
       </Link>
     </Button>
   )

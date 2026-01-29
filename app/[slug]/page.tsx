@@ -9,6 +9,7 @@ import PublicLayout from '@/components/public/PublicLayout'
 import PostContent from '@/components/view/PostContent'
 import PostEditButton from '@/components/public/PostEditButton'
 import PostBackButton from '@/components/public/PostBackButton'
+import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
 
 const RESERVED_SLUGS = ['tag', 'vivid', 'login', 'api']
 
@@ -40,17 +41,14 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
     : []
 
   return (
-    <PublicLayout>
+    <PublicLayout showReadingSettingsInHeader={false}>
       <div className="flex gap-4 items-start">
-        <div className="group sticky top-[50vh] -translate-y-1/2 shrink-0 w-14 flex justify-center pr-4">
+        <div className="group sticky top-[50vh] -translate-y-1/2 shrink-0 w-14 flex flex-col items-center gap-3 pr-4">
           <PostBackButton />
+          <ReadingSettingsPanel iconOnly />
+          {loggedIn && <PostEditButton postId={post.id} />}
         </div>
         <article className="relative max-w-3xl mx-auto flex-1 min-w-0 font-reading">
-          {loggedIn && (
-            <div className="absolute top-0 right-0">
-              <PostEditButton postId={post.id} />
-            </div>
-          )}
         <header className="mb-8">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground mb-4">
             <time>{formatPostDate(post.publishedAt)}</time>

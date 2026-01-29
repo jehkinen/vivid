@@ -72,7 +72,7 @@ export default function PostSettingsPanel({
                   onPublishedAtChange(null)
                 }
               }}
-              className="flex-1 h-9 rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:[filter:invert(1)]"
+              className="flex-1 h-9 rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:[filter:brightness(0)_invert(1)]"
             />
             <input
               type="time"
@@ -84,7 +84,7 @@ export default function PostSettingsPanel({
                   onPublishedAtChange(new Date(dateVal + 'T' + (v || '00:00')).toISOString())
                 }
               }}
-              className="w-[100px] h-9 rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:[filter:invert(1)]"
+              className="w-[100px] h-9 rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:[filter:brightness(0)_invert(1)]"
             />
           </div>
         </div>

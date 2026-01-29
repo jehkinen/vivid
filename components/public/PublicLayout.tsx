@@ -10,9 +10,10 @@ interface PublicLayoutProps {
   children: React.ReactNode
   sidebar?: React.ReactNode
   headerRight?: React.ReactNode
+  showReadingSettingsInHeader?: boolean
 }
 
-export default function PublicLayout({ children, sidebar, headerRight }: PublicLayoutProps) {
+export default function PublicLayout({ children, sidebar, headerRight, showReadingSettingsInHeader = true }: PublicLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background">
@@ -23,7 +24,7 @@ export default function PublicLayout({ children, sidebar, headerRight }: PublicL
           </Suspense>
           <div className="flex items-center gap-2">
             {headerRight}
-            <ReadingSettingsPanel />
+            {showReadingSettingsInHeader && <ReadingSettingsPanel />}
             <PublicHeaderProfile />
           </div>
         </div>

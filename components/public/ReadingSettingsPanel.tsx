@@ -9,8 +9,12 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { SlidersIcon } from '@phosphor-icons/react'
+import { SlidersIcon, BookOpenText } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
+
+export interface ReadingSettingsPanelProps {
+  iconOnly?: boolean
+}
 
 const READING_FONT_KEY = 'readingFont'
 const READING_FONT_SIZE_KEY = 'readingFontSize'
@@ -53,7 +57,7 @@ function applyFontSize(px: number) {
   localStorage.setItem(READING_FONT_SIZE_KEY, String(px))
 }
 
-export default function ReadingSettingsPanel() {
+export default function ReadingSettingsPanel({ iconOnly = false }: ReadingSettingsPanelProps) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [font, setFont] = useState<ReadingFontId>('bitter')
@@ -89,14 +93,16 @@ export default function ReadingSettingsPanel() {
   if (!mounted) {
     return (
       <Button
-        variant="ghost"
-        size="sm"
-        className="gap-1.5 text-muted-foreground"
+        variant={iconOnly ? 'outline' : 'ghost'}
+        size="icon"
+        className={cn(
+          iconOnly && 'h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100'
+        )}
         aria-label="Reading settings"
         type="button"
       >
-        <SlidersIcon size={18} />
-        <span className="hidden sm:inline">Reading</span>
+        {iconOnly ? <BookOpenText className="size-4" /> : <SlidersIcon size={18} />}
+        {!iconOnly && <span className="hidden sm:inline">Reading</span>}
       </Button>
     )
   }
@@ -105,13 +111,16 @@ export default function ReadingSettingsPanel() {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5 text-muted-foreground hover:text-foreground"
+          variant={iconOnly ? 'outline' : 'ghost'}
+          size="icon"
+          className={cn(
+            !iconOnly && 'gap-1.5 text-muted-foreground hover:text-foreground',
+            iconOnly && 'h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100'
+          )}
           aria-label="Reading settings"
         >
-          <SlidersIcon size={18} />
-          <span className="hidden sm:inline">Reading</span>
+          {iconOnly ? <BookOpenText className="size-4" /> : <SlidersIcon size={18} />}
+          {!iconOnly && <span className="hidden sm:inline">Reading</span>}
         </Button>
       </SheetTrigger>
 
