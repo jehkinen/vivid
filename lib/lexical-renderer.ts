@@ -34,6 +34,11 @@ export function renderLexicalToHtml(
         }).join('')
         return `<figure class="my-6"><div class="kg-gallery-container grid grid-cols-2 md:grid-cols-3 gap-2">${images}</div></figure>`
       }
+      if (node.type === LEXICAL_NODE_TYPE.AUDIO) {
+        const src = (node.mediaId && resolveUrl) ? resolveUrl(node.mediaId) : node.src
+        const title = node.title ? `<figcaption class="text-sm text-muted-foreground mt-2 text-center">${node.title}</figcaption>` : ''
+        return `<figure class="my-6"><div class="rounded-lg border border-border bg-muted p-4"><audio controls class="w-full max-w-full" preload="metadata"><source src="${src}" /></audio></div>${title}</figure>`
+      }
       if (node.type === LEXICAL_NODE_TYPE.TEXT) {
         let text = node.text || ''
         if (node.format) {
@@ -100,6 +105,8 @@ export function extractImageNodes(lexicalJson: string | null): Array<{ src: stri
           src: node.src,
           mediaId: node.mediaId,
         })
+      } else if (node.type === LEXICAL_NODE_TYPE.AUDIO && node.mediaId) {
+        images.push({ src: node.src ?? '', mediaId: node.mediaId })
       } else if (node.type === LEXICAL_NODE_TYPE.GALLERY && node.images) {
         node.images.forEach((img: any) => {
           images.push({

@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  optimizePackageImports: ['@phosphor-icons/react'],
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

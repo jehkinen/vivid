@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -10,6 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import {
   Tooltip,
   TooltipContent,
@@ -35,6 +49,7 @@ export default function PostsPage() {
   const [status, setStatus] = useState<string>('')
   const [visibility, setVisibility] = useState<string>('')
   const [tagId, setTagId] = useState<string>('')
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false)
   const [sort, setSort] = useState<PostSortOption>(POST_SORT_OPTIONS.NEWEST)
   const [postToDelete, setPostToDelete] = useState<{ id: string; title: string } | null>(null)
   const [permanentDeletePost, setPermanentDeletePost] = useState<{ id: string; title: string } | null>(null)
@@ -123,19 +138,50 @@ export default function PostsPage() {
               <SelectItem value={POST_VISIBILITY.PRIVATE}>Private</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={tagId || 'all'} onValueChange={(v) => setTagId(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-[130px] h-9">
-              <SelectValue placeholder="All tags" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All tags</SelectItem>
-              {tags.map((tag: Tag) => (
-                <SelectItem key={tag.id} value={tag.id}>
-                  {tag.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-[160px] justify-between font-normal h-9 px-3 text-sm"
+              >
+                <span className="truncate">
+                  {tagId ? tags.find((t: Tag) => t.id === tagId)?.name ?? 'All tags' : 'All tags'}
+                </span>
+                <span className="shrink-0 opacity-50">⌄</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search tags..." />
+                <CommandList>
+                  <CommandEmpty>No tag found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="all tags"
+                      onSelect={() => {
+                        setTagId('')
+                        setTagPopoverOpen(false)
+                      }}
+                    >
+                      All tags
+                    </CommandItem>
+                    {tags.map((tag: Tag) => (
+                      <CommandItem
+                        key={tag.id}
+                        value={`${tag.name} ${tag.slug}`}
+                        onSelect={() => {
+                          setTagId(tag.id)
+                          setTagPopoverOpen(false)
+                        }}
+                      >
+                        {tag.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <Select value={sort} onValueChange={(v) => setSort(v as PostSortOption)}>
             <SelectTrigger className="w-[140px] h-9">
               <SelectValue placeholder="Sort" />
@@ -164,70 +210,65 @@ export default function PostsPage() {
           posts.map((post: any) => (
             <div
               key={post.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => router.push(`/vivid/editor/post/${post.id}`)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  router.push(`/vivid/editor/post/${post.id}`)
-                }
-              }}
-              className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+              className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
             >
-              <div className="w-16 h-16 shrink-0 rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
-                {post.featuredMedia?.url ? (
-                  <img
-                    src={post.featuredMedia.url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <ImageIcon size={24} className="text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">
-                  <span className="truncate">{post.title || 'Untitled'}</span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {subtitle(post)}
-                </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  {!post.deletedAt && (
-                    <>
-                      <span
-                        className={`text-sm ${
-                          post.status === POST_STATUS.PUBLISHED
-                            ? 'text-muted-foreground'
-                            : 'text-rose-600 dark:text-rose-400'
-                        }`}
-                      >
-                        {post.status?.charAt(0).toUpperCase()}
-                        {post.status?.slice(1)}
-                      </span>
-                      {post.visibility === POST_VISIBILITY.PRIVATE && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex shrink-0">
-                              <LockIcon size={16} className="text-muted-foreground" />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>Private post</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </>
+              <Link
+                href={`/vivid/editor/post/${post.id}`}
+                className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+              >
+                <div className="w-16 h-16 shrink-0 rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
+                  {post.featuredMedia?.url ? (
+                    <img
+                      src={post.featuredMedia.url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImageIcon size={24} className="text-muted-foreground" />
                   )}
                 </div>
-              </div>
-              <div className="shrink-0 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">
+                    <span className="truncate">{post.title || 'Untitled'}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {subtitle(post)}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {!post.deletedAt && (
+                      <>
+                        <span
+                          className={`text-sm ${
+                            post.status === POST_STATUS.PUBLISHED
+                              ? 'text-muted-foreground'
+                              : 'text-rose-600 dark:text-rose-400'
+                          }`}
+                        >
+                          {post.status?.charAt(0).toUpperCase()}
+                          {post.status?.slice(1)}
+                        </span>
+                        {post.visibility === POST_VISIBILITY.PRIVATE && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex shrink-0">
+                                <LockIcon size={16} className="text-muted-foreground" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Private post</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </Link>
+              <div className="shrink-0 flex items-center gap-2">
                 {post.deletedAt ? (
                   <>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
+                      onClick={() => {
                         restorePost.mutate(post.id)
                       }}
                       disabled={restorePost.isPending}
@@ -237,8 +278,7 @@ export default function PostsPage() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
+                      onClick={() => {
                         setPermanentDeletePost({ id: post.id, title: post.title || 'Untitled' })
                       }}
                       disabled={hardDeletePost.isPending}
@@ -251,8 +291,7 @@ export default function PostsPage() {
                     <Button
                       variant="ghost"
                       size="icon-xl"
-                      onClick={(e) => {
-                        e.stopPropagation()
+                      onClick={() => {
                         router.push(`/vivid/editor/post/${post.id}`)
                       }}
                       aria-label="Edit"
@@ -262,8 +301,7 @@ export default function PostsPage() {
                     <Button
                       variant="ghost"
                       size="icon-xl"
-                      onClick={(e) => {
-                        e.stopPropagation()
+                      onClick={() => {
                         setPostToDelete({ id: post.id, title: post.title || 'Untitled' })
                       }}
                       aria-label="Delete"

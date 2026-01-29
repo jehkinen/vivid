@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useTag, useCreateTag, useUpdateTag, useDeleteTag } from '@/hooks/api/use-tags'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { useTag, useTags, useCreateTag, useUpdateTag, useDeleteTag, useMergeTag } from '@/hooks/api/use-tags'
 import { slugify } from '@/lib/utils'
 import { TAG_DEFAULT_COLORS } from '@/shared/constants'
 import Loader from '@/components/ui/Loader'
@@ -24,9 +37,11 @@ export default function TagEditPage() {
   const isNew = slug === 'new'
 
   const { data: tag, isLoading } = useTag(isNew ? '' : slug)
+  const { data: allTags = [] } = useTags()
   const createTag = useCreateTag()
   const updateTag = useUpdateTag()
   const deleteTag = useDeleteTag()
+  const mergeTag = useMergeTag()
 
   const [name, setName] = useState('')
   const [slugValue, setSlugValue] = useState('')
@@ -35,6 +50,16 @@ export default function TagEditPage() {
   )
   const [description, setDescription] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
+  const [mergeTargetId, setMergeTargetId] = useState('')
+  const [mergePopoverOpen, setMergePopoverOpen] = useState(false)
+  const slugSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (slugSyncTimerRef.current) clearTimeout(slugSyncTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (tag && !isNew) {
@@ -54,8 +79,8 @@ export default function TagEditPage() {
       createTag.mutate(
         { name, slug: slugValue, color },
         {
-          onSuccess: (data) => {
-            router.push(`/vivid/tags/${data.slug}`)
+          onSuccess: () => {
+            router.push('/vivid/tags')
           },
         }
       )
@@ -64,9 +89,7 @@ export default function TagEditPage() {
         { slug, data: { name, slug: slugValue, color, description } },
         {
           onSuccess: () => {
-            if (slugValue !== slug) {
-              router.push(`/vivid/tags/${slugValue}`)
-            }
+            router.push('/vivid/tags')
           },
         }
       )
@@ -81,6 +104,24 @@ export default function TagEditPage() {
       },
     })
     setDeleteDialogOpen(false)
+  }
+
+  const otherTags = (allTags as { id: string; name: string; slug: string }[]).filter(
+    (t) => t.id !== tag?.id
+  )
+
+  const handleMerge = () => {
+    if (!tag || !mergeTargetId) return
+    mergeTag.mutate(
+      { sourceTagId: tag.id, targetTagId: mergeTargetId },
+      {
+        onSuccess: (data) => {
+          setMergeDialogOpen(false)
+          setMergeTargetId('')
+          router.push(data?.targetTagSlug ? `/vivid/tags/${data.targetTagSlug}` : '/vivid/tags')
+        },
+      }
+    )
   }
 
   if (isLoading && !isNew) {
@@ -106,10 +147,13 @@ export default function TagEditPage() {
             <Input
               value={name}
               onChange={(e) => {
-                setName(e.target.value)
-                if (isNew && !slugValue) {
-                  setSlugValue(slugify(e.target.value))
-                }
+                const value = e.target.value
+                setName(value)
+                if (slugSyncTimerRef.current) clearTimeout(slugSyncTimerRef.current)
+                slugSyncTimerRef.current = setTimeout(() => {
+                  slugSyncTimerRef.current = null
+                  setSlugValue(slugify(value))
+                }, 500)
               }}
               placeholder="Tag name"
             />
@@ -150,6 +194,18 @@ export default function TagEditPage() {
               placeholder="Tag description (optional)"
             />
           </div>
+
+          {!isNew && otherTags.length > 0 && (
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <h3 className="text-sm font-medium">Merge into another tag</h3>
+              <p className="text-sm text-muted-foreground">
+                All posts with this tag will get the chosen tag. This tag will be removed.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setMergeDialogOpen(true)}>
+                Merge into...
+              </Button>
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-4">
             <div>
@@ -195,6 +251,69 @@ export default function TagEditPage() {
               disabled={deleteTag.isPending}
             >
               {deleteTag.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Merge tag</DialogTitle>
+            <DialogDescription>
+              Choose the tag to merge into. All posts with «{tag?.name}» will get the chosen tag,
+              then this tag will be removed.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <label className="block text-sm font-medium mb-2">Target tag</label>
+            <Popover open={mergePopoverOpen} onOpenChange={setMergePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between font-normal h-9 px-3 text-sm"
+                >
+                  <span className="truncate">
+                    {mergeTargetId
+                      ? otherTags.find((t) => t.id === mergeTargetId)?.name ?? 'Select tag...'
+                      : 'Select tag...'}
+                  </span>
+                  <span className="shrink-0 opacity-50">⌄</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search tags..." />
+                  <CommandList>
+                    <CommandEmpty>No tag found.</CommandEmpty>
+                    <CommandGroup>
+                      {otherTags.map((t) => (
+                        <CommandItem
+                          key={t.id}
+                          value={`${t.name} ${t.slug}`}
+                          onSelect={() => {
+                            setMergeTargetId(t.id)
+                            setMergePopoverOpen(false)
+                          }}
+                        >
+                          {t.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMerge}
+              disabled={!mergeTargetId || mergeTag.isPending}
+            >
+              {mergeTag.isPending ? 'Merging...' : 'Merge'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { v4 as uuidv4 } from 'uuid'
 import { generateId } from '@/shared/id'
 import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
+import { countWords } from '@/lib/utils'
 import { POST_SORT_OPTIONS, POST_STATUS, POST_TYPE, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
 import { mediaService, type MediaService } from './media.service'
 import { storageService } from './storage.service'
@@ -36,12 +37,15 @@ interface FindPostsParams {
   slug?: string
   search?: string
   tagIds?: string[]
+  tagSlug?: string
   status?: string
   visibility?: string
   authorIds?: string[]
   sort?: PostSortOption
   includeDeleted?: boolean
   deletedOnly?: boolean
+  limit?: number
+  offset?: number
 }
 
 const SORT_ORDER_BY: Record<PostSortOption, { [key: string]: 'asc' | 'desc' }> = {
@@ -118,6 +122,13 @@ export class PostsService {
         },
       }
     }
+    if (params.tagSlug) {
+      where.tags = {
+        some: {
+          tag: { slug: params.tagSlug },
+        },
+      }
+    }
 
     if (params.status) {
       where.status = params.status
@@ -136,11 +147,18 @@ export class PostsService {
     }
 
     const sort = params.sort || POST_SORT_OPTIONS.NEWEST
-    const orderBy = SORT_ORDER_BY[sort] ?? { updatedAt: 'desc' }
+    const orderBy =
+      params.status === POST_STATUS.PUBLISHED && sort === POST_SORT_OPTIONS.NEWEST
+        ? { publishedAt: 'desc' as const }
+        : (SORT_ORDER_BY[sort] ?? { updatedAt: 'desc' })
+    const limit = params.limit ?? 100
+    const offset = params.offset ?? 0
 
     const posts = await prisma.post.findMany({
       where,
       orderBy,
+      skip: offset,
+      take: limit,
       include: {
         tags: {
           include: {
@@ -168,7 +186,7 @@ export class PostsService {
   async create(data: CreatePostData) {
     const generatedPlaintext = data.plaintext || extractPlaintextFromLexical(data.lexical || null)
     const tags = data.tagIds?.length
-      ? { create: data.tagIds.map((tagId) => ({ tagId })) }
+      ? { create: data.tagIds.filter((id): id is string => Boolean(id)).map((tagId) => ({ tagId })) }
       : undefined
 
     const isPublished = data.status === POST_STATUS.PUBLISHED
@@ -185,6 +203,7 @@ export class PostsService {
       slug: data.slug || `untitled-${generateId().slice(0, 8)}`,
       lexical: data.lexical ?? null,
       plaintext: generatedPlaintext ?? null,
+      wordCount: countWords(generatedPlaintext),
       status: data.status || POST_STATUS.DRAFT,
       type: POST_TYPE.POST,
       visibility: data.visibility || POST_VISIBILITY.PUBLIC,
@@ -226,7 +245,10 @@ export class PostsService {
           ...(data.title !== undefined && { title: data.title }),
           ...(data.slug && { slug: data.slug }),
           ...(data.lexical !== undefined && { lexical: data.lexical }),
-          ...(generatedPlaintext !== undefined && { plaintext: generatedPlaintext }),
+          ...(generatedPlaintext !== undefined && {
+            plaintext: generatedPlaintext,
+            wordCount: countWords(generatedPlaintext),
+          }),
           ...(data.status && { status: data.status }),
           ...(data.visibility && { visibility: data.visibility }),
           ...(data.featured !== undefined && { featured: data.featured }),

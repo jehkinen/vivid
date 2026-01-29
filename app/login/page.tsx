@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ShaderBackground from '@/components/login/ShaderBackground'
+import PublicLogo from '@/components/public/PublicLogo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -42,9 +43,9 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex items-center justify-center p-4">
       <ShaderBackground />
       <div className="relative z-10 w-full max-w-[380px] flex flex-col items-center">
-        <span className="inline-flex rounded-full px-6 py-2.5 bg-black/25 backdrop-blur-sm mb-6">
-          <span className="text-3xl font-semibold tracking-[0.35em] bg-gradient-to-r from-[#3eb8b5] via-[#d4738f] to-[#9b8bd4] bg-clip-text text-transparent [-webkit-text-fill-color:transparent] [filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))_drop-shadow(0_2px_12px_rgba(0,0,0,0.6))]">vivid</span>
-        </span>
+        <div className="mb-6">
+          <PublicLogo />
+        </div>
         <div className="rounded-2xl border border-white/[0.07] bg-black/30 px-8 py-7 shadow-2xl shadow-black/40 backdrop-blur-xl w-full">
           <h1 className="text-[1.25rem] font-medium tracking-tight text-white mb-0.5">Sign in</h1>
           <p className="text-[0.8125rem] text-white/50 mb-6">Email and password</p>

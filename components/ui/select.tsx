@@ -12,7 +12,6 @@ function Select({
   return (
     <SelectPrimitive.Root 
       data-slot="select" 
-      suppressHydrationWarning
       {...props} 
     />
   )

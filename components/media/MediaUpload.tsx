@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { UploadSimpleIcon, CheckIcon, WarningCircleIcon } from '@phosphor-icons/react'
+import { UploadSimpleIcon, CheckIcon, WarningCircleIcon, MusicNotesIcon } from '@phosphor-icons/react'
 import { MEDIABLE_TYPES, UPLOAD_ITEM_STATUS, type UploadItemStatus } from '@/shared/constants'
 
 interface UploadItem {
@@ -24,6 +24,7 @@ interface MediaUploadProps {
   multiple?: boolean
   onUploaded?: (media: any[]) => void
   buttonLabel?: string
+  accept?: string
 }
 
 export default function MediaUpload({
@@ -34,6 +35,7 @@ export default function MediaUpload({
   multiple = false,
   onUploaded,
   buttonLabel = 'Select Files',
+  accept = 'image/*',
 }: MediaUploadProps) {
   const [items, setItems] = useState<UploadItem[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -179,40 +181,50 @@ export default function MediaUpload({
     <div className="space-y-4">
       {items.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {items.map((item, index) => (
-            <div key={item.id} className="flex flex-col gap-1.5">
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-                <img
-                  src={item.previewUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex items-center justify-center min-h-[24px]">
-                {item.status === UPLOAD_ITEM_STATUS.PENDING || item.status === UPLOAD_ITEM_STATUS.UPLOADING ? (
-                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-[width] duration-150 ease-out"
-                      style={{ width: `${item.progress}%` }}
+          {items.map((item, index) => {
+            const isAudio = item.file.type.startsWith('audio/')
+            return (
+              <div key={item.id} className="flex flex-col gap-1.5">
+                <div className="relative aspect-square overflow-hidden rounded-lg bg-muted flex items-center justify-center">
+                  {isAudio ? (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <MusicNotesIcon size={40} />
+                      <span className="text-xs truncate max-w-full px-2">{item.file.name}</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={item.previewUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
                     />
-                  </div>
-                ) : item.status === UPLOAD_ITEM_STATUS.DONE ? (
-                  <CheckIcon className="h-5 w-5 text-green-600" />
-                ) : item.status === UPLOAD_ITEM_STATUS.ERROR ? (
-                  <span title={item.error}>
-                    <WarningCircleIcon className="h-5 w-5 text-destructive" />
-                  </span>
-                ) : null}
+                  )}
+                </div>
+                <div className="flex items-center justify-center min-h-[24px]">
+                  {item.status === UPLOAD_ITEM_STATUS.PENDING || item.status === UPLOAD_ITEM_STATUS.UPLOADING ? (
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-[width] duration-150 ease-out"
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
+                  ) : item.status === UPLOAD_ITEM_STATUS.DONE ? (
+                    <CheckIcon className="h-5 w-5 text-green-600" />
+                  ) : item.status === UPLOAD_ITEM_STATUS.ERROR ? (
+                    <span title={item.error}>
+                      <WarningCircleIcon className="h-5 w-5 text-destructive" />
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <div className={`relative w-full ${disabled ? 'cursor-not-allowed' : ''}`}>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={accept}
             multiple={multiple}
             onChange={handleFileSelect}
             disabled={disabled}

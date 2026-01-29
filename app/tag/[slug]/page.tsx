@@ -1,6 +1,11 @@
+import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import Link from 'next/link'
-import { POST_STATUS } from '@/shared/constants'
+import { postsService } from '@/services/posts.service'
+import { tagsService } from '@/services/tags.service'
+import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
+import PublicLayout from '@/components/public/PublicLayout'
+import TagsSidebar from '@/components/public/TagsSidebar'
+import PostListWithLoadMore from '@/components/public/PostListWithLoadMore'
 
 export default async function TagPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -8,115 +13,45 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
     where: { slug },
   })
 
-  if (!tag) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Tag not found</h1>
-          <Link href="/" className="text-blue-600 hover:underline">
-            Go to home
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  if (!tag) notFound()
 
-  const posts = await prisma.post.findMany({
-    where: {
+  const [posts, tagsWithCount] = await Promise.all([
+    postsService.findMany({
       status: POST_STATUS.PUBLISHED,
-        tags: {
-          some: {
-            tag: {
-              slug,
-            },
-          },
-        },
-      },
-    include: {
-      tags: {
-        include: {
-          tag: true,
-        },
-      },
-    },
-    orderBy: { publishedAt: 'desc' },
-  })
+      visibility: POST_VISIBILITY.PUBLIC,
+      tagSlug: slug,
+      limit: 10,
+      offset: 0,
+      sort: 'newest',
+    }),
+    tagsService.findManyWithPublishedPostCount(),
+  ])
+
+  const postCount = tagsWithCount.find((t) => t.slug === slug)?.postCount ?? 0
+  const tags = tagsWithCount.map((t) => ({
+    id: t.id,
+    name: t.name,
+    slug: t.slug,
+    color: t.color,
+    postCount: t.postCount,
+  }))
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            {tag.color && (
-              <div
-                className="w-6 h-6 rounded-full"
-                style={{ backgroundColor: tag.color }}
-              />
-            )}
-            <h1 className="text-4xl font-bold">{tag.name}</h1>
-          </div>
-          {tag.description && (
-            <p className="text-lg text-gray-600 dark:text-gray-400">{tag.description}</p>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          {posts.length === 0 ? (
-            <p className="text-center text-gray-500 dark:text-gray-400">
-              No posts found with this tag.
-            </p>
-          ) : (
-            posts.map((post) => (
-              <article
-                key={post.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow font-reading"
-              >
-                <h2 className="text-2xl font-bold mb-2">
-                  <Link
-                    href={`/posts/${post.slug}`}
-                    className="hover:text-blue-600 dark:hover:text-blue-400"
-                  >
-                    {post.title}
-                  </Link>
-                </h2>
-                {post.publishedAt && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </p>
-                )}
-                {post.plaintext && (
-                  <p className="text-gray-700 dark:text-gray-300 line-clamp-3">
-                    {post.plaintext.substring(0, 200)}...
-                  </p>
-                )}
-                {post.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {post.tags.map(({ tag: postTag }) => (
-                      <Link
-                        key={postTag.id}
-                        href={`/tag/${postTag.slug}`}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {postTag.color && (
-                          <span
-                            className="inline-block w-2 h-2 rounded-full mr-1"
-                            style={{ backgroundColor: postTag.color }}
-                          />
-                        )}
-                        {postTag.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </article>
-            ))
-          )}
-        </div>
+    <PublicLayout sidebar={<TagsSidebar tags={tags} />}>
+      <div className="mb-8">
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
+          TOPIC
+        </p>
+        <h1 className="text-4xl font-bold mb-2">{tag.name}</h1>
+        <p className="text-muted-foreground">
+          A collection of {postCount} {postCount === 1 ? 'story' : 'stories'}
+        </p>
       </div>
-    </div>
+      {posts.length === 0 ? (
+        <p className="text-muted-foreground py-8">No posts found with this tag.</p>
+      ) : (
+        <PostListWithLoadMore initialPosts={posts} tagSlug={slug} />
+      )}
+    </PublicLayout>
   )
 }

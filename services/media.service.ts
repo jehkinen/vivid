@@ -172,10 +172,7 @@ export class MediaService {
     }
 
     await storageService.deleteFilesByPrefix(`${media.mediableType.toLowerCase()}/${media.id}/`)
-
-    return prisma.media.delete({
-      where: { id },
-    })
+    await prisma.media.deleteMany({ where: { id } })
   }
 
   async replace(id: string, file: UploadFile) {

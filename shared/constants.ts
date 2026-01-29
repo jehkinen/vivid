@@ -72,6 +72,21 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
   'image/webp',
 ] as const
 
+export const ALLOWED_AUDIO_MIME_TYPES = [
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/ogg',
+  'audio/webm',
+  'audio/aac',
+  'audio/flac',
+] as const
+
+export const ALLOWED_UPLOAD_MIME_TYPES = [
+  ...ALLOWED_IMAGE_MIME_TYPES,
+  ...ALLOWED_AUDIO_MIME_TYPES,
+] as const
+
 export const MEDIA_COLLECTIONS = {
   DEFAULT: 'default',
   IMAGES: 'images',
@@ -99,11 +114,13 @@ export type ImageCardWidth = (typeof IMAGE_CARD_WIDTH)[keyof typeof IMAGE_CARD_W
 export const LEXICAL_NODE_TYPE = {
   IMAGE: 'image',
   GALLERY: 'gallery',
+  AUDIO: 'audio',
   TEXT: 'text',
   EXTENDED_TEXT: 'extended-text',
   LINEBREAK: 'linebreak',
   PARAGRAPH: 'paragraph',
   HEADING: 'heading',
+  EXTENDED_HEADING: 'extended-heading',
   LIST: 'list',
   LISTITEM: 'listitem',
   QUOTE: 'quote',

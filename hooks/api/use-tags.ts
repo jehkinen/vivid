@@ -67,6 +67,19 @@ async function deleteTag(slug: string) {
   return response.json()
 }
 
+async function mergeTags(sourceTagId: string, targetTagId: string) {
+  const response = await fetch('/api/tags/merge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sourceTagId, targetTagId }),
+  })
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to merge tags')
+  }
+  return response.json()
+}
+
 export function useTags() {
   return useQuery({
     queryKey: ['tags'],
@@ -118,6 +131,24 @@ export function useDeleteTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] })
       toast.success('Tag deleted successfully')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
+export function useMergeTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sourceTagId, targetTagId }: { sourceTagId: string; targetTagId: string }) =>
+      mergeTags(sourceTagId, targetTagId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tags'] })
+      if (data?.targetTagSlug) {
+        queryClient.invalidateQueries({ queryKey: ['tag', data.targetTagSlug] })
+      }
+      toast.success('Tag merged successfully')
     },
     onError: (error: Error) => {
       toast.error(error.message)

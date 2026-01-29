@@ -64,6 +64,28 @@ function transliterateCyrillic(s: string): string {
     .join('')
 }
 
+export function countWords(text: string | null | undefined): number {
+  if (!text || typeof text !== 'string') return 0
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+const WORDS_PER_MINUTE = 200
+
+export function readingTimeMinutes(wordCount: number | null | undefined): number {
+  if (wordCount == null || wordCount <= 0) return 1
+  return Math.max(1, Math.round(wordCount / WORDS_PER_MINUTE))
+}
+
+export function formatPostDate(dateString: string | Date | null | undefined): string {
+  if (!dateString) return ''
+  const d = new Date(dateString)
+  const day = d.getDate()
+  const months = ['ЯНВ.', 'ФЕВ.', 'МАР.', 'АПР.', 'МАЙ', 'ИЮН.', 'ИЮЛ.', 'АВГ.', 'СЕН.', 'ОКТ.', 'НОЯ.', 'ДЕК.']
+  const month = months[d.getMonth()]
+  const year = d.getFullYear()
+  return `${day} ${month} ${year} Г.`
+}
+
 export function slugify(s: string): string {
   const t = transliterateCyrillic(s)
     .toLowerCase()

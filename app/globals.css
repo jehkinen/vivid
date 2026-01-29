@@ -3,6 +3,46 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: "Tiempo Text";
+  src: url("/fonts/Tiempo.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bookerly";
+  src: url("/fonts/Bookerly/Bookerly%20Light.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bookerly";
+  src: url("/fonts/Bookerly/Bookerly%20Light%20Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bookerly";
+  src: url("/fonts/Bookerly/Bookerly%20Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bookerly";
+  src: url("/fonts/Bookerly/Bookerly%20Bold%20Italic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -130,8 +170,69 @@
   }
 }
 
+:root {
+  --font-tiempo: "Tiempo Text", Georgia, serif;
+  --font-bookerly: "Bookerly", Georgia, serif;
+}
+
+body[data-reading-font="bitter"] {
+  --font-reading: var(--font-bitter);
+}
+
+body[data-reading-font="tiempo"] {
+  --font-reading: var(--font-tiempo);
+}
+
+body[data-reading-font="bookerly"] {
+  --font-reading: var(--font-bookerly);
+}
+
+body[data-reading-font="source"],
+body:not([data-reading-font]) {
+  --font-reading: var(--font-lexend);
+}
+
 .font-reading {
-  font-family: var(--font-lexend);
+  font-family: var(--font-reading);
+  font-size: var(--reading-font-size, 20px);
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+@keyframes logo-gradient-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.logo-gradient {
+  background: linear-gradient(90deg, #3eb8b5, #d4738f, #9b8bd4, #3eb8b5);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: logo-gradient-shift 4s linear infinite;
+}
+
+.topics-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.topics-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.topics-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.topics-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.topics-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
 }
 
 select[aria-hidden="true"][tabIndex="-1"] {

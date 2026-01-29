@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "preinstall": "node -e \"if(process.version.split('.')[0].slice(1) !== '22'){console.error('❌ Node.js version 22 required. Run: nvm use');process.exit(1)}\"",
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
@@ -11,6 +12,9 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
+    "import:ghost": "tsx scripts/import-ghost.ts",
+    "import:ghost:test": "tsx scripts/import-ghost-test.ts",
+    "update:tag-slugs": "tsx scripts/update-tag-slugs.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -42,6 +46,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-query": "^5.90.20",
     "@types/multer": "^2.0.0",
+    "@types/sql.js": "^1.4.9",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -56,6 +61,7 @@
     "react-dom": "19.2.3",
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",
+    "sql.js": "^1.13.0",
     "tailwind-merge": "^3.4.0",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
@@ -64,6 +70,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/sql.js": "^1.4.9",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",

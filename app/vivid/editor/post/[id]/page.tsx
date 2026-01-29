@@ -51,44 +51,56 @@ export default function PostEditorPage() {
   const resolvedIdRef = useRef<string>(postId)
   const ignoreNextAutosaveCount = useRef(0)
   const ignoreLexicalChangeUntil = useRef(0)
+  const lastSyncedPostIdRef = useRef<string | null>(null)
+  const prevPostIdRef = useRef<string>(postId)
 
   useEffect(() => {
-    if (post && !isNew) {
-      const wasAlreadyLoaded = initialLoadCompleteRef.current
-      
-      if (autosaveTimer.current) {
-        clearTimeout(autosaveTimer.current)
-        autosaveTimer.current = null
+    if (postId !== prevPostIdRef.current) {
+      prevPostIdRef.current = postId
+      if (postId && postId !== 'new') {
+        lastSyncedPostIdRef.current = null
       }
-      ignoreLexicalChangeUntil.current = Date.now() + 500
-      setTitle(post.title || '')
-      setSlug(post.slug || '')
-      setLexical(post.lexical)
-      setStatus((post.status as PostStatus) || POST_STATUS.DRAFT)
-      setVisibility(
-        post.visibility === POST_VISIBILITY.PUBLIC || post.visibility === POST_VISIBILITY.PRIVATE
-          ? (post.visibility as PostVisibility)
-          : POST_VISIBILITY.PUBLIC
-      )
-      setPublishedAt(post.publishedAt || null)
-      setSelectedTagIds(post.tags?.map((t: any) => t.tag.id) || [])
-      setFeaturedMedia(post.featuredMedia || null)
-      setHasSavedOnce(true)
-      resolvedIdRef.current = post.id
-      ignoreNextAutosaveCount.current = 5
-      setHasUserTyped(false)
-      
-      if (!wasAlreadyLoaded) {
-        setEditorLoaded(false)
-        initialLoadCompleteRef.current = false
-        
-        if (!post.lexical || post.lexical.trim() === '') {
-          setTimeout(() => {
-            initialLoadCompleteRef.current = true
-            setEditorLoaded(true)
-            console.log('Initial load complete (empty lexical), initialLoadCompleteRef:', initialLoadCompleteRef.current)
-          }, 300)
-        }
+    }
+  }, [postId])
+
+  useEffect(() => {
+    if (!post || isNew) return
+    if (lastSyncedPostIdRef.current === post.id) return
+
+    lastSyncedPostIdRef.current = post.id
+    const wasAlreadyLoaded = initialLoadCompleteRef.current
+
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = null
+    }
+    ignoreLexicalChangeUntil.current = Date.now() + 500
+    setTitle(post.title || '')
+    setSlug(post.slug || '')
+    setLexical(post.lexical)
+    setStatus((post.status as PostStatus) || POST_STATUS.DRAFT)
+    setVisibility(
+      post.visibility === POST_VISIBILITY.PUBLIC || post.visibility === POST_VISIBILITY.PRIVATE
+        ? (post.visibility as PostVisibility)
+        : POST_VISIBILITY.PUBLIC
+    )
+    setPublishedAt(post.publishedAt || null)
+    setSelectedTagIds(post.tags?.map((t: any) => t.tag.id) || [])
+    setFeaturedMedia(post.featuredMedia || null)
+    setHasSavedOnce(true)
+    resolvedIdRef.current = post.id
+    ignoreNextAutosaveCount.current = 5
+    setHasUserTyped(false)
+
+    if (!wasAlreadyLoaded) {
+      setEditorLoaded(false)
+      initialLoadCompleteRef.current = false
+
+      if (!post.lexical || post.lexical.trim() === '') {
+        setTimeout(() => {
+          initialLoadCompleteRef.current = true
+          setEditorLoaded(true)
+        }, 300)
       }
     }
   }, [post, isNew])
@@ -97,7 +109,6 @@ export default function PostEditorPage() {
     if (isNew) {
       setEditorLoaded(true)
       initialLoadCompleteRef.current = true
-      console.log('New post: initial load complete')
     }
   }, [isNew])
 
@@ -206,11 +217,7 @@ export default function PostEditorPage() {
     }
     if (!hasUserTyped) return
     if (!isNew && isLoading) return
-    if (!isNew && !initialLoadCompleteRef.current) {
-      console.log('Autosave blocked: initial load not complete')
-      return
-    }
-    console.log('Scheduling autosave...')
+    if (!isNew && !initialLoadCompleteRef.current) return
     scheduleAutosave()
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
@@ -231,10 +238,7 @@ export default function PostEditorPage() {
 
   const handleEditorChange = (_: any, __: string, lexicalState: string) => {
     if (ignoreLexicalChangeUntil.current > Date.now()) return
-    if (!isNew && !initialLoadCompleteRef.current) {
-      console.log('Editor change blocked: initial load not complete, initialLoadCompleteRef:', initialLoadCompleteRef.current)
-      return
-    }
+    if (!isNew && !initialLoadCompleteRef.current) return
     setLexical(lexicalState)
     setHasUserTyped(true)
   }
@@ -256,10 +260,7 @@ export default function PostEditorPage() {
   }
 
   const handleTitleChange = (value: string) => {
-    if (!isNew && !initialLoadCompleteRef.current) {
-      console.log('Title change blocked: initial load not complete, initialLoadCompleteRef:', initialLoadCompleteRef.current)
-      return
-    }
+    if (!isNew && !initialLoadCompleteRef.current) return
     setTitle(value)
     setHasUserTyped(true)
   }
@@ -405,16 +406,13 @@ export default function PostEditorPage() {
                   mediableId={resolvedId || undefined}
                   onEditorMount={setEditor}
                   onEditorLoaded={() => {
-                    console.log('Editor loaded callback called, isNew:', isNew)
                     setEditorLoaded(true)
                     if (!isNew) {
                       setTimeout(() => {
                         initialLoadCompleteRef.current = true
-                        console.log('Initial load complete, autosave enabled, initialLoadCompleteRef:', initialLoadCompleteRef.current)
                       }, 300)
                     } else {
                       initialLoadCompleteRef.current = true
-                      console.log('New post: initialLoadCompleteRef set to true')
                     }
                   }}
                 />

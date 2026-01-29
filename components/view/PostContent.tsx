@@ -48,12 +48,28 @@ function ImgWithFallback({
   )
 }
 
+function parseStyleString(str: string): React.CSSProperties {
+  const out: Record<string, string> = {}
+  for (const part of str.split(';')) {
+    const colon = part.indexOf(':')
+    if (colon <= 0) continue
+    const key = part.slice(0, colon).trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+    const value = part.slice(colon + 1).trim()
+    if (key && value) out[key] = value
+  }
+  return out as React.CSSProperties
+}
+
 function renderText(node: any): ReactNode {
   let text: ReactNode = node.text || ''
   const fmt = node.format || 0
   if (fmt & 1) text = <strong>{text}</strong>
   if (fmt & 2) text = <em>{text}</em>
   if (fmt & 4) text = <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">{text}</code>
+  if (node.style && typeof node.style === 'string') {
+    const styleObj = parseStyleString(node.style)
+    if (Object.keys(styleObj).length > 0) text = <span style={styleObj}>{text}</span>
+  }
   return text
 }
 
@@ -139,7 +155,7 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
           </figure>
         )
       }
-      if (node.type === LEXICAL_NODE_TYPE.TEXT) {
+      if (node.type === LEXICAL_NODE_TYPE.TEXT || node.type === LEXICAL_NODE_TYPE.EXTENDED_TEXT) {
         return <span key={node.key || Math.random()}>{renderText(node)}</span>
       }
       if (node.type === LEXICAL_NODE_TYPE.LINEBREAK) {
@@ -169,7 +185,7 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
         }
         return <Fragment key={key}>{runs}</Fragment>
       }
-      if (node.type === LEXICAL_NODE_TYPE.HEADING) {
+      if (node.type === LEXICAL_NODE_TYPE.HEADING || node.type === LEXICAL_NODE_TYPE.EXTENDED_HEADING) {
         const Tag = (node.tag || 'h1') as 'h1' | 'h2' | 'h3' | 'h4'
         const children = (node.children || []).map((c: any) => renderNode(c))
         return <Tag key={node.key || Math.random()} className="font-bold mb-4">{children}</Tag>

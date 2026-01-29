@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { apiHandler } from '@/lib/api-handler'
 import { mediaUploadSchema, validateRequest, idParamSchema } from '@/lib/validators/schemas'
 import { mediaService } from '@/services/media.service'
-import { MAX_FILE_SIZE, ALLOWED_IMAGE_MIME_TYPES } from '@/shared/constants'
+import { MAX_FILE_SIZE, ALLOWED_UPLOAD_MIME_TYPES } from '@/shared/constants'
 
 export const POST = apiHandler(async (request: NextRequest) => {
   const formData = await request.formData()
@@ -67,9 +67,9 @@ export const POST = apiHandler(async (request: NextRequest) => {
       )
     }
 
-    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type as any)) {
+    if (!ALLOWED_UPLOAD_MIME_TYPES.includes(file.type as any)) {
       return NextResponse.json(
-        { error: 'Invalid file type', errors: [{ field: 'files', message: `File ${file.name} has invalid MIME type. Only images are allowed.` }] },
+        { error: 'Invalid file type', errors: [{ field: 'files', message: `File ${file.name} has invalid MIME type. Images and audio are allowed.` }] },
         { status: 400 }
       )
     }

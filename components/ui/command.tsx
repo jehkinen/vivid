@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
-import { MagnifyingGlassIcon } from "@phosphor-icons/react"
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -62,16 +62,33 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  value,
+  onClear,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+  value?: string
+  onClear?: () => void
+}) {
+  const showClear = typeof value === 'string' && value.length > 0 && onClear
   return (
     <div
       data-slot="command-input-wrapper"
       className="flex h-9 items-center gap-2 border-b px-3"
     >
       <MagnifyingGlassIcon className="size-4 shrink-0 opacity-50" />
+      {showClear && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="flex shrink-0 items-center justify-center rounded p-0.5 text-muted-foreground outline-none hover:bg-muted hover:text-foreground"
+          aria-label="Clear"
+        >
+          <XIcon className="size-4" />
+        </button>
+      )}
       <CommandPrimitive.Input
         data-slot="command-input"
+        value={value}
         className={cn(
           "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
           className

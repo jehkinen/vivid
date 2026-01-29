@@ -14,6 +14,7 @@ import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode, CodeHighlightNode } from '@lexical/code'
 import { ImageNode } from './nodes/ImageNode'
 import { GalleryNode } from './nodes/GalleryNode'
+import { AudioNode } from './nodes/AudioNode'
 import { EditorTypingProvider, useEditorTyping } from './EditorTypingContext'
 import { MediableProvider } from './MediableContext'
 
@@ -28,6 +29,7 @@ const EDITOR_NODES = [
   CodeHighlightNode,
   ImageNode,
   GalleryNode,
+  AudioNode,
 ]
 import { EditorState } from 'lexical'
 import { useEffect, useState, useRef, Component, ReactElement } from 'react'
@@ -133,24 +135,31 @@ function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoad
   const [loaded, setLoaded] = useState(false)
   const onLoadedRef = useRef(onLoaded)
   const contentRef = useRef(content)
-  
+  const lastLoadedContentRef = useRef<string | null>(null)
+
   useEffect(() => {
     onLoadedRef.current = onLoaded
   }, [onLoaded])
-  
+
   useEffect(() => {
     contentRef.current = content
   }, [content])
 
   useEffect(() => {
+    if (loaded && (content || '').trim() !== '' && lastLoadedContentRef.current === '') {
+      setLoaded(false)
+    }
+  }, [content, loaded])
+
+  useEffect(() => {
     if (loaded) return
-    
+
     const currentContent = contentRef.current
     
     if (!currentContent || currentContent.trim() === '') {
+      lastLoadedContentRef.current = ''
       setLoaded(true)
       setTimeout(() => {
-        console.log('LoadInitialStatePlugin: calling onLoaded (empty content)')
         onLoadedRef.current?.()
       }, 100)
       return
@@ -162,9 +171,9 @@ function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoad
       editorState = editor.parseEditorState(parsed)
     } catch (error) {
       console.error('Error loading initial state:', error)
+      lastLoadedContentRef.current = currentContent
       setLoaded(true)
       setTimeout(() => {
-        console.log('LoadInitialStatePlugin: calling onLoaded (parse error)')
         onLoadedRef.current?.()
       }, 100)
       return
@@ -173,15 +182,15 @@ function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoad
     queueMicrotask(() => {
       try {
         editor.setEditorState(editorState)
+        lastLoadedContentRef.current = currentContent
         setLoaded(true)
         setTimeout(() => {
-          console.log('LoadInitialStatePlugin: calling onLoaded (state set)')
           onLoadedRef.current?.()
         }, 300)
       } catch (error) {
+        lastLoadedContentRef.current = currentContent
         setLoaded(true)
         setTimeout(() => {
-          console.log('LoadInitialStatePlugin: calling onLoaded (error setting state)')
           onLoadedRef.current?.()
         }, 100)
       }

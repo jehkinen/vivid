@@ -5,7 +5,6 @@ import {
   POST_VISIBILITY,
   MEDIABLE_TYPES,
   SLUG_MAX_LENGTH,
-  ALLOWED_IMAGE_MIME_TYPES,
 } from '@/shared/constants'
 
 const cuidSchema = z.string().length(24).regex(/^[a-z0-9]+$/)
@@ -65,6 +64,11 @@ export const tagUpdateSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   color: hexColorSchema.optional(),
   slug: slugSchema.optional(),
+})
+
+export const tagMergeSchema = z.object({
+  sourceTagId: cuidSchema,
+  targetTagId: cuidSchema,
 })
 
 export const searchQuerySchema = z.object({
