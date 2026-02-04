@@ -29,7 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { PencilIcon, ImageIcon, LockIcon, TrashIcon } from '@phosphor-icons/react'
+import { PencilIcon, ImageIcon, LockIcon, TrashIcon, TagIcon } from '@phosphor-icons/react'
 import {
   Dialog,
   DialogContent,
@@ -38,10 +38,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { POST_SORT_OPTIONS, POST_STATUS, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
-import { useInfinitePosts, useSoftDeletePost, useRestorePost, useHardDeletePost } from '@/hooks/api/use-posts'
-import { useTags, type Tag } from '@/hooks/api/use-tags'
-import { formatDateRelative } from '@/lib/utils'
+import { POST_SORT_OPTIONS, POST_STATUS, POST_VISIBILITY, TAG_DEFAULT_COLORS, type PostSortOption } from '@/shared/constants'
+import { useInfinitePosts, useSoftDeletePost, useRestorePost, useHardDeletePost, useUpdatePost } from '@/hooks/api/use-posts'
+import { useTags, useCreateTag, type Tag } from '@/hooks/api/use-tags'
+import { formatDateRelative, slugify } from '@/lib/utils'
+import { MultiSelect } from '@/components/ui/multi-select'
 import Loader from '@/components/ui/Loader'
 
 export default function PostsPage() {
@@ -54,7 +55,11 @@ export default function PostsPage() {
   const [sort, setSort] = useState<PostSortOption>(POST_SORT_OPTIONS.NEWEST)
   const [postToDelete, setPostToDelete] = useState<{ id: string; title: string } | null>(null)
   const [permanentDeletePost, setPermanentDeletePost] = useState<{ id: string; title: string } | null>(null)
+  const [editingTagsPostId, setEditingTagsPostId] = useState<string | null>(null)
+  const [editingTagsSelected, setEditingTagsSelected] = useState<string[]>([])
+  const [editingTagsInitial, setEditingTagsInitial] = useState<string[]>([])
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const tagPopoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const statusParam = searchParams.get('status')
@@ -93,6 +98,8 @@ export default function PostsPage() {
   const softDeletePost = useSoftDeletePost()
   const restorePost = useRestorePost()
   const hardDeletePost = useHardDeletePost()
+  const updatePost = useUpdatePost()
+  const createTag = useCreateTag()
 
   const handleDeletePost = () => {
     if (!postToDelete) return
@@ -120,6 +127,60 @@ export default function PostsPage() {
     if (authors) return `By ${authors}`
     if (hasDate) return date
     return '–'
+  }
+
+  const postTags = (post: any) => {
+    const list = post.tags?.map((t: any) => t.tag).filter(Boolean) ?? []
+    return list
+  }
+
+  const closeQuickTagEdit = (options?: { keepOpen?: boolean }) => {
+    if (!editingTagsPostId) return
+    const keepOpen = options?.keepOpen ?? false
+    const changed =
+      editingTagsSelected.length !== editingTagsInitial.length ||
+      editingTagsSelected.some((id) => !editingTagsInitial.includes(id))
+    if (changed) {
+      updatePost.mutate(
+        {
+          id: editingTagsPostId,
+          data: { tagIds: editingTagsSelected },
+          silent: true,
+        },
+        { onSettled: () => !keepOpen && setEditingTagsPostId(null) }
+      )
+    } else if (!keepOpen) {
+      setEditingTagsPostId(null)
+    }
+  }
+
+  const openQuickTagEdit = (post: any) => {
+    if (tagPopoverCloseTimeoutRef.current) {
+      clearTimeout(tagPopoverCloseTimeoutRef.current)
+      tagPopoverCloseTimeoutRef.current = null
+    }
+    if (editingTagsPostId && editingTagsPostId !== post.id) {
+      closeQuickTagEdit({ keepOpen: true })
+    }
+    const ids = postTags(post).map((t: any) => t.id)
+    setEditingTagsPostId(post.id)
+    setEditingTagsSelected(ids)
+    setEditingTagsInitial(ids)
+  }
+
+  const scheduleCloseQuickTagEdit = () => {
+    if (tagPopoverCloseTimeoutRef.current) clearTimeout(tagPopoverCloseTimeoutRef.current)
+    tagPopoverCloseTimeoutRef.current = setTimeout(() => {
+      tagPopoverCloseTimeoutRef.current = null
+      closeQuickTagEdit()
+    }, 200)
+  }
+
+  const cancelCloseQuickTagEdit = () => {
+    if (tagPopoverCloseTimeoutRef.current) {
+      clearTimeout(tagPopoverCloseTimeoutRef.current)
+      tagPopoverCloseTimeoutRef.current = null
+    }
   }
 
   return (
@@ -237,7 +298,9 @@ export default function PostsPage() {
                 className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
               >
               <Link
-                href={`/vivid/editor/post/${post.id}`}
+                href={`/${post.slug}?preview=1`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
               >
                 <div className="w-16 h-16 shrink-0 rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
@@ -258,7 +321,7 @@ export default function PostsPage() {
                   <div className="text-sm text-muted-foreground">
                     {subtitle(post)}
                   </div>
-                  <div className="mt-1 flex items-center gap-1.5">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
                     {!post.deletedAt && (
                       <>
                         <span
@@ -286,6 +349,33 @@ export default function PostsPage() {
                   </div>
                 </div>
               </Link>
+              {postTags(post).length > 0 && (
+                <div
+                  className="flex flex-wrap items-center gap-x-1.5 gap-y-1 shrink-0"
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                >
+                  {postTags(post).map((tag: any, i: number) => (
+                    <span key={tag.id} className="inline-flex items-center gap-1">
+                      {i > 0 && (
+                        <span className="text-border select-none">·</span>
+                      )}
+                      <Link
+                        href={`/tag/${tag.slug}`}
+                        className="inline-flex items-center gap-1.5 italic hover:text-foreground hover:font-normal rounded px-1.5 py-0.5 -mx-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
+                      >
+                        {tag.color && (
+                          <span
+                            className="shrink-0 w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: tag.color }}
+                            aria-hidden
+                          />
+                        )}
+                        {tag.name}
+                      </Link>
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="shrink-0 flex items-center gap-2">
                 {post.deletedAt ? (
                   <>
@@ -312,10 +402,76 @@ export default function PostsPage() {
                   </>
                 ) : (
                   <>
+                    <Popover
+                      open={editingTagsPostId === post.id}
+                      onOpenChange={(open) => !open && closeQuickTagEdit()}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-xl"
+                          onMouseEnter={(e) => {
+                            e.stopPropagation()
+                            openQuickTagEdit(post)
+                          }}
+                          onMouseLeave={(e) => {
+                            e.stopPropagation()
+                            scheduleCloseQuickTagEdit()
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Edit tags"
+                        >
+                          <TagIcon className="size-5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-80 p-4"
+                        align="end"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseEnter={cancelCloseQuickTagEdit}
+                        onMouseLeave={scheduleCloseQuickTagEdit}
+                      >
+                        <div className="space-y-2">
+                          <span className="text-sm font-medium">Tags</span>
+                          <MultiSelect
+                            options={[...tags]
+                              .sort((a, b) => (b.postCount ?? 0) - (a.postCount ?? 0))
+                              .map((t: Tag) => ({
+                                value: t.id,
+                                label: t.name,
+                                color: t.color,
+                              }))}
+                            selected={editingTagsSelected}
+                            onSelectedChange={setEditingTagsSelected}
+                            placeholder="Select tags"
+                            creatable
+                            onCreate={async (name) => {
+                              try {
+                                const tag = await createTag.mutateAsync({
+                                  name,
+                                  slug: slugify(name),
+                                  color: TAG_DEFAULT_COLORS[
+                                    Math.floor(Math.random() * TAG_DEFAULT_COLORS.length)
+                                  ],
+                                })
+                                return {
+                                  value: tag.id,
+                                  label: tag.name,
+                                  color: tag.color,
+                                }
+                              } catch {
+                                return null
+                              }
+                            }}
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       variant="ghost"
                       size="icon-xl"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation()
                         router.push(`/vivid/editor/post/${post.id}`)
                       }}
                       aria-label="Edit"
@@ -325,7 +481,8 @@ export default function PostsPage() {
                     <Button
                       variant="ghost"
                       size="icon-xl"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation()
                         setPostToDelete({ id: post.id, title: post.title || 'Untitled' })
                       }}
                       aria-label="Delete"

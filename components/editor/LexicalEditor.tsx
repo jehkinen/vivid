@@ -129,6 +129,7 @@ interface LexicalEditorProps {
   onEditorMount?: (editor: LexicalEditorInstance) => void
   onEditorLoaded?: () => void
   renderFloatingPanel?: (props: { editor: LexicalEditorInstance }) => React.ReactNode
+  onToolbarOpenChange?: (open: boolean) => void
 }
 
 const ROOT_ELEMENT_TYPES = new Set([
@@ -255,12 +256,14 @@ function EditorContentArea({
   onChange,
   onEditorLoaded,
   renderFloatingPanel,
+  onToolbarOpenChange,
 }: {
   initialEditorState?: string | null
   placeholder: string
   onChange?: (editorState: EditorState, html: string, lexical: string) => void
   onEditorLoaded?: () => void
   renderFloatingPanel?: (props: { editor: LexicalEditorInstance }) => React.ReactNode
+  onToolbarOpenChange?: (open: boolean) => void
 }) {
   const { setTyping } = useEditorTyping()
   const handleChange = (editorState: EditorState, html: string, lexical: string) => {
@@ -292,7 +295,7 @@ function EditorContentArea({
         )}
       />
       <HistoryPlugin />
-      <FloatingToolbarPlugin />
+      <FloatingToolbarPlugin onOpenChange={onToolbarOpenChange} />
       <FloatingInsertPlusPlugin />
       <CustomOnChangePlugin onChange={handleChange} />
       </div>
@@ -310,6 +313,7 @@ export default function LexicalEditor({
   onEditorMount,
   onEditorLoaded,
   renderFloatingPanel,
+  onToolbarOpenChange,
 }: LexicalEditorProps) {
   const initialConfig = {
     namespace: 'VividEditor',
@@ -338,6 +342,7 @@ export default function LexicalEditor({
               onChange={handleChange}
               onEditorLoaded={onEditorLoaded}
               renderFloatingPanel={renderFloatingPanel}
+              onToolbarOpenChange={onToolbarOpenChange}
             />
           </LexicalComposer>
         </MediableProvider>

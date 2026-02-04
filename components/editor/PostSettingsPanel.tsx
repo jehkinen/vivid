@@ -35,7 +35,7 @@ export interface PostSettingsPanelProps {
   onPublishedAtChange: (v: string | null) => void
   selectedTagIds: string[]
   onSelectedTagIdsChange: (v: string[]) => void
-  tags: Array<{ id: string; name: string; color: string | null }>
+  tags: Array<{ id: string; name: string; color: string | null; postCount?: number }>
   onCreateTag?: (name: string) => Promise<{ value: string; label: string; color?: string | null } | null>
   isNew: boolean
   postId: string | undefined
@@ -106,7 +106,9 @@ export default function PostSettingsPanel({
         <div>
           <label className="block text-sm font-medium mb-2">Tags</label>
           <MultiSelect
-            options={tags.map((t) => ({ value: t.id, label: t.name, color: t.color }))}
+            options={[...tags]
+              .sort((a, b) => (b.postCount ?? 0) - (a.postCount ?? 0))
+              .map((t) => ({ value: t.id, label: t.name, color: t.color }))}
             selected={selectedTagIds}
             onSelectedChange={onSelectedTagIdsChange}
             placeholder="Select tags"

@@ -5,10 +5,18 @@ import { $getSelection, $isRangeSelection } from 'lexical'
 import { useEffect, useState, useCallback } from 'react'
 import FloatingToolbar from './FloatingToolbar'
 
-export default function FloatingToolbarPlugin() {
+interface FloatingToolbarPluginProps {
+  onOpenChange?: (open: boolean) => void
+}
+
+export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarPluginProps) {
   const [editor] = useLexicalComposerContext()
   const [show, setShow] = useState(false)
   const [position, setPosition] = useState<{ top: string; left: string; transform?: string }>({ top: '0px', left: '0px' })
+
+  useEffect(() => {
+    onOpenChange?.(show)
+  }, [show, onOpenChange])
 
   const updateToolbar = useCallback(() => {
     const selection = window.getSelection()
@@ -75,7 +83,9 @@ export default function FloatingToolbarPlugin() {
       setTimeout(updateToolbar, 10)
     }
 
-    const handleMouseDown = () => {
+    const handleMouseDown = (e: MouseEvent) => {
+      const editorElement = editor.getRootElement()
+      if (editorElement?.contains(e.target as Node)) return
       setTimeout(() => setShow(false), 100)
     }
 

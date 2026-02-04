@@ -57,6 +57,8 @@ export function MultiSelect({
       handleUnselect(item)
     } else {
       onSelectedChange([...selected, item])
+      setOpen(false)
+      setSearch('')
     }
   }
 

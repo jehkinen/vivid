@@ -161,6 +161,15 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
       if (node.type === LEXICAL_NODE_TYPE.LINEBREAK) {
         return <br key={node.key || Math.random()} />
       }
+      const blockTypes = [
+        LEXICAL_NODE_TYPE.PARAGRAPH,
+        LEXICAL_NODE_TYPE.HEADING,
+        LEXICAL_NODE_TYPE.EXTENDED_HEADING,
+        LEXICAL_NODE_TYPE.QUOTE,
+        LEXICAL_NODE_TYPE.LIST,
+        LEXICAL_NODE_TYPE.CODE,
+      ]
+      const isBlock = (t: string) => blockTypes.includes(t)
       if (node.type === LEXICAL_NODE_TYPE.PARAGRAPH) {
         const runs: ReactNode[] = []
         let inlines: ReactNode[] = []
@@ -176,7 +185,11 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
         const pClassName = alignClass ? `mb-4 ${alignClass}` : 'mb-4'
         for (const c of node.children || []) {
           const r = renderNode(c)
-          if (c?.type === LEXICAL_NODE_TYPE.IMAGE || c?.type === LEXICAL_NODE_TYPE.GALLERY) {
+          const childIsBlock =
+            c?.type === LEXICAL_NODE_TYPE.IMAGE ||
+            c?.type === LEXICAL_NODE_TYPE.GALLERY ||
+            isBlock(c?.type)
+          if (childIsBlock) {
             if (inlines.length > 0) {
               runs.push(<p key={`${key}-p-${runs.length}`} className={pClassName}>{inlines}</p>)
               inlines = []

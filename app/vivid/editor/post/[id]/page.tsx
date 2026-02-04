@@ -22,7 +22,7 @@ import PublicLogo from '@/components/public/PublicLogo'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import Loader from '@/components/ui/Loader'
 
-const AUTOSAVE_DELAY_MS = 1000
+const AUTOSAVE_DELAY_MS = 3000
 
 export default function PostEditorPage() {
   const params = useParams()
@@ -57,7 +57,9 @@ export default function PostEditorPage() {
   const lastSyncedPostIdRef = useRef<string | null>(null)
   const prevPostIdRef = useRef<string>(postId)
   const slugManuallyEditedRef = useRef(false)
+  const lastLexicalContentRef = useRef<string | null>(null)
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
+  const [toolbarOpen, setToolbarOpen] = useState(false)
 
   useEffect(() => {
     if (postId !== prevPostIdRef.current) {
@@ -84,6 +86,7 @@ export default function PostEditorPage() {
     setTitle(post.title || '')
     setSlug(post.slug || '')
     setLexical(post.lexical)
+    lastLexicalContentRef.current = post.lexical
     setStatus((post.status as PostStatus) || POST_STATUS.DRAFT)
     setVisibility(
       post.visibility === POST_VISIBILITY.PUBLIC || post.visibility === POST_VISIBILITY.PRIVATE
@@ -233,6 +236,7 @@ export default function PostEditorPage() {
   const isSaving = createPost.isPending || updatePost.isPending
 
   useEffect(() => {
+    if (toolbarOpen) return
     if (ignoreNextAutosaveCount.current > 0) {
       ignoreNextAutosaveCount.current -= 1
       return
@@ -258,11 +262,22 @@ export default function PostEditorPage() {
     isLoading,
     hasUserTyped,
     isSaving,
+    toolbarOpen,
   ])
+
+  useEffect(() => {
+    if (toolbarOpen) return
+    if (!hasUserTyped || isSaving) return
+    if (!isNew && isLoading) return
+    if (!isNew && !initialLoadCompleteRef.current) return
+    scheduleAutosave()
+  }, [toolbarOpen, hasUserTyped, isSaving, isNew, isLoading, scheduleAutosave])
 
   const handleEditorChange = (_: any, __: string, lexicalState: string) => {
     if (ignoreLexicalChangeUntil.current > Date.now()) return
     if (!isNew && !initialLoadCompleteRef.current) return
+    if (lastLexicalContentRef.current === lexicalState) return
+    lastLexicalContentRef.current = lexicalState
     setLexical(lexicalState)
     setHasUserTyped(true)
   }
@@ -465,6 +480,7 @@ export default function PostEditorPage() {
                   mediableType="Post"
                   mediableId={resolvedId || undefined}
                   onEditorMount={setEditor}
+                  onToolbarOpenChange={setToolbarOpen}
                   onEditorLoaded={() => {
                     setEditorLoaded(true)
                     if (!isNew) {
@@ -560,7 +576,7 @@ export default function PostEditorPage() {
             onPublishedAtChange={setPublishedAt}
             selectedTagIds={selectedTagIds}
             onSelectedTagIdsChange={setSelectedTagIds}
-            tags={tags.map((t: any) => ({ id: t.id, name: t.name, color: t.color }))}
+            tags={tags.map((t: any) => ({ id: t.id, name: t.name, color: t.color, postCount: t.postCount }))}
             onCreateTag={async (name) => {
               try {
                 const tag = await createTagMutation.mutateAsync({
