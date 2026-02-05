@@ -39,6 +39,10 @@ export function renderLexicalToHtml(
         const title = node.title ? `<figcaption class="text-sm text-muted-foreground mt-2 text-center">${node.title}</figcaption>` : ''
         return `<figure class="my-6"><div class="rounded-lg border border-border bg-muted p-4"><audio controls class="w-full max-w-full" preload="metadata"><source src="${src}" /></audio></div>${title}</figure>`
       }
+      if (node.type === LEXICAL_NODE_TYPE.YOUTUBE && node.videoId) {
+        const embedSrc = `https://www.youtube.com/embed/${encodeURIComponent(node.videoId)}`
+        return `<figure class="my-6"><div class="relative aspect-video w-full max-w-3xl mx-auto rounded-lg overflow-hidden border border-border bg-muted"><iframe src="${embedSrc}" title="YouTube video" class="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></figure>`
+      }
       if (node.type === LEXICAL_NODE_TYPE.TEXT) {
         let text = node.text || ''
         if (node.format) {

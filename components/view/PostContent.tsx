@@ -155,6 +155,22 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
           </figure>
         )
       }
+      if (node.type === LEXICAL_NODE_TYPE.YOUTUBE && node.videoId) {
+        const embedSrc = `https://www.youtube.com/embed/${encodeURIComponent(node.videoId)}`
+        return (
+          <figure key={node.key || Math.random()} className="my-6">
+            <div className="relative aspect-video w-full max-w-3xl mx-auto rounded-lg overflow-hidden border border-border bg-muted">
+              <iframe
+                src={embedSrc}
+                title="YouTube video"
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </figure>
+        )
+      }
       if (node.type === LEXICAL_NODE_TYPE.TEXT || node.type === LEXICAL_NODE_TYPE.EXTENDED_TEXT) {
         return <span key={node.key || Math.random()}>{renderText(node)}</span>
       }
@@ -188,6 +204,7 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
           const childIsBlock =
             c?.type === LEXICAL_NODE_TYPE.IMAGE ||
             c?.type === LEXICAL_NODE_TYPE.GALLERY ||
+            c?.type === LEXICAL_NODE_TYPE.YOUTUBE ||
             isBlock(c?.type)
           if (childIsBlock) {
             if (inlines.length > 0) {

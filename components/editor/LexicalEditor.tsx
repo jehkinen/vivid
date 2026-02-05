@@ -12,27 +12,12 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode, CodeHighlightNode } from '@lexical/code'
-import { ImageNode } from './nodes/ImageNode'
-import { GalleryNode } from './nodes/GalleryNode'
-import { AudioNode } from './nodes/AudioNode'
+import { EDITOR_NODES } from './editor-nodes'
 import { EditorTypingProvider, useEditorTyping } from './EditorTypingContext'
 import { MediableProvider } from './MediableContext'
-
-const EDITOR_NODES = [
-  HeadingNode,
-  QuoteNode,
-  ListNode,
-  ListItemNode,
-  LinkNode,
-  AutoLinkNode,
-  CodeNode,
-  CodeHighlightNode,
-  ImageNode,
-  GalleryNode,
-  AudioNode,
-]
-import { EditorState, type SerializedEditorState } from 'lexical'
+import { EditorState, type SerializedEditorState, $getRoot, $isDecoratorNode, $isElementNode, $isParagraphNode } from 'lexical'
 import { useEffect, useState, useRef, Component, ReactElement } from 'react'
+import YouTubeOverlayLayer from './YouTubeOverlayLayer'
 import { $generateHtmlFromNodes } from '@lexical/html'
 
 function OnMountPlugin({ onMount }: { onMount?: (editor: LexicalEditorInstance) => void }) {
@@ -41,6 +26,47 @@ function OnMountPlugin({ onMount }: { onMount?: (editor: LexicalEditorInstance) 
     onMount?.(editor)
   }, [editor, onMount])
   return null
+}
+
+function CustomPlaceholder({ text }: { text: string }) {
+  const [editor] = useLexicalComposerContext()
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    const update = () => {
+      editor.getEditorState().read(() => {
+        const root = $getRoot()
+        const children = root.getChildren()
+        if (children.length === 0) {
+          setShow(true)
+          return
+        }
+        if (children.length > 1) {
+          setShow(false)
+          return
+        }
+        const only = children[0]
+        if ($isDecoratorNode(only)) {
+          setShow(false)
+          return
+        }
+        if ($isElementNode(only) && $isParagraphNode(only) && only.getTextContent().trim() === '') {
+          setShow(true)
+          return
+        }
+        setShow(false)
+      })
+    }
+    update()
+    return editor.registerUpdateListener(update)
+  }, [editor])
+
+  if (!show) return null
+  return (
+    <div className="absolute top-6 left-0 text-gray-400 dark:text-gray-500 pointer-events-none select-none">
+      {text}
+    </div>
+  )
 }
 
 
@@ -266,12 +292,14 @@ function EditorContentArea({
   onToolbarOpenChange?: (open: boolean) => void
 }) {
   const { setTyping } = useEditorTyping()
+  const containerRef = useRef<HTMLDivElement>(null)
   const handleChange = (editorState: EditorState, html: string, lexical: string) => {
     if (onChange) onChange(editorState, html, lexical)
   }
   return (
     <FloatingPanelContext.Provider value={renderFloatingPanel ?? null}>
       <div
+        ref={containerRef}
         className="flex-1 relative min-w-0 flex flex-col bg-transparent"
         onKeyDown={setTyping}
       >
@@ -283,17 +311,15 @@ function EditorContentArea({
         contentEditable={
           <ContentEditable className="min-h-[500px] outline-none pl-0 pr-6 pt-6 pb-6 prose prose-lg max-w-none dark:prose-invert focus:outline-none text-left" />
         }
-        placeholder={
-          <div className="absolute top-6 left-0 text-gray-400 dark:text-gray-500 pointer-events-none select-none">
-            {placeholder}
-          </div>
-        }
+        placeholder={null}
         ErrorBoundary={({ children }) => (
           <LexicalErrorBoundary onError={(error) => console.error('Lexical error:', error)}>
             {children}
           </LexicalErrorBoundary>
         )}
       />
+      <CustomPlaceholder text={placeholder} />
+      <YouTubeOverlayLayer containerRef={containerRef} />
       <HistoryPlugin />
       <FloatingToolbarPlugin onOpenChange={onToolbarOpenChange} />
       <FloatingInsertPlusPlugin />

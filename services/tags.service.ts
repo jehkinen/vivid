@@ -22,7 +22,7 @@ interface UpdateTagData {
 
 export class TagsService {
   async findMany() {
-    return prisma.tag.findMany({
+    const tags = await prisma.tag.findMany({
       include: {
         _count: {
           select: {
@@ -30,7 +30,10 @@ export class TagsService {
           },
         },
       },
-      orderBy: { name: 'asc' },
+    })
+    return tags.sort((a, b) => {
+      const countDiff = b._count.posts - a._count.posts
+      return countDiff !== 0 ? countDiff : a.name.localeCompare(b.name)
     })
   }
 

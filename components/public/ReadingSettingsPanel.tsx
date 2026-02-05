@@ -23,6 +23,7 @@ export interface ReadingSettingsPanelProps {
   triggerClassName?: string
   sheetBelowHeader?: boolean
   variant?: 'sheet' | 'popover'
+  trigger?: React.ReactElement
 }
 
 const READING_FONT_KEY = 'readingFont'
@@ -103,7 +104,7 @@ const settingsContent = (
   </div>
 )
 
-export default function ReadingSettingsPanel({ iconOnly = false, triggerClassName, sheetBelowHeader = false, variant = 'sheet' }: ReadingSettingsPanelProps) {
+export default function ReadingSettingsPanel({ iconOnly = false, triggerClassName, sheetBelowHeader = false, variant = 'sheet', trigger }: ReadingSettingsPanelProps) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [font, setFont] = useState<ReadingFontId>(READING_FONTS[0].id)
@@ -168,11 +169,13 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
     )
   }
 
+  const triggerEl = trigger ?? triggerButton
+
   if (variant === 'popover') {
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          {triggerButton}
+          {triggerEl}
         </PopoverTrigger>
         <PopoverContent align="end" side="bottom" className="w-72">
           <p className="text-sm font-medium mb-3">Reading settings</p>
@@ -185,7 +188,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        {triggerButton}
+        {triggerEl}
       </SheetTrigger>
 
       <SheetContent

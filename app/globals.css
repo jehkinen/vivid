@@ -238,3 +238,10 @@ select[aria-hidden="true"][tabIndex="-1"] {
   white-space: nowrap !important;
   word-wrap: normal !important;
 }
+
+[data-vivid-pointer] {
+  cursor: pointer !important;
+}
+[data-vivid-pointer] * {
+  cursor: pointer !important;
+}

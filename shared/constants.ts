@@ -60,6 +60,16 @@ export const TAG_DEFAULT_COLORS = [
   '#85C1E2',
   '#F8B739',
   '#6C5CE7',
+  '#E17055',
+  '#00B894',
+  '#0984E3',
+  '#FD79A8',
+  '#A29BFE',
+  '#FDCB6E',
+  '#55A3E0',
+  '#81ECEC',
+  '#B2BEC3',
+  '#636E72',
 ] as const
 
 export const SLUG_MAX_LENGTH = 191
@@ -115,6 +125,7 @@ export const LEXICAL_NODE_TYPE = {
   IMAGE: 'image',
   GALLERY: 'gallery',
   AUDIO: 'audio',
+  YOUTUBE: 'youtube',
   TEXT: 'text',
   EXTENDED_TEXT: 'extended-text',
   LINEBREAK: 'linebreak',

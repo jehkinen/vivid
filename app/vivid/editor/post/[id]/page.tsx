@@ -11,15 +11,27 @@ import PostSettingsPanel from '@/components/editor/PostSettingsPanel'
 import MediaUpload from '@/components/media/MediaUpload'
 import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
 import { POST_STATUS, POST_VISIBILITY, type PostStatus, type PostVisibility } from '@/shared/constants'
-import { usePost, useCreatePost, useUpdatePost } from '@/hooks/api/use-posts'
+import { usePost, useCreatePost, useUpdatePost, useSoftDeletePost } from '@/hooks/api/use-posts'
 import { useTags, useCreateTag } from '@/hooks/api/use-tags'
 import { slugify, cn, countWords } from '@/lib/utils'
 import { TAG_DEFAULT_COLORS } from '@/shared/constants'
 import { usePostSettings } from '@/lib/post-settings-context'
-import { XIcon, CaretLeft, Image as ImageIcon, SlidersHorizontal, Eye, List, Check } from '@phosphor-icons/react'
+import { XIcon, CaretLeft, Image as ImageIcon, SlidersHorizontal, Eye, Check, CaretUpIcon, CaretDownIcon, SelectionPlus, Trash } from '@phosphor-icons/react'
 import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
 import PublicLogo from '@/components/public/PublicLogo'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import Loader from '@/components/ui/Loader'
 
 const AUTOSAVE_DELAY_MS = 3000
@@ -34,6 +46,7 @@ export default function PostEditorPage() {
   const { data: post, isLoading } = usePost(isNew ? '' : postId)
   const createPost = useCreatePost()
   const updatePost = useUpdatePost()
+  const softDeletePost = useSoftDeletePost()
   const { data: tags = [] } = useTags()
   const createTagMutation = useCreateTag()
 
@@ -49,6 +62,7 @@ export default function PostEditorPage() {
   const [editor, setEditor] = useState<LexicalEditorInstance | null>(null)
   const [hasUserTyped, setHasUserTyped] = useState(false)
   const [editorLoaded, setEditorLoaded] = useState(isNew)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const initialLoadCompleteRef = useRef(false)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const resolvedIdRef = useRef<string>(postId)
@@ -58,7 +72,7 @@ export default function PostEditorPage() {
   const prevPostIdRef = useRef<string>(postId)
   const slugManuallyEditedRef = useRef(false)
   const lastLexicalContentRef = useRef<string | null>(null)
-  const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
+  const [mobileBarCollapsed, setMobileBarCollapsed] = useState(false)
   const [toolbarOpen, setToolbarOpen] = useState(false)
 
   useEffect(() => {
@@ -363,6 +377,14 @@ export default function PostEditorPage() {
         </div>
       </header>
 
+      <Link
+        href={resolvedId ? `/vivid/posts?returnTo=${encodeURIComponent(resolvedId)}` : '/vivid/posts'}
+        className="fixed top-[4.25rem] left-4 z-10 flex items-center justify-center h-9 w-9 rounded-md text-muted-foreground opacity-20 transition-opacity hover:opacity-100 hover:bg-muted/50 hover:text-foreground"
+        aria-label="Back to posts"
+      >
+        <CaretLeft className="size-5" weight="bold" />
+      </Link>
+
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 min-h-0 overflow-auto">
         <div className="flex gap-0 md:gap-20 min-h-full w-full max-w-none md:max-w-[calc(48rem+80px+4rem)] mx-auto px-4 md:px-6">
@@ -372,13 +394,13 @@ export default function PostEditorPage() {
                 editor={editor}
                 mediableType="Post"
                 mediableId={resolvedId || undefined}
-                triggerClassName="opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
               />
               <Button
                 variant="outline"
                 size="icon"
                 className={cn(
-                  'h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100',
+                  'h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100',
                   settingsOpen && 'opacity-100 bg-accent text-accent-foreground'
                 )}
                 aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
@@ -386,23 +408,12 @@ export default function PostEditorPage() {
               >
                 <SlidersHorizontal className="size-4" />
               </Button>
-              <ReadingSettingsPanel iconOnly triggerClassName="opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100" />
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
-                aria-label="Back to posts"
-                asChild
-              >
-                <Link href="/vivid/posts">
-                  <CaretLeft className="size-4" weight="bold" />
-                </Link>
-              </Button>
+              <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100" />
               {slug ? (
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-full opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                  className="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
                   aria-label="Preview"
                   asChild
                 >
@@ -414,16 +425,27 @@ export default function PostEditorPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-full opacity-20 cursor-not-allowed"
+                  className="h-9 w-9 rounded-md opacity-20 cursor-not-allowed"
                   aria-label="Preview"
                   disabled
                 >
                   <Eye className="size-4" />
                 </Button>
               )}
+              {!isNew && resolvedId && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                  aria-label="Delete"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash className="size-4" />
+                </Button>
+              )}
             </div>
           </div>
-          <div className="flex-1 min-w-0 w-full max-w-3xl py-8 font-reading">
+          <div className="flex-1 min-w-0 w-full max-w-3xl py-8 pb-20 md:pb-8 font-reading">
             <div className="flex">
               <div className="flex-1 min-w-0 flex flex-col relative">
                 {resolvedId && (
@@ -505,63 +527,116 @@ export default function PostEditorPage() {
             {statusLabel.includes('Saved') && <Check className="size-3.5 shrink-0 text-green-500/70" weight="bold" />}
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          className="fixed bottom-4 left-4 z-20 md:hidden h-11 w-11 rounded-full shadow-lg opacity-90 hover:opacity-100"
-          aria-label="Open panel"
-          onClick={() => setMobilePanelOpen(true)}
+        <nav
+          className={cn(
+            'fixed bottom-0 left-0 right-0 z-20 border-t bg-background md:hidden flex items-center transition-[height] duration-200 overflow-hidden',
+            mobileBarCollapsed ? 'h-10 justify-end' : 'h-12'
+          )}
+          aria-label="Editor actions"
         >
-          <List className="size-5" />
-        </Button>
-        <Sheet open={mobilePanelOpen} onOpenChange={setMobilePanelOpen}>
-          <SheetContent side="left" className="w-[280px] sm:max-w-[280px] flex flex-col gap-6 py-6" showCloseButton={true}>
-            <div className="flex flex-col items-center gap-4">
-              <InsertBlockPlus
-                editor={editor}
-                mediableType="Post"
-                mediableId={resolvedId || undefined}
-                triggerClassName="opacity-80 transition-opacity hover:opacity-100"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn(
-                  'h-9 w-9 rounded-full opacity-80 transition-opacity hover:opacity-100',
-                  settingsOpen && 'opacity-100 bg-accent text-accent-foreground'
+          {mobileBarCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setMobileBarCollapsed(false)}
+              className="flex items-center justify-center h-full w-12 pr-2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Expand menu"
+            >
+              <CaretUpIcon className="size-5" weight="bold" />
+            </button>
+          ) : (
+            <div className="flex items-center justify-between w-full h-12 px-4 gap-4 min-w-0">
+              <div className="flex items-center gap-4 shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="shrink-0">
+                      <InsertBlockPlus
+                        editor={editor}
+                        mediableType="Post"
+                        mediableId={resolvedId || undefined}
+                        trigger={
+                          <button
+                            type="button"
+                            disabled={!editor}
+                            className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                            aria-label="Add block"
+                          >
+                            <SelectionPlus className="size-5" />
+                          </button>
+                        }
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Add block (image, gallery, audio)</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        'h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground',
+                        settingsOpen && 'bg-accent text-accent-foreground'
+                      )}
+                      aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
+                      onClick={handleSettingsToggle}
+                    >
+                      <SlidersHorizontal className="size-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Post settings</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="shrink-0">
+                      <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-80 hover:opacity-100" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Reading settings</TooltipContent>
+                </Tooltip>
+                {slug ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={`/${encodeURIComponent(slug)}?preview=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                        aria-label="Preview"
+                      >
+                        <Eye className="size-5" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Open preview</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground opacity-50 cursor-not-allowed">
+                        <Eye className="size-5" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Preview (save post with slug first)</TooltipContent>
+                  </Tooltip>
                 )}
-                aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
-                onClick={() => { handleSettingsToggle(); setMobilePanelOpen(false) }}
+              </div>
+              <div className="flex flex-col items-end justify-center gap-0.5 text-xs text-muted-foreground opacity-70 shrink-0 min-w-0">
+                <span className="tabular-nums">{countWords(extractPlaintextFromLexical(lexical))} words</span>
+                <span className="inline-flex items-center gap-1.5">
+                  {statusLabel}
+                  {statusLabel.includes('Saved') && <Check className="size-3.5 shrink-0 text-green-500/70" weight="bold" />}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileBarCollapsed(true)}
+                className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Collapse menu"
               >
-                <SlidersHorizontal className="size-4" />
-              </Button>
-              <ReadingSettingsPanel iconOnly triggerClassName="opacity-80 transition-opacity hover:opacity-100" />
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full opacity-80" aria-label="Back to posts" asChild>
-                <Link href="/vivid/posts" onClick={() => setMobilePanelOpen(false)}>
-                  <CaretLeft className="size-4" weight="bold" />
-                </Link>
-              </Button>
-              {slug ? (
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full opacity-80" aria-label="Preview" asChild>
-                  <Link href={`/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noopener noreferrer" onClick={() => setMobilePanelOpen(false)}>
-                    <Eye className="size-4" />
-                  </Link>
-                </Button>
-              ) : (
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full opacity-50" disabled aria-label="Preview">
-                  <Eye className="size-4" />
-                </Button>
-              )}
+                <CaretDownIcon className="size-5" weight="bold" />
+              </button>
             </div>
-            <div className="mt-auto flex flex-col items-center gap-1 text-xs text-muted-foreground pt-4 border-t">
-              <span className="tabular-nums">{countWords(extractPlaintextFromLexical(lexical))} words</span>
-              <span className="inline-flex items-center gap-1.5">
-                {statusLabel}
-                {statusLabel.includes('Saved') && <Check className="size-3.5 shrink-0 text-green-500/70" weight="bold" />}
-              </span>
-            </div>
-          </SheetContent>
-        </Sheet>
+          )}
+        </nav>
 
         {settingsOpen && (
           <PostSettingsPanel
@@ -594,6 +669,35 @@ export default function PostEditorPage() {
             onClose={handleSettingsClose}
           />
         )}
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete post</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete «{title || 'this post'}»? It will be moved to Deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!resolvedId) return
+                softDeletePost.mutate(resolvedId, {
+                  onSuccess: () => router.push('/vivid/posts'),
+                  onSettled: () => setDeleteDialogOpen(false),
+                })
+              }}
+              disabled={softDeletePost.isPending}
+            >
+              {softDeletePost.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   )

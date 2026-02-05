@@ -29,7 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { PencilIcon, ImageIcon, LockIcon, TrashIcon, TagIcon } from '@phosphor-icons/react'
+import { Feather, ImageIcon, LockIcon, TrashIcon, PencilSimple, Eye, Check } from '@phosphor-icons/react'
 import {
   Dialog,
   DialogContent,
@@ -41,8 +41,8 @@ import {
 import { POST_SORT_OPTIONS, POST_STATUS, POST_VISIBILITY, TAG_DEFAULT_COLORS, type PostSortOption } from '@/shared/constants'
 import { useInfinitePosts, useSoftDeletePost, useRestorePost, useHardDeletePost, useUpdatePost } from '@/hooks/api/use-posts'
 import { useTags, useCreateTag, type Tag } from '@/hooks/api/use-tags'
-import { formatDateRelative, slugify } from '@/lib/utils'
-import { MultiSelect } from '@/components/ui/multi-select'
+import { formatDateRelative, formatTime, slugify } from '@/lib/utils'
+import { TagInput } from '@/components/ui/tag-input'
 import Loader from '@/components/ui/Loader'
 
 export default function PostsPage() {
@@ -59,7 +59,7 @@ export default function PostsPage() {
   const [editingTagsSelected, setEditingTagsSelected] = useState<string[]>([])
   const [editingTagsInitial, setEditingTagsInitial] = useState<string[]>([])
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const tagPopoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasScrolledToReturnRef = useRef<string | null>(null)
 
   useEffect(() => {
     const statusParam = searchParams.get('status')
@@ -80,6 +80,19 @@ export default function PostsPage() {
   })
 
   const posts = data?.pages.flatMap((p: { posts: any[] }) => p.posts) ?? []
+  const returnToId = searchParams.get('returnTo')
+
+  useEffect(() => {
+    if (!returnToId || posts.length === 0) return
+    if (hasScrolledToReturnRef.current === returnToId) return
+    const el = document.querySelector(`[data-post-id="${returnToId}"]`)
+    if (!el) return
+    hasScrolledToReturnRef.current = returnToId
+    const id = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [returnToId, posts.length])
 
   useEffect(() => {
     const el = loadMoreRef.current
@@ -110,7 +123,8 @@ export default function PostsPage() {
 
   const displayDate = (post: any) => {
     const d = post.publishedAt || post.updatedAt
-    return d ? formatDateRelative(d) : '–'
+    if (!d) return '–'
+    return `${formatDateRelative(d)}, ${formatTime(d)}`
   }
 
   const authorNames = (post: any) => {
@@ -119,7 +133,7 @@ export default function PostsPage() {
   }
 
   const subtitle = (post: any) => {
-    if (post.deletedAt) return `Deleted ${formatDateRelative(post.deletedAt)}`
+    if (post.deletedAt) return `Deleted ${formatDateRelative(post.deletedAt)}, ${formatTime(post.deletedAt)}`
     const authors = authorNames(post)
     const date = displayDate(post)
     const hasDate = date && date !== '–'
@@ -155,10 +169,6 @@ export default function PostsPage() {
   }
 
   const openQuickTagEdit = (post: any) => {
-    if (tagPopoverCloseTimeoutRef.current) {
-      clearTimeout(tagPopoverCloseTimeoutRef.current)
-      tagPopoverCloseTimeoutRef.current = null
-    }
     if (editingTagsPostId && editingTagsPostId !== post.id) {
       closeQuickTagEdit({ keepOpen: true })
     }
@@ -166,21 +176,6 @@ export default function PostsPage() {
     setEditingTagsPostId(post.id)
     setEditingTagsSelected(ids)
     setEditingTagsInitial(ids)
-  }
-
-  const scheduleCloseQuickTagEdit = () => {
-    if (tagPopoverCloseTimeoutRef.current) clearTimeout(tagPopoverCloseTimeoutRef.current)
-    tagPopoverCloseTimeoutRef.current = setTimeout(() => {
-      tagPopoverCloseTimeoutRef.current = null
-      closeQuickTagEdit()
-    }, 200)
-  }
-
-  const cancelCloseQuickTagEdit = () => {
-    if (tagPopoverCloseTimeoutRef.current) {
-      clearTimeout(tagPopoverCloseTimeoutRef.current)
-      tagPopoverCloseTimeoutRef.current = null
-    }
   }
 
   return (
@@ -295,85 +290,146 @@ export default function PostsPage() {
             {posts.map((post: any) => (
               <div
                 key={post.id}
+                data-post-id={post.id}
                 className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
               >
-              <Link
-                href={`/${post.slug}?preview=1`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+              <div
+                className="w-16 h-16 shrink-0 rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden relative group"
+                {...(!post.deletedAt && post.slug ? { 'data-vivid-pointer': '' } : {})}
               >
-                <div className="w-16 h-16 shrink-0 rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
-                  {post.featuredMedia?.url ? (
-                    <img
-                      src={post.featuredMedia.url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <ImageIcon size={24} className="text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
+                {post.featuredMedia?.url ? (
+                  <img
+                    src={post.featuredMedia.url}
+                    alt=""
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
+                ) : (
+                  <ImageIcon size={24} className="text-muted-foreground pointer-events-none" />
+                )}
+                {!post.deletedAt && post.slug ? (
+                  <Link
+                    href={`/${post.slug}?preview=1`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                    data-vivid-pointer
+                    aria-label="Preview"
+                  >
+                    <Eye className="size-6 text-white pointer-events-none" />
+                  </Link>
+                ) : null}
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <Link
+                  href={`/vivid/editor/post/${post.id}`}
+                  className="min-w-0 cursor-pointer"
+                >
                   <div className="font-medium truncate">
                     <span className="truncate">{post.title || 'Untitled'}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {subtitle(post)}
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                    {!post.deletedAt && (
+                </Link>
+                {!post.deletedAt && (
+                  <div
+                    className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs"
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  >
+                    {editingTagsPostId === post.id ? (
                       <>
-                        <span
-                          className={`text-sm ${
-                            post.status === POST_STATUS.PUBLISHED
-                              ? 'text-muted-foreground'
-                              : 'text-rose-600 dark:text-rose-400'
-                          }`}
+                        <TagInput
+                          options={[...tags]
+                            .sort((a: Tag, b: Tag) => (b.postCount ?? 0) - (a.postCount ?? 0))
+                            .map((t: Tag) => ({ value: t.id, label: t.name, color: t.color }))}
+                          selected={editingTagsSelected}
+                          onSelectedChange={setEditingTagsSelected}
+                          placeholder="Type to add tag..."
+                          creatable
+                          onCreate={async (name) => {
+                            try {
+                              const tag = await createTag.mutateAsync({
+                                name,
+                                slug: slugify(name),
+                                color: TAG_DEFAULT_COLORS[Math.floor(Math.random() * TAG_DEFAULT_COLORS.length)],
+                              })
+                              return { value: tag.id, label: tag.name, color: tag.color }
+                            } catch {
+                              return null
+                            }
+                          }}
+                          className="min-w-[200px]"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                          onClick={() => closeQuickTagEdit()}
                         >
-                          {post.status?.charAt(0).toUpperCase()}
-                          {post.status?.slice(1)}
-                        </span>
-                        {post.visibility === POST_VISIBILITY.PRIVATE && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex shrink-0">
-                                <LockIcon size={16} className="text-muted-foreground" />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>Private post</TooltipContent>
-                          </Tooltip>
+                          <Check className="size-4" weight="bold" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        {postTags(post).length > 0 ? (
+                          postTags(post).map((tag: any, i: number) => (
+                            <span key={tag.id} className="inline-flex items-center gap-1">
+                              {i > 0 && <span className="text-border select-none">·</span>}
+                              <Link
+                                href={`/tag/${tag.slug}`}
+                                className="inline-flex items-center gap-1.5 italic rounded px-2 py-1 -mx-0.5 bg-muted/30 hover:bg-muted/80 hover:text-foreground hover:font-normal text-muted-foreground transition-colors"
+                                data-vivid-pointer
+                              >
+                                {tag.color && (
+                                  <span
+                                    className="shrink-0 w-1.5 h-1.5 rounded-full"
+                                    style={{ backgroundColor: tag.color }}
+                                    aria-hidden
+                                  />
+                                )}
+                                {tag.name}
+                              </Link>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground italic">No tags</span>
                         )}
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                          onClick={() => openQuickTagEdit(post)}
+                          aria-label="Edit tags"
+                        >
+                          <PencilSimple className="size-4" weight="bold" />
+                        </button>
                       </>
                     )}
                   </div>
-                </div>
-              </Link>
-              {postTags(post).length > 0 && (
-                <div
-                  className="flex flex-wrap items-center gap-x-1.5 gap-y-1 shrink-0"
-                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                >
-                  {postTags(post).map((tag: any, i: number) => (
-                    <span key={tag.id} className="inline-flex items-center gap-1">
-                      {i > 0 && (
-                        <span className="text-border select-none">·</span>
-                      )}
-                      <Link
-                        href={`/tag/${tag.slug}`}
-                        className="inline-flex items-center gap-1.5 italic hover:text-foreground hover:font-normal rounded px-1.5 py-0.5 -mx-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
-                      >
-                        {tag.color && (
-                          <span
-                            className="shrink-0 w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: tag.color }}
-                            aria-hidden
-                          />
-                        )}
-                        {tag.name}
-                      </Link>
-                    </span>
-                  ))}
+                )}
+              </div>
+              {!post.deletedAt && (
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 shrink-0">
+                  {post.status === POST_STATUS.DRAFT && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex shrink-0 text-[#3eb8b5]">
+                          <Feather size={18} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Draft</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {post.visibility === POST_VISIBILITY.PRIVATE && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex shrink-0">
+                          <LockIcon size={16} className="text-muted-foreground" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Private post</TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               )}
               <div className="shrink-0 flex items-center gap-2">
@@ -402,91 +458,16 @@ export default function PostsPage() {
                   </>
                 ) : (
                   <>
-                    <Popover
-                      open={editingTagsPostId === post.id}
-                      onOpenChange={(open) => !open && closeQuickTagEdit()}
-                    >
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon-xl"
-                          onMouseEnter={(e) => {
-                            e.stopPropagation()
-                            openQuickTagEdit(post)
-                          }}
-                          onMouseLeave={(e) => {
-                            e.stopPropagation()
-                            scheduleCloseQuickTagEdit()
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label="Edit tags"
-                        >
-                          <TagIcon className="size-5" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-80 p-4"
-                        align="end"
-                        onClick={(e) => e.stopPropagation()}
-                        onMouseEnter={cancelCloseQuickTagEdit}
-                        onMouseLeave={scheduleCloseQuickTagEdit}
-                      >
-                        <div className="space-y-2">
-                          <span className="text-sm font-medium">Tags</span>
-                          <MultiSelect
-                            options={[...tags]
-                              .sort((a, b) => (b.postCount ?? 0) - (a.postCount ?? 0))
-                              .map((t: Tag) => ({
-                                value: t.id,
-                                label: t.name,
-                                color: t.color,
-                              }))}
-                            selected={editingTagsSelected}
-                            onSelectedChange={setEditingTagsSelected}
-                            placeholder="Select tags"
-                            creatable
-                            onCreate={async (name) => {
-                              try {
-                                const tag = await createTag.mutateAsync({
-                                  name,
-                                  slug: slugify(name),
-                                  color: TAG_DEFAULT_COLORS[
-                                    Math.floor(Math.random() * TAG_DEFAULT_COLORS.length)
-                                  ],
-                                })
-                                return {
-                                  value: tag.id,
-                                  label: tag.name,
-                                  color: tag.color,
-                                }
-                              } catch {
-                                return null
-                              }
-                            }}
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
                     <Button
                       variant="ghost"
                       size="icon-xl"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/vivid/editor/post/${post.id}`)
-                      }}
-                      aria-label="Edit"
-                    >
-                      <PencilIcon className="size-5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xl"
+                      className="rounded-md text-muted-foreground hover:bg-muted/70 hover:text-destructive"
+                      style={{ cursor: 'pointer' }}
                       onClick={(e) => {
                         e.stopPropagation()
                         setPostToDelete({ id: post.id, title: post.title || 'Untitled' })
                       }}
                       aria-label="Delete"
-                      className="text-muted-foreground hover:text-destructive"
                     >
                       <TrashIcon className="size-5" />
                     </Button>

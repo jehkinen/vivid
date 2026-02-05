@@ -9,7 +9,7 @@ export function extractPlaintextFromLexical(lexicalJson: string | null): string 
     if (!root?.children) return null
 
     const extractText = (node: any): string => {
-      if (node.type === LEXICAL_NODE_TYPE.IMAGE || node.type === LEXICAL_NODE_TYPE.GALLERY || node.type === LEXICAL_NODE_TYPE.AUDIO) {
+      if (node.type === LEXICAL_NODE_TYPE.IMAGE || node.type === LEXICAL_NODE_TYPE.GALLERY || node.type === LEXICAL_NODE_TYPE.AUDIO || node.type === LEXICAL_NODE_TYPE.YOUTUBE) {
         return ''
       }
       if (node.type === LEXICAL_NODE_TYPE.TEXT || node.type === LEXICAL_NODE_TYPE.EXTENDED_TEXT) {

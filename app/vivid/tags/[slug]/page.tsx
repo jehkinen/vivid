@@ -170,20 +170,34 @@ export default function TagEditPage() {
 
           <div>
             <label className="block text-sm font-medium mb-2">Color</label>
-            <div className="flex items-center gap-4">
-              <Input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-20 h-10"
-              />
-              <Input
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder="#000000"
-                className="flex-1"
-              />
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="h-9 w-9 rounded-md border border-input shrink-0 transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: color }}
+                  aria-label="Choose color"
+                />
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="start">
+                <div className="grid grid-cols-5 gap-1.5">
+                  {TAG_DEFAULT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      className={`h-7 w-7 rounded border-2 shrink-0 transition-colors ${
+                        (color?.toLowerCase() ?? '') === c.toLowerCase()
+                          ? 'border-foreground ring-1 ring-offset-1'
+                          : 'border-transparent hover:border-muted-foreground/50'
+                      }`}
+                      style={{ backgroundColor: c }}
+                      aria-label={`Color ${c}`}
+                    />
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
