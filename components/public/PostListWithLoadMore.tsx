@@ -12,6 +12,7 @@ interface Post {
   publishedAt: string | Date | null
   wordCount: number | null
   tags?: { tag: { id: string; name: string; slug: string } }[]
+  featuredMedia?: { url?: string | null; thumbUrl?: string | null } | null
 }
 
 interface PostListWithLoadMoreProps {
@@ -82,6 +83,7 @@ export default function PostListWithLoadMore({
             publishedAt={post.publishedAt}
             wordCount={post.wordCount}
             tags={post.tags}
+            featuredMedia={post.featuredMedia}
           />
         ))}
       </div>

@@ -155,6 +155,7 @@ export function TagInput({
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: opt.color }}
+                  suppressHydrationWarning
                 />
               )}
               <span className="truncate max-w-[120px]">{opt?.label ?? id}</span>
@@ -237,6 +238,7 @@ export function TagInput({
                     <span
                       className="h-3 w-3 shrink-0 rounded-full"
                       style={{ backgroundColor: opt.color }}
+                      suppressHydrationWarning
                     />
                   )}
                   <span className="truncate">{opt.label}</span>

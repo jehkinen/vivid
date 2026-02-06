@@ -18,16 +18,24 @@ interface PostCardProps {
   publishedAt: string | Date | null
   wordCount: number | null
   tags?: { tag: { id: string; name: string; slug: string; color?: string | null } }[]
+  featuredMedia?: { url?: string | null; thumbUrl?: string | null } | null
 }
 
-export default function PostCard({ title, slug, plaintext, publishedAt, wordCount, tags }: PostCardProps) {
+export default function PostCard({ title, slug, plaintext, publishedAt, wordCount, tags, featuredMedia }: PostCardProps) {
   const excerpt = plaintext ? truncateAtWord(plaintext, EXCERPT_LENGTH) : ''
   const dateStr = formatPostDate(publishedAt)
   const words = wordCount ?? 0
   const tagList = tags?.map((t) => t.tag) ?? []
+  const thumbSrc = featuredMedia?.thumbUrl ?? featuredMedia?.url
 
   return (
-    <article className="border-b border-border py-8 first:pt-0">
+    <article className="border-b border-border py-8 first:pt-0 flex gap-6">
+      {thumbSrc && (
+        <Link href={`/${slug}`} className="shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-border bg-muted block">
+          <img src={thumbSrc} alt="" className="w-full h-full object-cover" width={80} height={80} />
+        </Link>
+      )}
+      <div className="min-w-0 flex-1">
       <h2 className="text-2xl font-bold mb-2">
         <Link href={`/${slug}`} className="text-foreground hover:opacity-80">
           {title || 'Untitled'}
@@ -57,6 +65,7 @@ export default function PostCard({ title, slug, plaintext, publishedAt, wordCoun
                     className="shrink-0 w-1.5 h-1.5 rounded-full"
                     style={{ backgroundColor: tag.color }}
                     aria-hidden
+                    suppressHydrationWarning
                   />
                 )}
                 {tag.name}
@@ -65,6 +74,7 @@ export default function PostCard({ title, slug, plaintext, publishedAt, wordCoun
           ))}
         </p>
       )}
+      </div>
     </article>
   )
 }

@@ -107,6 +107,7 @@ export function MultiSelect({
                       <div
                         className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: option.color }}
+                        suppressHydrationWarning
                       />
                     )}
                     <span className="min-w-0 flex-1 truncate">{option?.label || item}</span>
@@ -182,6 +183,7 @@ export function MultiSelect({
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: option.color }}
+                        suppressHydrationWarning
                       />
                     )}
                     {option.label}

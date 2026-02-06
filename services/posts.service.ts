@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { generateId } from '@/shared/id'
 import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
 import { countWords } from '@/lib/utils'
-import { MEDIABLE_TYPES, POST_SORT_OPTIONS, POST_STATUS, POST_TYPE, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
+import { IMAGE_CONVERSIONS, MEDIABLE_TYPES, POST_SORT_OPTIONS, POST_STATUS, POST_TYPE, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
 import { mediaService, type MediaService } from './media.service'
 import { storageService } from './storage.service'
 
@@ -177,7 +177,18 @@ export class PostsService {
     const posts = raw.slice(0, limit)
     const featuredIds = [...new Set(posts.map((p) => p.featuredMediaId).filter(Boolean))] as string[]
     const featuredList = featuredIds.length > 0 ? await this.mediaService.findManyByIds(featuredIds) : []
-    const featuredMap = Object.fromEntries(featuredList.map((m) => [m.id, m]))
+    const featuredMap = Object.fromEntries(
+      await Promise.all(
+        featuredList.map(async (m) => {
+          const hasThumb =
+            m.generatedConversions &&
+            typeof m.generatedConversions === 'object' &&
+            (m.generatedConversions as Record<string, boolean>)[IMAGE_CONVERSIONS.THUMB]
+          const thumbUrl = hasThumb ? await this.mediaService.getConversionUrl(m, IMAGE_CONVERSIONS.THUMB) : undefined
+          return [m.id, { ...m, thumbUrl }] as const
+        })
+      )
+    )
 
     return {
       posts: posts.map((p) => ({

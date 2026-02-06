@@ -77,6 +77,7 @@ export default async function PostBySlugPage({
                             className="shrink-0 w-1.5 h-1.5 rounded-full"
                             style={{ backgroundColor: tag.color }}
                             aria-hidden
+                            suppressHydrationWarning
                           />
                         )}
                         {tag.name}

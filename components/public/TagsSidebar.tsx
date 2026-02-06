@@ -29,6 +29,7 @@ export default function TagsSidebar({ tags }: TagsSidebarProps) {
                 <span
                   className="shrink-0 w-2 h-2 rounded-full"
                   style={{ backgroundColor: tag.color || 'var(--muted-foreground)' }}
+                  suppressHydrationWarning
                 />
                 <span className="break-words">{tag.name}</span>
               </span>

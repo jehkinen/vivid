@@ -177,6 +177,7 @@ export default function TagEditPage() {
                   className="h-9 w-9 rounded-md border border-input shrink-0 transition-opacity hover:opacity-90"
                   style={{ backgroundColor: color }}
                   aria-label="Choose color"
+                  suppressHydrationWarning
                 />
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2" align="start">
@@ -193,6 +194,7 @@ export default function TagEditPage() {
                       }`}
                       style={{ backgroundColor: c }}
                       aria-label={`Color ${c}`}
+                      suppressHydrationWarning
                     />
                   ))}
                 </div>

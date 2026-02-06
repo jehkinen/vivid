@@ -8,8 +8,11 @@ export default function PublicLogo() {
     <Link
       href="/"
       className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity logo-blur-pulse"
+      suppressHydrationWarning
     >
-      <FlowerLotus className="size-8 text-[#3eb8b5]" weight="regular" />
+      <span suppressHydrationWarning aria-hidden>
+        <FlowerLotus className="size-8 text-[#3eb8b5]" weight="regular" />
+      </span>
       <span className="text-2xl font-bold font-sans uppercase logo-gradient">
         Vivid
       </span>

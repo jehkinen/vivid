@@ -77,6 +77,7 @@ export default function TagsPage() {
                         <div
                           className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: tag.color }}
+                          suppressHydrationWarning
                         />
                       )}
                       <Link
