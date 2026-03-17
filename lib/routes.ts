@@ -42,6 +42,14 @@ export const routes = {
     name: 'vivid.tags.tag' as const,
     match: (p: string) => p.startsWith('/vivid/tags/') && p !== '/vivid/tags/new',
   },
+  VIVID_LISTS: { path: '/vivid/lists', name: 'vivid.lists' as const, match: (p: string) => p === '/vivid/lists' },
+  VIVID_MEDIA: { path: '/vivid/media', name: 'vivid.media' as const, match: (p: string) => p === '/vivid/media' },
+  LISTS: { path: '/lists', name: 'lists' as const, match: (p: string) => p === '/lists' },
+  LIST_SLUG: {
+    path: (slug: string) => `/lists/${slug}`,
+    name: 'list' as const,
+    match: (p: string) => p.startsWith('/lists/') && p !== '/lists',
+  },
   VIVID_PROFILE: { path: '/vivid/profile', name: 'vivid.profile' as const, match: (p: string) => p === '/vivid/profile' },
   VIVID_LOADER: { path: '/vivid/loader', name: 'vivid.loader' as const, match: (p: string) => p === '/vivid/loader' },
   ADMIN: { path: '/vivid', name: 'admin' as const, match: (p: string) => p.startsWith('/vivid') },
@@ -52,6 +60,8 @@ const ROUTE_MATCH_ORDER: (keyof typeof routes)[] = [
   'HOME',
   'POST_SLUG',
   'TAG',
+  'LISTS',
+  'LIST_SLUG',
   'VIVID_POSTS',
   'VIVID_POSTS_DELETED',
   'VIVID_EDITOR_POST_NEW',
@@ -60,6 +70,8 @@ const ROUTE_MATCH_ORDER: (keyof typeof routes)[] = [
   'VIVID_TAGS',
   'VIVID_TAG_NEW',
   'VIVID_TAG',
+  'VIVID_LISTS',
+  'VIVID_MEDIA',
   'VIVID_PROFILE',
   'VIVID_LOADER',
   'ADMIN',
@@ -70,7 +82,7 @@ export type RouteName = (typeof routes)[keyof typeof routes]['name']
 export type LayoutKey = 'bare' | 'postEditor' | 'sidebar'
 
 export const routeLayouts: { names: readonly RouteName[]; layout: LayoutKey }[] = [
-  { names: [routes.LOGIN.name, routes.HOME.name, routes.POST_SLUG.name, routes.TAG.name, routes.VIVID_EDITOR_POST_PREVIEW.name, routes.VIVID_LOADER.name], layout: 'bare' },
+  { names: [routes.LOGIN.name, routes.HOME.name, routes.POST_SLUG.name, routes.TAG.name, routes.LISTS.name, routes.LIST_SLUG.name, routes.VIVID_EDITOR_POST_PREVIEW.name, routes.VIVID_LOADER.name], layout: 'bare' },
   { names: [routes.VIVID_EDITOR_POST_NEW.name, routes.VIVID_EDITOR_POST.name], layout: 'postEditor' },
 ]
 

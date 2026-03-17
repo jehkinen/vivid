@@ -5,6 +5,7 @@ import {
   POST_VISIBILITY,
   MEDIABLE_TYPES,
   SLUG_MAX_LENGTH,
+  LIST_VISIBILITY,
 } from '@/shared/constants'
 
 const cuidSchema = z.string().length(24).regex(/^[a-z0-9]+$/)
@@ -94,6 +95,31 @@ export const idParamSchema = cuidSchema
 export const mediaUrlsSchema = z.object({ ids: z.array(idParamSchema).max(100) })
 
 export const slugParamSchema = slugSchema
+
+export const listCreateSchema = z.object({
+  title: z.string().min(1).max(500),
+  slug: slugSchema,
+  visibility: z.enum([LIST_VISIBILITY.PUBLIC, LIST_VISIBILITY.PRIVATE]).optional(),
+})
+
+export const listUpdateSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  slug: slugSchema.optional(),
+  visibility: z.enum([LIST_VISIBILITY.PUBLIC, LIST_VISIBILITY.PRIVATE]).optional(),
+})
+
+export const listItemCreateSchema = z.object({
+  text: z.string().min(1).max(2000),
+})
+
+export const listItemUpdateSchema = z.object({
+  text: z.string().min(1).max(2000).optional(),
+  checked: z.boolean().optional(),
+})
+
+export const listReorderSchema = z.object({
+  itemIds: z.array(cuidSchema),
+})
 
 export function validateRequest<T extends z.ZodTypeAny>(
   schema: T,

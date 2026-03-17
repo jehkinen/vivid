@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'
 import {
   PencilLineIcon,
   TagIcon,
+  ListChecksIcon,
   MagnifyingGlassIcon,
   BookOpenIcon,
   UserIcon,
@@ -37,6 +38,7 @@ import PublicLogo from '@/components/public/PublicLogo'
 import { PostSettingsProvider, usePostSettings } from '@/lib/post-settings-context'
 import { routes } from '@/lib/routes'
 import { useRoute } from '@/lib/route-context'
+import { ImageIcon as MediaIcon } from '@phosphor-icons/react'
 
 const menuItems = [
   {
@@ -50,6 +52,8 @@ const menuItems = [
     ],
   },
   { title: 'Tags', url: routes.VIVID_TAGS.path, icon: TagIcon },
+  { title: 'Lists', url: routes.VIVID_LISTS.path, icon: ListChecksIcon },
+  { title: 'Media', url: routes.VIVID_MEDIA.path, icon: MediaIcon },
 ]
 
 function AdminHeaderRight() {

@@ -135,3 +135,33 @@ model Media {
   @@map("media")
   @@schema("vivid_react")
 }
+
+model List {
+  id         String     @id @default(cuid()) @db.VarChar(24)
+  title      String     @db.VarChar(500)
+  slug       String     @unique @db.VarChar(191)
+  visibility String     @default("public") @db.VarChar(50)
+  sortOrder  Int        @default(0) @map("sort_order")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  items      ListItem[]
+
+  @@index([visibility])
+  @@map("lists")
+  @@schema("vivid_react")
+}
+
+model ListItem {
+  id        String   @id @default(cuid()) @db.VarChar(24)
+  listId    String   @map("list_id") @db.VarChar(24)
+  text      String   @db.VarChar(2000)
+  checked   Boolean  @default(false)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@map("list_items")
+  @@schema("vivid_react")
+}

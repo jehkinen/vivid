@@ -74,6 +74,13 @@ export const TAG_DEFAULT_COLORS = [
 
 export const SLUG_MAX_LENGTH = 191
 
+export const LIST_VISIBILITY = {
+  PUBLIC: 'public',
+  PRIVATE: 'private',
+} as const
+
+export type ListVisibility = (typeof LIST_VISIBILITY)[keyof typeof LIST_VISIBILITY]
+
 export const ALLOWED_IMAGE_MIME_TYPES = [
   'image/jpeg',
   'image/jpg',
@@ -104,6 +111,16 @@ export const MEDIA_COLLECTIONS = {
 } as const
 
 export type MediaCollection = typeof MEDIA_COLLECTIONS[keyof typeof MEDIA_COLLECTIONS]
+
+export const MEDIA_FILTER_TYPES = {
+  ALL: 'all',
+  IMAGE: 'image',
+  VIDEO: 'video',
+  AUDIO: 'audio',
+  DOCUMENT: 'document',
+} as const
+
+export type MediaFilterType = (typeof MEDIA_FILTER_TYPES)[keyof typeof MEDIA_FILTER_TYPES]
 
 export const IMAGE_CONVERSIONS = {
   THUMB: 'thumb',

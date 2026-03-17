@@ -49,7 +49,7 @@ async function fetchPosts(params: FindPostsParams = {}) {
 }
 
 async function fetchPost(id: string) {
-  const response = await fetch(`/api/posts?id=${id}`)
+  const response = await fetch(`/api/posts?id=${id}&includeDeleted=true`)
   if (!response.ok) {
     const error = await response.json()
     throw new Error(error.error || 'Failed to fetch post')

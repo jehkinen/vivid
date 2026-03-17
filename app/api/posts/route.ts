@@ -11,6 +11,8 @@ export const GET = apiHandler(async (request: NextRequest) => {
   const search = searchParams.get('search')
   const tagIdsParam = searchParams.get('tagIds')
   const sort = (searchParams.get('sort') || POST_SORT_OPTIONS.NEWEST) as any
+  const includeDeletedParam = searchParams.get('includeDeleted')
+  const includeDeleted = includeDeletedParam === 'true'
 
   if (id) {
     const idValidation = validateRequest(idParamSchema, id)
@@ -23,7 +25,11 @@ export const GET = apiHandler(async (request: NextRequest) => {
   }
 
   if (id || slug) {
-    const post = await postsService.findOne({ id: id || undefined, slug: slug || undefined })
+    const post = await postsService.findOne({
+      id: id || undefined,
+      slug: slug || undefined,
+      includeDeleted,
+    })
     return NextResponse.json(post)
   }
 
