@@ -2,95 +2,21 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { tagsClient, type TagDto } from '@/lib/api/tagsClient'
 
-export interface Tag {
-  id: string
-  name: string
-  slug: string
-  color: string | null
-  description: string | null
-  postCount?: number
-}
-
-async function fetchTags() {
-  const response = await fetch('/api/tags')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch tags')
-  }
-  return response.json()
-}
-
-async function fetchTag(slug: string) {
-  const response = await fetch(`/api/tags/${slug}`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch tag')
-  }
-  return response.json()
-}
-
-async function createTag(data: { name: string; slug: string; color?: string }) {
-  const response = await fetch('/api/tags', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to create tag')
-  }
-  return response.json()
-}
-
-async function updateTag(slug: string, data: { name?: string; slug?: string; color?: string }) {
-  const response = await fetch(`/api/tags/${slug}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update tag')
-  }
-  return response.json()
-}
-
-async function deleteTag(slug: string) {
-  const response = await fetch(`/api/tags/${slug}`, {
-    method: 'DELETE',
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to delete tag')
-  }
-  return response.json()
-}
-
-async function mergeTags(sourceTagId: string, targetTagId: string) {
-  const response = await fetch('/api/tags/merge', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sourceTagId, targetTagId }),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to merge tags')
-  }
-  return response.json()
-}
+export interface Tag extends TagDto {}
 
 export function useTags() {
   return useQuery({
     queryKey: ['tags'],
-    queryFn: fetchTags,
+    queryFn: () => tagsClient.list(),
   })
 }
 
 export function useTag(slug: string) {
   return useQuery({
     queryKey: ['tag', slug],
-    queryFn: () => fetchTag(slug),
+    queryFn: () => tagsClient.get(slug),
     enabled: !!slug,
   })
 }
@@ -98,7 +24,7 @@ export function useTag(slug: string) {
 export function useCreateTag() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: createTag,
+    mutationFn: tagsClient.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] })
       toast.success('Tag created successfully')
@@ -112,7 +38,7 @@ export function useCreateTag() {
 export function useUpdateTag() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ slug, data }: { slug: string; data: any }) => updateTag(slug, data),
+    mutationFn: ({ slug, data }: { slug: string; data: any }) => tagsClient.update(slug, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tags'] })
       queryClient.invalidateQueries({ queryKey: ['tag', variables.slug] })
@@ -127,7 +53,7 @@ export function useUpdateTag() {
 export function useDeleteTag() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: deleteTag,
+    mutationFn: tagsClient.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] })
       toast.success('Tag deleted successfully')
@@ -142,7 +68,7 @@ export function useMergeTag() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ sourceTagId, targetTagId }: { sourceTagId: string; targetTagId: string }) =>
-      mergeTags(sourceTagId, targetTagId),
+      tagsClient.merge(sourceTagId, targetTagId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tags'] })
       if (data?.targetTagSlug) {

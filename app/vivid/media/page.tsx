@@ -26,15 +26,10 @@ export default function MediaLibraryPage() {
   const items = data?.items ?? []
   const totalOriginalBytes = data?.totalOriginalBytes ?? 0
 
-  const approximateTotalBytes = items.reduce((acc, item) => {
-    const base = item.size || 0
-    const hasThumb = Boolean(item.thumbUrl)
-    const multiplier = hasThumb ? 2 : 1
-    return acc + base * multiplier
-  }, totalOriginalBytes)
+  const totalBytes = totalOriginalBytes
 
   const storageLimitBytes = 1 * 1024 * 1024 * 1024
-  const usageRatio = Math.min(approximateTotalBytes / storageLimitBytes, 1)
+  const usageRatio = Math.min(totalBytes / storageLimitBytes, 1)
 
   const formatBytes = (bytes: number) => {
     if (!bytes || bytes <= 0) return '0 B'
@@ -99,7 +94,7 @@ export default function MediaLibraryPage() {
             />
           </div>
           <div className="flex justify-between text-[11px] text-muted-foreground">
-            <span>{formatBytes(approximateTotalBytes)} used</span>
+            <span>{formatBytes(totalBytes)} used</span>
             <span>{formatBytes(storageLimitBytes)} total</span>
           </div>
         </div>

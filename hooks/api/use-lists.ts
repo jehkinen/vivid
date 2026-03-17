@@ -2,128 +2,46 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { listsClient, type ListDto, type ListItemDto } from '@/lib/api/listsClient'
 
-export interface ListItem {
-  id: string
-  listId: string
-  text: string
-  checked: boolean
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
-}
+export interface ListItem extends ListItemDto {}
 
-export interface List {
-  id: string
-  title: string
-  slug: string
-  visibility: string
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
-  items: ListItem[]
-}
+export interface List extends ListDto {}
 
 async function fetchLists(visibility?: string) {
-  const url = visibility ? `/api/lists?visibility=${visibility}` : '/api/lists'
-  const response = await fetch(url)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch lists')
-  }
-  return response.json()
+  return listsClient.list(visibility)
 }
 
 async function fetchList(id: string) {
-  const response = await fetch(`/api/lists/${id}`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch list')
-  }
-  return response.json()
+  return listsClient.get(id)
 }
 
 async function createList(data: { title: string; slug: string; visibility?: string }) {
-  const response = await fetch('/api/lists', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to create list')
-  }
-  return response.json()
+  return listsClient.create(data)
 }
 
 async function updateList(id: string, data: { title?: string; slug?: string; visibility?: string }) {
-  const response = await fetch(`/api/lists/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update list')
-  }
-  return response.json()
+  return listsClient.update(id, data)
 }
 
 async function deleteList(id: string) {
-  const response = await fetch(`/api/lists/${id}`, { method: 'DELETE' })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to delete list')
-  }
-  return response.json()
+  return listsClient.delete(id)
 }
 
 async function addListItem(listId: string, data: { text: string }) {
-  const response = await fetch(`/api/lists/${listId}/items`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to add item')
-  }
-  return response.json()
+  return listsClient.addItem(listId, data)
 }
 
 async function updateListItem(listId: string, itemId: string, data: { text?: string; checked?: boolean }) {
-  const response = await fetch(`/api/lists/${listId}/items/${itemId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update item')
-  }
-  return response.json()
+  return listsClient.updateItem(listId, itemId, data)
 }
 
 async function deleteListItem(listId: string, itemId: string) {
-  const response = await fetch(`/api/lists/${listId}/items/${itemId}`, { method: 'DELETE' })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to delete item')
-  }
-  return response.json()
+  return listsClient.deleteItem(listId, itemId)
 }
 
 async function reorderListItems(listId: string, itemIds: string[]) {
-  const response = await fetch(`/api/lists/${listId}/items`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemIds }),
-  })
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to reorder items')
-  }
-  return response.json()
+  return listsClient.reorderItems(listId, itemIds)
 }
 
 export function useLists(visibility?: string) {
@@ -253,7 +171,8 @@ export function useUpdateListItem() {
 export function useDeleteListItem() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ listId, itemId }: { listId: string; itemId: string }) => deleteListItem(listId, itemId),
+    mutationFn: ({ listId, itemId }: { listId: string; itemId: string }) =>
+      listsClient.deleteItem(listId, itemId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['lists'] })
       queryClient.invalidateQueries({ queryKey: ['list', variables.listId] })
@@ -265,12 +184,11 @@ export function useDeleteListItem() {
 export function useReorderListItems() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ listId, itemIds }: { listId: string; itemIds: string[] }) => reorderListItems(listId, itemIds),
-    onSuccess: (data) => {
-      if (data?.id) {
-        queryClient.invalidateQueries({ queryKey: ['lists'] })
-        queryClient.invalidateQueries({ queryKey: ['list', data.id] })
-      }
+    mutationFn: ({ listId, itemIds }: { listId: string; itemIds: string[] }) =>
+      listsClient.reorderItems(listId, itemIds),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['lists'] })
+      queryClient.invalidateQueries({ queryKey: ['list', variables.listId] })
     },
     onError: (error: Error) => toast.error(error.message),
   })

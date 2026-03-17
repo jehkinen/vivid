@@ -39,6 +39,7 @@ import { PostSettingsProvider, usePostSettings } from '@/lib/post-settings-conte
 import { routes } from '@/lib/routes'
 import { useRoute } from '@/lib/route-context'
 import { ImageIcon as MediaIcon } from '@phosphor-icons/react'
+import { authClient } from '@/lib/api/authClient'
 
 const menuItems = [
   {
@@ -93,14 +94,14 @@ function SidebarProfile() {
   const [profileOpen, setProfileOpen] = useState(false)
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setUser)
+    authClient
+      .me()
+      .then((data) => setUser(data))
       .catch(() => {})
   }, [])
 
   const handleSignOut = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    await authClient.logout()
     router.push('/login')
     router.refresh()
   }

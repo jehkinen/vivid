@@ -1,0 +1,56 @@
+import { apiRequest } from './request'
+
+export interface TagDto {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  description: string | null
+  postCount?: number
+}
+
+export const tagsClient = {
+  list() {
+    return apiRequest<TagDto[]>({
+      path: '/api/tags',
+    })
+  },
+
+  get(slug: string) {
+    return apiRequest<TagDto>({
+      path: `/api/tags/${slug}`,
+    })
+  },
+
+  create(data: { name: string; slug: string; color?: string }) {
+    return apiRequest<TagDto>({
+      path: '/api/tags',
+      method: 'POST',
+      body: data,
+    })
+  },
+
+  update(slug: string, data: { name?: string; slug?: string; color?: string }) {
+    return apiRequest<TagDto>({
+      path: `/api/tags/${slug}`,
+      method: 'PUT',
+      body: data,
+    })
+  },
+
+  delete(slug: string) {
+    return apiRequest<void>({
+      path: `/api/tags/${slug}`,
+      method: 'DELETE',
+    })
+  },
+
+  merge(sourceTagId: string, targetTagId: string) {
+    return apiRequest<any>({
+      path: '/api/tags/merge',
+      method: 'POST',
+      body: { sourceTagId, targetTagId },
+    })
+  },
+}
+

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ShaderBackground from '@/components/login/ShaderBackground'
 import PublicLogo from '@/components/public/PublicLogo'
+import { authClient } from '@/lib/api/authClient'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -19,20 +20,11 @@ export default function LoginPage() {
     setError('')
     setPending(true)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data.error || 'Invalid email or password')
-        return
-      }
+      await authClient.login({ email, password })
       router.push('/vivid/posts')
       router.refresh()
-    } catch {
-      setError('Something went wrong')
+    } catch (err: any) {
+      setError(err?.message || 'Something went wrong')
     } finally {
       setPending(false)
     }

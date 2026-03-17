@@ -34,24 +34,6 @@ export class ImageProcessingService {
       height: 200,
     })
 
-    const medium = await this.resizeImage(originalBuffer, 800, 600, { fit: 'inside' })
-    const mediumMetadata = await sharp(medium).metadata()
-    conversions.push({
-      name: IMAGE_CONVERSIONS.MEDIUM,
-      buffer: medium,
-      width: mediumMetadata.width || 800,
-      height: mediumMetadata.height || 600,
-    })
-
-    const large = await this.resizeImage(originalBuffer, 1920, 1080, { fit: 'inside' })
-    const largeMetadata = await sharp(large).metadata()
-    conversions.push({
-      name: IMAGE_CONVERSIONS.LARGE,
-      buffer: large,
-      width: largeMetadata.width || 1920,
-      height: largeMetadata.height || 1080,
-    })
-
     return conversions
   }
 }
