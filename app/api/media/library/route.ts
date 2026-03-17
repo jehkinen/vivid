@@ -70,7 +70,21 @@ export async function GET(request: NextRequest) {
       }
 
       const url = await storageService.getFileUrl(m.key)
-      return { ...m, url, thumbUrl }
+      let linkedTitle: string | null = null
+      let linkedSlug: string | null = null
+
+      if (m.mediableType === 'Post') {
+        const post = await prisma.post.findUnique({
+          where: { id: m.mediableId },
+          select: { title: true, slug: true },
+        })
+        if (post) {
+          linkedTitle = post.title
+          linkedSlug = post.slug
+        }
+      }
+
+      return { ...m, url, thumbUrl, linkedTitle, linkedSlug }
     })
   )
 

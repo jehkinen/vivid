@@ -10,6 +10,11 @@ export interface MediaItem {
   url: string
   thumbUrl?: string | null
   createdAt: string
+  mediableType?: string | null
+  mediableId?: string | null
+  generatedConversions?: Record<string, boolean> | null
+  linkedTitle?: string | null
+  linkedSlug?: string | null
 }
 
 export interface MediaLibraryResponse {

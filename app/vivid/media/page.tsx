@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useMedia } from '@/hooks/api/use-media'
 import { Button } from '@/components/ui/button'
 import { formatDateTime } from '@/lib/utils'
-import { MEDIA_FILTER_TYPES, type MediaFilterType } from '@/shared/constants'
+import { MEDIA_FILTER_TYPES, type MediaFilterType, MEDIABLE_TYPES } from '@/shared/constants'
+import { Lightbox } from '@/components/ui/lightbox'
 
 const PER_PAGE = 40
 
@@ -19,7 +20,10 @@ const MEDIA_TYPES: { value: MediaFilterType; label: string }[] = [
 export default function MediaLibraryPage() {
   const [page, setPage] = useState(1)
   const [type, setType] = useState<MediaFilterType>(MEDIA_FILTER_TYPES.ALL)
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [lightbox, setLightbox] = useState<{
+    images: { src: string; alt?: string }[]
+    index: number
+  } | null>(null)
   const { data, isLoading, isFetching } = useMedia({ page, perPage: PER_PAGE, type })
 
   const hasMore = data?.hasMore ?? false
@@ -60,23 +64,20 @@ export default function MediaLibraryPage() {
     }
   }
 
-  const openLightbox = (index: number) => {
-    if (type !== 'image') return
-    setLightboxIndex(index)
-  }
+  const imageItems = items.filter((item) => (item.mimeType || '').startsWith('image/'))
+  const lightboxImages = imageItems.map((item) => ({
+    src: item.url,
+    alt: item.filename,
+  }))
 
-  const closeLightbox = () => {
-    setLightboxIndex(null)
-  }
-
-  const showPrev = () => {
-    if (lightboxIndex == null || lightboxIndex <= 0) return
-    setLightboxIndex(lightboxIndex - 1)
-  }
-
-  const showNext = () => {
-    if (lightboxIndex == null || lightboxIndex >= items.length - 1) return
-    setLightboxIndex(lightboxIndex + 1)
+  const openLightbox = (itemId: string) => {
+    if (type !== MEDIA_FILTER_TYPES.IMAGE) return
+    if (lightboxImages.length === 0) return
+    const index = imageItems.findIndex((it) => it.id === itemId)
+    setLightbox({
+      images: lightboxImages,
+      index: index >= 0 ? index : 0,
+    })
   }
 
   return (
@@ -121,14 +122,14 @@ export default function MediaLibraryPage() {
           ) : items.length === 0 ? (
             <div className="col-span-full text-sm text-muted-foreground">No media files found.</div>
           ) : (
-            items.map((item, index) => {
+            items.map((item) => {
               const mime = item.mimeType || ''
               const isImage = mime.startsWith('image/')
               return (
               <figure
                 key={item.id}
                 className="flex flex-col gap-2 rounded-md border bg-background overflow-hidden cursor-pointer"
-                onClick={() => openLightbox(index)}
+                onClick={() => openLightbox(item.id)}
               >
                 <div className="relative w-full pb-[75%] bg-muted">
                   {isImage ? (
@@ -161,44 +162,70 @@ export default function MediaLibraryPage() {
         </div>
       </div>
 
-      {type === 'image' && lightboxIndex != null && items[lightboxIndex] && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center">
-          <button
-            type="button"
-            className="absolute top-4 right-4 px-3 py-1.5 text-sm rounded-md bg-black/60 text-white border border-white/20"
-            onClick={closeLightbox}
-          >
-            Close
-          </button>
-          <div className="flex items-center justify-center gap-4 w-full px-6">
-            <button
-              type="button"
-              className="px-3 py-2 text-sm rounded-md bg-black/60 text-white border border-white/20 disabled:opacity-40"
-              onClick={showPrev}
-              disabled={lightboxIndex <= 0}
-            >
-              Prev
-            </button>
-            <div className="max-w-5xl max-h-[80vh] w-full flex items-center justify-center">
-              <img
-                src={items[lightboxIndex].url}
-                alt={items[lightboxIndex].filename}
-                className="max-w-full max-h-[80vh] object-contain rounded-md bg-black"
-              />
-            </div>
-            <button
-              type="button"
-              className="px-3 py-2 text-sm rounded-md bg-black/60 text-white border border-white/20 disabled:opacity-40"
-              onClick={showNext}
-              disabled={lightboxIndex >= items.length - 1}
-            >
-              Next
-            </button>
-          </div>
-          <div className="mt-4 text-xs text-white/80 px-4 text-center max-w-5xl truncate">
-            {items[lightboxIndex].filename}
-          </div>
-        </div>
+      {type === MEDIA_FILTER_TYPES.IMAGE && lightbox && lightbox.images.length > 0 && (
+        <Lightbox
+          images={lightbox.images}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox(null)}
+          rightPanel={(_, idx) => {
+            const media = imageItems[idx]
+            if (!media) return null
+            const conversions =
+              media.generatedConversions && typeof media.generatedConversions === 'object'
+                ? Object.entries(media.generatedConversions)
+                    .filter(([, v]) => Boolean(v))
+                    .map(([k]) => k)
+                : []
+            return (
+              <>
+                <div className="mb-3">
+                  <div className="text-xs font-semibold truncate" title={media.filename}>
+                    {media.filename}
+                  </div>
+                  <div className="text-[11px] text-white/60 mt-0.5">
+                    {formatDateTime(media.createdAt)}
+                  </div>
+                </div>
+                <div className="space-y-1 mb-3">
+                  <div className="flex justify-between">
+                    <span className="text-[11px] text-white/60">Type</span>
+                    <span className="text-[11px]">{media.mimeType || 'unknown'}</span>
+                  </div>
+                  {media.size != null && (
+                    <div className="flex justify-between">
+                      <span className="text-[11px] text-white/60">Size</span>
+                      <span className="text-[11px]">{formatBytes(media.size)}</span>
+                    </div>
+                  )}
+                  {conversions.length > 0 && (
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[11px] text-white/60">Resizes</span>
+                      <span className="text-[11px] text-right">{conversions.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+                {media.mediableType && media.mediableId && (
+                  <div className="space-y-1 mt-1">
+                    <div className="text-[11px] text-white/60">Linked to</div>
+                    {media.mediableType === MEDIABLE_TYPES.POST ? (
+                      <a
+                        href={`/vivid/editor/post/${media.mediableId}`}
+                        className="text-[11px] text-emerald-300 hover:text-emerald-200 underline underline-offset-2 truncate block"
+                        title={media.linkedTitle ?? media.filename}
+                      >
+                        {media.linkedTitle || 'Untitled post'}
+                      </a>
+                    ) : (
+                      <div className="text-[11px]">
+                        {media.mediableType} · {media.mediableId}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )
+          }}
+        />
       )}
 
       <div className="flex items-center justify-between gap-3">
