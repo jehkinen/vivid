@@ -14,7 +14,7 @@ import { POST_STATUS, POST_VISIBILITY, type PostStatus, type PostVisibility } fr
 import { usePost, useCreatePost, useUpdatePost, useSoftDeletePost } from '@/hooks/api/use-posts'
 import { useTags, useCreateTag } from '@/hooks/api/use-tags'
 import { slugify, cn, countWords } from '@/lib/utils'
-import { TAG_DEFAULT_COLORS } from '@/shared/constants'
+import { TAG_DEFAULT_COLORS, POST_EDITOR_TOOLTIP, TOOLTIP_BACK } from '@/shared/constants'
 import { usePostSettings } from '@/lib/post-settings-context'
 import { XIcon, CaretLeft, Image as ImageIcon, SlidersHorizontal, Eye, Check, CaretUpIcon, CaretDownIcon, SelectionPlus, Trash } from '@phosphor-icons/react'
 import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
@@ -377,13 +377,20 @@ export default function PostEditorPage() {
         </div>
       </header>
 
-      <Link
-        href={resolvedId ? `/vivid/posts?returnTo=${encodeURIComponent(resolvedId)}` : '/vivid/posts'}
-        className="fixed top-[4.25rem] left-4 z-10 flex items-center justify-center h-9 w-9 rounded-md text-muted-foreground opacity-20 transition-opacity hover:opacity-100 hover:bg-muted/50 hover:text-foreground"
-        aria-label="Back to posts"
-      >
-        <CaretLeft className="size-5" weight="bold" />
-      </Link>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href={resolvedId ? `/vivid/posts?returnTo=${encodeURIComponent(resolvedId)}` : '/vivid/posts'}
+            className="fixed top-[4.25rem] left-4 z-10 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground opacity-20 transition-opacity hover:bg-muted/50 hover:text-foreground hover:opacity-100"
+            aria-label={TOOLTIP_BACK}
+          >
+            <CaretLeft className="size-5" weight="bold" />
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="left" sideOffset={8}>
+          {TOOLTIP_BACK}
+        </TooltipContent>
+      </Tooltip>
 
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 min-h-0 overflow-auto">
@@ -396,52 +403,86 @@ export default function PostEditorPage() {
                 mediableId={resolvedId || undefined}
                 triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn(
-                  'h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100',
-                  settingsOpen && 'opacity-100 bg-accent text-accent-foreground'
-                )}
-                aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
-                onClick={handleSettingsToggle}
-              >
-                <SlidersHorizontal className="size-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      'h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100',
+                      settingsOpen && 'bg-accent text-accent-foreground opacity-100'
+                    )}
+                    aria-label={
+                      settingsOpen
+                        ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
+                        : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN
+                    }
+                    onClick={handleSettingsToggle}
+                  >
+                    <SlidersHorizontal className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left" sideOffset={8}>
+                  {settingsOpen
+                    ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
+                    : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN}
+                </TooltipContent>
+              </Tooltip>
               <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100" />
               {slug ? (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
-                  aria-label="Preview"
-                  asChild
-                >
-                  <Link href={`/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noopener noreferrer">
-                    <Eye className="size-4" />
-                  </Link>
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
+                      aria-label={POST_EDITOR_TOOLTIP.PREVIEW}
+                      asChild
+                    >
+                      <Link href={`/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noopener noreferrer">
+                        <Eye className="size-4" />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" sideOffset={8}>
+                    {POST_EDITOR_TOOLTIP.PREVIEW}
+                  </TooltipContent>
+                </Tooltip>
               ) : (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 rounded-md opacity-20 cursor-not-allowed"
-                  aria-label="Preview"
-                  disabled
-                >
-                  <Eye className="size-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 cursor-not-allowed rounded-md opacity-20"
+                      aria-label={POST_EDITOR_TOOLTIP.PREVIEW_DISABLED}
+                      disabled
+                    >
+                      <Eye className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" sideOffset={8}>
+                    {POST_EDITOR_TOOLTIP.PREVIEW_DISABLED}
+                  </TooltipContent>
+                </Tooltip>
               )}
               {!isNew && resolvedId && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
-                  aria-label="Delete"
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
-                  <Trash className="size-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
+                      aria-label={POST_EDITOR_TOOLTIP.DELETE}
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Trash className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" sideOffset={8}>
+                    {POST_EDITOR_TOOLTIP.DELETE}
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
@@ -546,28 +587,24 @@ export default function PostEditorPage() {
           ) : (
             <div className="flex items-center justify-between w-full h-12 px-4 gap-4 min-w-0">
               <div className="flex items-center gap-4 shrink-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="shrink-0">
-                      <InsertBlockPlus
-                        editor={editor}
-                        mediableType="Post"
-                        mediableId={resolvedId || undefined}
-                        trigger={
-                          <button
-                            type="button"
-                            disabled={!editor}
-                            className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                            aria-label="Add block"
-                          >
-                            <SelectionPlus className="size-5" />
-                          </button>
-                        }
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Add block (image, gallery, audio)</TooltipContent>
-                </Tooltip>
+                <div className="shrink-0">
+                  <InsertBlockPlus
+                    editor={editor}
+                    mediableType="Post"
+                    mediableId={resolvedId || undefined}
+                    tooltipSide="top"
+                    trigger={
+                      <button
+                        type="button"
+                        disabled={!editor}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                        aria-label={POST_EDITOR_TOOLTIP.INSERT_BLOCK}
+                      >
+                        <SelectionPlus className="size-5" />
+                      </button>
+                    }
+                  />
+                </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -577,22 +614,25 @@ export default function PostEditorPage() {
                         'h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground',
                         settingsOpen && 'bg-accent text-accent-foreground'
                       )}
-                      aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
+                      aria-label={
+                        settingsOpen
+                          ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
+                          : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN
+                      }
                       onClick={handleSettingsToggle}
                     >
                       <SlidersHorizontal className="size-5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="top">Post settings</TooltipContent>
+                  <TooltipContent side="top">
+                    {settingsOpen
+                      ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
+                      : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN}
+                  </TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="shrink-0">
-                      <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-80 hover:opacity-100" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Reading settings</TooltipContent>
-                </Tooltip>
+                <div className="shrink-0">
+                  <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-80 hover:opacity-100" />
+                </div>
                 {slug ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -600,22 +640,22 @@ export default function PostEditorPage() {
                         href={`/${encodeURIComponent(slug)}?preview=1`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                        aria-label="Preview"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                        aria-label={POST_EDITOR_TOOLTIP.PREVIEW}
                       >
                         <Eye className="size-5" />
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent side="top">Open preview</TooltipContent>
+                    <TooltipContent side="top">{POST_EDITOR_TOOLTIP.PREVIEW}</TooltipContent>
                   </Tooltip>
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground opacity-50 cursor-not-allowed">
+                      <span className="flex h-9 w-9 shrink-0 cursor-not-allowed items-center justify-center rounded-md text-muted-foreground opacity-50">
                         <Eye className="size-5" />
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent side="top">Preview (save post with slug first)</TooltipContent>
+                    <TooltipContent side="top">{POST_EDITOR_TOOLTIP.PREVIEW_DISABLED}</TooltipContent>
                   </Tooltip>
                 )}
               </div>

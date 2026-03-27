@@ -25,7 +25,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import MediaUpload from '@/components/media/MediaUpload'
-import { LEXICAL_NODE_TYPE } from '@/shared/constants'
+import { LEXICAL_NODE_TYPE, POST_EDITOR_TOOLTIP } from '@/shared/constants'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type InsertBlockType = typeof LEXICAL_NODE_TYPE.IMAGE | typeof LEXICAL_NODE_TYPE.GALLERY | typeof LEXICAL_NODE_TYPE.AUDIO | typeof LEXICAL_NODE_TYPE.YOUTUBE
 
@@ -45,9 +46,17 @@ interface InsertBlockPlusProps {
   mediableId?: string
   triggerClassName?: string
   trigger?: React.ReactElement
+  tooltipSide?: 'top' | 'right' | 'bottom' | 'left'
 }
 
-export default function InsertBlockPlus({ editor, mediableType, mediableId, triggerClassName, trigger }: InsertBlockPlusProps) {
+export default function InsertBlockPlus({
+  editor,
+  mediableType,
+  mediableId,
+  triggerClassName,
+  trigger,
+  tooltipSide = 'left',
+}: InsertBlockPlusProps) {
   const [showDialog, setShowDialog] = useState(false)
   const [blockType, setBlockType] = useState<InsertBlockType | null>(null)
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -120,22 +129,29 @@ export default function InsertBlockPlus({ editor, mediableType, mediableId, trig
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger asChild>
-          {trigger
-            ? React.cloneElement(trigger, { suppressHydrationWarning: true })
-            : (
-            <Button
-              variant="outline"
-              size="icon"
-              className={['h-9 w-9 rounded-full transition-opacity', triggerClassName ?? 'opacity-70 hover:opacity-100'].filter(Boolean).join(' ')}
-              aria-label="Add block"
-              disabled={!editor}
-              suppressHydrationWarning
-            >
-              <PlusIcon size={16} />
-            </Button>
-              )}
-        </PopoverTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              {trigger
+                ? React.cloneElement(trigger, { suppressHydrationWarning: true })
+                : (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={['h-9 w-9 rounded-full transition-opacity', triggerClassName ?? 'opacity-70 hover:opacity-100'].filter(Boolean).join(' ')}
+                    aria-label={POST_EDITOR_TOOLTIP.INSERT_BLOCK}
+                    disabled={!editor}
+                    suppressHydrationWarning
+                  >
+                    <PlusIcon size={16} />
+                  </Button>
+                )}
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side={tooltipSide} sideOffset={8}>
+            {POST_EDITOR_TOOLTIP.INSERT_BLOCK}
+          </TooltipContent>
+        </Tooltip>
         <PopoverContent className="w-56 p-1" align="start">
           <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">PRIMARY</div>
           <button

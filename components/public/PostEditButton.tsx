@@ -25,7 +25,7 @@ export default function PostEditButton({ postId }: PostEditButtonProps) {
           </Link>
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8}>
+      <TooltipContent side="left" sideOffset={8}>
         {PUBLIC_POST_TOOLTIP.EDIT}
       </TooltipContent>
     </Tooltip>

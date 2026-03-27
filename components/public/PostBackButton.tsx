@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { CaretLeft } from '@phosphor-icons/react'
 import { routes } from '@/lib/routes'
-import { PUBLIC_POST_TOOLTIP } from '@/shared/constants'
+import { PUBLIC_POST_TOOLTIP, TOOLTIP_BACK } from '@/shared/constants'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type PostBackButtonProps = {
@@ -28,8 +28,8 @@ export default function PostBackButton({ postId, preview }: PostBackButtonProps)
           <CaretLeft className="size-5" weight="bold" />
         </Link>
       </TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8}>
-        {label}
+      <TooltipContent side="left" sideOffset={8}>
+        {TOOLTIP_BACK}
       </TooltipContent>
     </Tooltip>
   )

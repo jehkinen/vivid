@@ -174,7 +174,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
       return (
         <Tooltip>
           <TooltipTrigger asChild>{skeleton}</TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
+          <TooltipContent side="left" sideOffset={8}>
             {PUBLIC_POST_TOOLTIP.READING}
           </TooltipContent>
         </Tooltip>
@@ -191,7 +191,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>{triggerEl}</PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={8}>
+        <TooltipContent side="left" sideOffset={8}>
           {PUBLIC_POST_TOOLTIP.READING}
         </TooltipContent>
       </Tooltip>
@@ -214,7 +214,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
       <TooltipTrigger asChild>
         <SheetTrigger asChild>{triggerEl}</SheetTrigger>
       </TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8}>
+      <TooltipContent side="left" sideOffset={8}>
         {PUBLIC_POST_TOOLTIP.READING}
       </TooltipContent>
     </Tooltip>
