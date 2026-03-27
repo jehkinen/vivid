@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { SlidersIcon, BookOpenText } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
-import { PUBLIC_POST_TOOLTIP, READING_FONTS, type ReadingFontId } from '@/shared/constants'
+import { READING_FONTS, type ReadingFontId } from '@/shared/constants'
 
 export interface ReadingSettingsPanelProps {
   iconOnly?: boolean
@@ -140,7 +140,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
 
   const iconOnlyTriggerClass = iconOnly ? cn('h-9 w-9 rounded-md transition-opacity', triggerClassName ?? 'opacity-20 hover:opacity-100') : undefined
 
-  const readingAriaLabel = PUBLIC_POST_TOOLTIP.READING
+  const readingAriaLabel = 'Reading settings'
 
   const triggerButton = (
     <Button
@@ -175,7 +175,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
         <Tooltip>
           <TooltipTrigger asChild>{skeleton}</TooltipTrigger>
           <TooltipContent side="left" sideOffset={8}>
-            {PUBLIC_POST_TOOLTIP.READING}
+            Reading settings
           </TooltipContent>
         </Tooltip>
       )
@@ -192,7 +192,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
           <PopoverTrigger asChild>{triggerEl}</PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="left" sideOffset={8}>
-          {PUBLIC_POST_TOOLTIP.READING}
+          {readingAriaLabel}
         </TooltipContent>
       </Tooltip>
     ) : (
@@ -215,7 +215,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
         <SheetTrigger asChild>{triggerEl}</SheetTrigger>
       </TooltipTrigger>
       <TooltipContent side="left" sideOffset={8}>
-        {PUBLIC_POST_TOOLTIP.READING}
+        {readingAriaLabel}
       </TooltipContent>
     </Tooltip>
   ) : (

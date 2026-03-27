@@ -1,269 +1,24 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import type { LexicalEditor as LexicalEditorInstance } from 'lexical'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import LexicalEditor from '@/components/editor/LexicalEditor'
-import InsertBlockPlus from '@/components/editor/InsertBlockPlus'
+import { useCallback } from 'react'
 import PostSettingsPanel from '@/components/editor/PostSettingsPanel'
-import MediaUpload from '@/components/media/MediaUpload'
-import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
-import { POST_STATUS, POST_VISIBILITY, type PostStatus, type PostVisibility } from '@/shared/constants'
-import { usePost, useCreatePost, useUpdatePost, useSoftDeletePost } from '@/hooks/api/use-posts'
-import { useTags, useCreateTag } from '@/hooks/api/use-tags'
-import { slugify, cn, countWords } from '@/lib/utils'
-import { TAG_DEFAULT_COLORS, POST_EDITOR_TOOLTIP, TOOLTIP_BACK } from '@/shared/constants'
-import { usePostSettings } from '@/lib/post-settings-context'
-import { XIcon, CaretLeft, Image as ImageIcon, SlidersHorizontal, Eye, Check, CaretUpIcon, CaretDownIcon, SelectionPlus, Trash } from '@phosphor-icons/react'
-import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
-import PublicLogo from '@/components/public/PublicLogo'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import PostEditorBackLink from '@/components/editor/post-editor/PostEditorBackLink'
+import PostEditorBody from '@/components/editor/post-editor/PostEditorBody'
+import PostEditorDeleteDialog from '@/components/editor/post-editor/PostEditorDeleteDialog'
+import PostEditorDesktopRail from '@/components/editor/post-editor/PostEditorDesktopRail'
+import PostEditorHeader from '@/components/editor/post-editor/PostEditorHeader'
+import PostEditorMobileBar from '@/components/editor/post-editor/PostEditorMobileBar'
+import PostEditorStatusStrip from '@/components/editor/post-editor/PostEditorStatusStrip'
 import Loader from '@/components/ui/Loader'
-
-const AUTOSAVE_DELAY_MS = 3000
+import { usePostEditorPage } from '@/hooks/use-post-editor-page'
+import { routes } from '@/lib/routes'
+import { POST_STATUS } from '@/shared/constants'
 
 export default function PostEditorPage() {
-  const params = useParams()
-  const router = useRouter()
-  const postId = params.id as string
-  const isNew = postId === 'new'
-  const { open: settingsOpen, setOpen: setSettingsOpen } = usePostSettings()
-
-  const { data: post, isLoading } = usePost(isNew ? '' : postId)
-  const createPost = useCreatePost()
-  const updatePost = useUpdatePost()
-  const softDeletePost = useSoftDeletePost()
-  const { data: tags = [] } = useTags()
-  const createTagMutation = useCreateTag()
-
-  const [title, setTitle] = useState('')
-  const [slug, setSlug] = useState('')
-  const [lexical, setLexical] = useState<string | null>(null)
-  const [status, setStatus] = useState<PostStatus>(POST_STATUS.DRAFT)
-  const [visibility, setVisibility] = useState<PostVisibility>(POST_VISIBILITY.PUBLIC)
-  const [publishedAt, setPublishedAt] = useState<string | null>(null)
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
-  const [featuredMedia, setFeaturedMedia] = useState<any>(null)
-  const [hasSavedOnce, setHasSavedOnce] = useState(false)
-  const [editor, setEditor] = useState<LexicalEditorInstance | null>(null)
-  const [hasUserTyped, setHasUserTyped] = useState(false)
-  const [editorLoaded, setEditorLoaded] = useState(isNew)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const initialLoadCompleteRef = useRef(false)
-  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const resolvedIdRef = useRef<string>(postId)
-  const ignoreNextAutosaveCount = useRef(0)
-  const ignoreLexicalChangeUntil = useRef(0)
-  const lastSyncedPostIdRef = useRef<string | null>(null)
-  const prevPostIdRef = useRef<string>(postId)
-  const slugManuallyEditedRef = useRef(false)
-  const lastLexicalContentRef = useRef<string | null>(null)
-  const [mobileBarCollapsed, setMobileBarCollapsed] = useState(false)
-  const [toolbarOpen, setToolbarOpen] = useState(false)
-
-  useEffect(() => {
-    if (postId !== prevPostIdRef.current) {
-      prevPostIdRef.current = postId
-      if (postId && postId !== 'new') {
-        lastSyncedPostIdRef.current = null
-      }
-    }
-  }, [postId])
-
-  useEffect(() => {
-    if (!post || isNew) return
-    if (lastSyncedPostIdRef.current === post.id) return
-
-    lastSyncedPostIdRef.current = post.id
-    const wasAlreadyLoaded = initialLoadCompleteRef.current
-
-    if (autosaveTimer.current) {
-      clearTimeout(autosaveTimer.current)
-      autosaveTimer.current = null
-    }
-    ignoreLexicalChangeUntil.current = Date.now() + 500
-    slugManuallyEditedRef.current = false
-    setTitle(post.title || '')
-    setSlug(post.slug || '')
-    setLexical(post.lexical)
-    lastLexicalContentRef.current = post.lexical
-    setStatus((post.status as PostStatus) || POST_STATUS.DRAFT)
-    setVisibility(
-      post.visibility === POST_VISIBILITY.PUBLIC || post.visibility === POST_VISIBILITY.PRIVATE
-        ? (post.visibility as PostVisibility)
-        : POST_VISIBILITY.PUBLIC
-    )
-    setPublishedAt(post.publishedAt || null)
-    setSelectedTagIds(post.tags?.map((t: any) => t.tag.id) || [])
-    setFeaturedMedia(post.featuredMedia || null)
-    setHasSavedOnce(true)
-    resolvedIdRef.current = post.id
-    ignoreNextAutosaveCount.current = 5
-    setHasUserTyped(false)
-
-    if (!wasAlreadyLoaded) {
-      setEditorLoaded(false)
-      initialLoadCompleteRef.current = false
-
-      if (!post.lexical || post.lexical.trim() === '') {
-        setTimeout(() => {
-          initialLoadCompleteRef.current = true
-          setEditorLoaded(true)
-        }, 300)
-      }
-    }
-  }, [post, isNew])
-  
-  useEffect(() => {
-    if (isNew) {
-      setEditorLoaded(true)
-      initialLoadCompleteRef.current = true
-    }
-  }, [isNew])
-
-  const handleStatusChange = useCallback(
-    (newStatus: PostStatus) => {
-      const id = resolvedIdRef.current
-      if (!id || id === 'new') return
-      const prevStatus = status
-      const prevPublishedAt = publishedAt
-      setStatus(newStatus)
-      if (newStatus === POST_STATUS.PUBLISHED && !publishedAt) {
-        setPublishedAt(new Date().toISOString())
-      }
-      updatePost.mutate(
-        { id, data: { status: newStatus }, silent: true },
-        {
-          onSuccess: () => {
-            if (postId === 'new') {
-              router.replace(`/vivid/editor/post/${id}`)
-            }
-          },
-          onError: () => {
-            setStatus(prevStatus)
-            if (newStatus === POST_STATUS.PUBLISHED && !prevPublishedAt) setPublishedAt(prevPublishedAt)
-          },
-        }
-      )
-    },
-    [status, publishedAt, updatePost, postId, router]
-  )
-
-  const performSave = useCallback(
-    (opts?: { publish?: boolean; replaceUrl?: boolean; status?: PostStatus }) => {
-      if (createPost.isPending || updatePost.isPending) return
-      const s = opts?.status ?? (opts?.publish ? POST_STATUS.PUBLISHED : status)
-      const t = (title || '').trim()
-      const sslug = slug.trim() ? slugify(slug.trim()) : slugify(t || 'Untitled')
-      const lexicalSource =
-        editor != null
-          ? JSON.stringify(editor.getEditorState().toJSON())
-          : lexical
-      const plaintext = (lexicalSource ? extractPlaintextFromLexical(lexicalSource) : '') ?? ''
-      let safeLexical: string | undefined
-      if (lexicalSource && typeof lexicalSource === 'string') {
-        try {
-          JSON.parse(lexicalSource)
-          safeLexical = lexicalSource
-        } catch { /* omit */ }
-      }
-      const isNewPost = resolvedIdRef.current === 'new' || !resolvedIdRef.current
-      const isEmpty = !t && !(slug || '').trim() && !(plaintext || '').trim()
-      if (isNewPost && isEmpty) return
-      
-      if (!isNewPost && isEmpty && hasSavedOnce) {
-        return
-      }
-
-      if (!isNewPost && !safeLexical && (editor == null && (lexical == null || lexical === ''))) {
-        return
-      }
-
-      const data = {
-        title: t,
-        slug: sslug,
-        ...(safeLexical && { lexical: safeLexical }),
-        plaintext,
-        status: s,
-        visibility,
-        publishedAt,
-        tagIds: selectedTagIds,
-      }
-
-      if (isNewPost) {
-        createPost.mutate(data, {
-          onSuccess: (saved) => {
-            setHasSavedOnce(true)
-            resolvedIdRef.current = saved.id
-            setStatus(s)
-            setHasUserTyped(false)
-            if (opts?.replaceUrl !== false) {
-              router.replace(`/vivid/editor/post/${saved.id}`)
-            }
-          },
-        })
-      } else {
-        const id = resolvedIdRef.current
-        updatePost.mutate(
-          { id, data: { ...data, status: s } },
-          {
-            onSuccess: () => {
-              setStatus(s)
-              setHasUserTyped(false)
-              if (postId === 'new') {
-                router.replace(`/vivid/editor/post/${id}`)
-              }
-            },
-          }
-        )
-      }
-    },
-    [title, slug, lexical, status, visibility, publishedAt, selectedTagIds, createPost, updatePost, router, editor]
-  )
-
-  const scheduleAutosave = useCallback(() => {
-    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
-    autosaveTimer.current = setTimeout(() => {
-      autosaveTimer.current = null
-      performSave({ replaceUrl: true })
-    }, AUTOSAVE_DELAY_MS)
-  }, [performSave])
-
-  const handleSaveSuccess = useCallback(() => {
-    setHasUserTyped(false)
-  }, [])
-
-  const isSaving = createPost.isPending || updatePost.isPending
-
-  useEffect(() => {
-    if (toolbarOpen) return
-    if (ignoreNextAutosaveCount.current > 0) {
-      ignoreNextAutosaveCount.current -= 1
-      return
-    }
-    if (!hasUserTyped) return
-    if (isSaving) return
-    if (!isNew && isLoading) return
-    if (!isNew && !initialLoadCompleteRef.current) return
-    scheduleAutosave()
-    return () => {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
-    }
-  }, [
+  const {
+    postId,
+    isNew,
+    isLoading,
     title,
     slug,
     lexical,
@@ -271,473 +26,131 @@ export default function PostEditorPage() {
     visibility,
     publishedAt,
     selectedTagIds,
-    scheduleAutosave,
-    isNew,
-    isLoading,
-    hasUserTyped,
+    featuredMedia,
+    editor,
+    setEditor,
+    settingsOpen,
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+    mobileBarCollapsed,
+    setMobileBarCollapsed,
+    setToolbarOpen,
+    resolvedId,
+    statusLabel,
     isSaving,
-    toolbarOpen,
-  ])
+    tagsForSettings,
+    hasSavedOnce,
+    softDeletePost,
+    router,
+    handleStatusChange,
+    performSave,
+    handleSettingsToggle,
+    handleSettingsClose,
+    handleEditorChange,
+    handleTitleChange,
+    handleSlugChange,
+    handleEditorLoaded,
+    handleCreateTag,
+    handleRemoveFeatured,
+    handleFeaturedUploaded,
+    setVisibility,
+    setPublishedAt,
+    setSelectedTagIds,
+  } = usePostEditorPage()
 
-  useEffect(() => {
-    if (toolbarOpen) return
-    if (!hasUserTyped || isSaving) return
-    if (!isNew && isLoading) return
-    if (!isNew && !initialLoadCompleteRef.current) return
-    scheduleAutosave()
-  }, [toolbarOpen, hasUserTyped, isSaving, isNew, isLoading, scheduleAutosave])
-
-  const handleEditorChange = (_: any, __: string, lexicalState: string) => {
-    if (ignoreLexicalChangeUntil.current > Date.now()) return
-    if (!isNew && !initialLoadCompleteRef.current) return
-    if (lastLexicalContentRef.current === lexicalState) return
-    lastLexicalContentRef.current = lexicalState
-    setLexical(lexicalState)
-    setHasUserTyped(true)
-  }
-
-  const handleSettingsToggle = () => {
-    ignoreLexicalChangeUntil.current = Date.now() + 300
-    if (settingsOpen) {
-      performSave({ replaceUrl: true })
-      setSettingsOpen(false)
-    } else {
-      setSettingsOpen(true)
-    }
-  }
-
-  const handleSettingsClose = () => {
-    ignoreLexicalChangeUntil.current = Date.now() + 300
-    performSave({ replaceUrl: true })
-    setSettingsOpen(false)
-  }
-
-  const handleTitleChange = (value: string) => {
-    if (!isNew && !initialLoadCompleteRef.current) return
-    setTitle(value)
-    if (!slugManuallyEditedRef.current) setSlug(slugify(value))
-    setHasUserTyped(true)
-  }
-
-  const resolvedId = isNew ? (hasSavedOnce ? resolvedIdRef.current : null) : postId
-  const statusLabel =
-    !hasSavedOnce && isNew
-      ? 'New'
-      : status === POST_STATUS.PUBLISHED
-        ? `Published${isSaving ? ' - Saving...' : hasSavedOnce ? ' - Saved' : ''}`
-        : `Draft${isSaving ? ' - Saving...' : hasSavedOnce ? ' - Saved' : ''}`
+  const handleConfirmDelete = useCallback(() => {
+    if (!resolvedId) return
+    softDeletePost.mutate(resolvedId, {
+      onSuccess: () => router.push(routes.VIVID_POSTS.path),
+      onSettled: () => setDeleteDialogOpen(false),
+    })
+  }, [resolvedId, softDeletePost, router, setDeleteDialogOpen])
 
   if (isLoading && !isNew) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex h-full items-center justify-center">
         <Loader />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <header className="shrink-0 border-b px-6 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <PublicLogo />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-md border border-border p-0.5">
-            <button
-              type="button"
-              onClick={() =>
-                resolvedId
-                  ? handleStatusChange(POST_STATUS.DRAFT)
-                  : performSave({ status: POST_STATUS.DRAFT })
-              }
-              disabled={!resolvedId && isSaving}
-              className={cn(
-                'px-3 py-1.5 text-sm rounded',
-                status === POST_STATUS.DRAFT ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              )}
-            >
-              Draft
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                resolvedId
-                  ? handleStatusChange(POST_STATUS.PUBLISHED)
-                  : performSave({ status: POST_STATUS.PUBLISHED, replaceUrl: !hasSavedOnce && isNew })
-              }
-              disabled={!resolvedId && isSaving}
-              className={cn(
-                'px-3 py-1.5 text-sm rounded',
-                status === POST_STATUS.PUBLISHED ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              )}
-            >
-              Published
-            </button>
+    <div className="flex h-full flex-col">
+      <PostEditorHeader
+        status={status}
+        resolvedId={resolvedId}
+        isSaving={isSaving}
+        onStatusChange={handleStatusChange}
+        onSaveDraft={() => performSave({ status: POST_STATUS.DRAFT })}
+        onSavePublished={() =>
+          performSave({ status: POST_STATUS.PUBLISHED, replaceUrl: !hasSavedOnce && isNew })
+        }
+      />
+      <PostEditorBackLink resolvedId={resolvedId} />
+      <div className="flex min-h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto flex min-h-full w-full max-w-none gap-0 px-4 md:max-w-[calc(48rem+80px+4rem)] md:gap-20 md:px-6">
+            <PostEditorDesktopRail
+              editor={editor}
+              resolvedId={resolvedId ?? undefined}
+              slug={slug}
+              settingsOpen={settingsOpen}
+              isNew={isNew}
+              onSettingsToggle={handleSettingsToggle}
+              onDeleteClick={() => setDeleteDialogOpen(true)}
+            />
+            <PostEditorBody
+              postId={postId}
+              resolvedId={resolvedId}
+              title={title}
+              lexical={lexical}
+              featuredMedia={featuredMedia}
+              onTitleChange={handleTitleChange}
+              onEditorChange={handleEditorChange}
+              onEditorMount={setEditor}
+              onToolbarOpenChange={setToolbarOpen}
+              onEditorLoaded={handleEditorLoaded}
+              onRemoveFeatured={handleRemoveFeatured}
+              onFeaturedUploaded={handleFeaturedUploaded}
+            />
           </div>
         </div>
-      </header>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            href={resolvedId ? `/vivid/posts?returnTo=${encodeURIComponent(resolvedId)}` : '/vivid/posts'}
-            className="fixed top-[4.25rem] left-4 z-10 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground opacity-20 transition-opacity hover:bg-muted/50 hover:text-foreground hover:opacity-100"
-            aria-label={TOOLTIP_BACK}
-          >
-            <CaretLeft className="size-5" weight="bold" />
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side="left" sideOffset={8}>
-          {TOOLTIP_BACK}
-        </TooltipContent>
-      </Tooltip>
-
-      <div className="flex flex-1 min-h-0">
-        <div className="flex-1 min-h-0 overflow-auto">
-        <div className="flex gap-0 md:gap-20 min-h-full w-full max-w-none md:max-w-[calc(48rem+80px+4rem)] mx-auto px-4 md:px-6">
-          <div className="hidden md:flex shrink-0 flex-col w-10">
-            <div className="sticky top-[50vh] -translate-y-1/2 shrink-0 flex flex-col items-center gap-3 pt-8">
-              <InsertBlockPlus
-                editor={editor}
-                mediableType="Post"
-                mediableId={resolvedId || undefined}
-                triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
-              />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      'h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100',
-                      settingsOpen && 'bg-accent text-accent-foreground opacity-100'
-                    )}
-                    aria-label={
-                      settingsOpen
-                        ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
-                        : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN
-                    }
-                    onClick={handleSettingsToggle}
-                  >
-                    <SlidersHorizontal className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left" sideOffset={8}>
-                  {settingsOpen
-                    ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
-                    : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN}
-                </TooltipContent>
-              </Tooltip>
-              <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100" />
-              {slug ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
-                      aria-label={POST_EDITOR_TOOLTIP.PREVIEW}
-                      asChild
-                    >
-                      <Link href={`/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noopener noreferrer">
-                        <Eye className="size-4" />
-                      </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" sideOffset={8}>
-                    {POST_EDITOR_TOOLTIP.PREVIEW}
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 cursor-not-allowed rounded-md opacity-20"
-                      aria-label={POST_EDITOR_TOOLTIP.PREVIEW_DISABLED}
-                      disabled
-                    >
-                      <Eye className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" sideOffset={8}>
-                    {POST_EDITOR_TOOLTIP.PREVIEW_DISABLED}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {!isNew && resolvedId && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
-                      aria-label={POST_EDITOR_TOOLTIP.DELETE}
-                      onClick={() => setDeleteDialogOpen(true)}
-                    >
-                      <Trash className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" sideOffset={8}>
-                    {POST_EDITOR_TOOLTIP.DELETE}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          </div>
-          <div className="flex-1 min-w-0 w-full max-w-3xl py-8 pb-20 md:pb-8 font-reading">
-            <div className="flex">
-              <div className="flex-1 min-w-0 flex flex-col relative">
-                {resolvedId && (
-                  <div className="mb-4">
-                    {featuredMedia ? (
-                      <div className="relative inline-block mb-4">
-                        <img
-                          src={featuredMedia.url}
-                          alt={featuredMedia.filename}
-                          className="max-w-full max-h-64 rounded-lg object-cover"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => {
-                            updatePost.mutate({ id: resolvedId, data: { featuredMediaId: null } })
-                            setFeaturedMedia(null)
-                          }}
-                        >
-                          <XIcon size={16} />
-                        </Button>
-                      </div>
-                    ) : (
-                      <MediaUpload
-                        mediableType="Post"
-                        mediableId={resolvedId}
-                        collection="featured"
-                        buttonLabel="Featured Image"
-                        buttonIcon={<ImageIcon size={20} />}
-                        buttonClassName="min-h-[72px] py-4"
-                        onUploaded={(m) => {
-                          if (m.length) {
-                            updatePost.mutate({ id: resolvedId, data: { featuredMediaId: m[0].id } })
-                            setFeaturedMedia(m[0])
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-                )}
-    <input
-      type="text"
-      value={title}
-      onChange={(e) => handleTitleChange(e.target.value)}
-      placeholder="Post title"
-      className="w-full bg-transparent text-foreground text-4xl font-semibold tracking-tight border-0 outline-none placeholder:text-muted-foreground py-2 mb-2"
-    />
-                <LexicalEditor
-                  key={postId}
-                  initialEditorState={lexical}
-                  onChange={handleEditorChange}
-                  placeholder="Begin writing your vivid story..."
-                  mediableType="Post"
-                  mediableId={resolvedId || undefined}
-                  onEditorMount={setEditor}
-                  onToolbarOpenChange={setToolbarOpen}
-                  onEditorLoaded={() => {
-                    setEditorLoaded(true)
-                    if (!isNew) {
-                      setTimeout(() => {
-                        initialLoadCompleteRef.current = true
-                      }, 300)
-                    } else {
-                      initialLoadCompleteRef.current = true
-                    }
-                  }}
-                  renderFloatingPanel={() => null}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-        <div className="hidden md:flex fixed bottom-0 left-0 z-10 flex-col gap-0.5 px-6 pb-4 text-xs text-muted-foreground opacity-70 pointer-events-none">
-          <span className="tabular-nums">{countWords(extractPlaintextFromLexical(lexical))} words</span>
-          <span className="inline-flex items-center gap-1.5">
-            {statusLabel}
-            {statusLabel.includes('Saved') && <Check className="size-3.5 shrink-0 text-green-500/70" weight="bold" />}
-          </span>
-        </div>
-        <nav
-          className={cn(
-            'fixed bottom-0 left-0 right-0 z-20 border-t bg-background md:hidden flex items-center transition-[height] duration-200 overflow-hidden',
-            mobileBarCollapsed ? 'h-10 justify-end' : 'h-12'
-          )}
-          aria-label="Editor actions"
-        >
-          {mobileBarCollapsed ? (
-            <button
-              type="button"
-              onClick={() => setMobileBarCollapsed(false)}
-              className="flex items-center justify-center h-full w-12 pr-2 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Expand menu"
-            >
-              <CaretUpIcon className="size-5" weight="bold" />
-            </button>
-          ) : (
-            <div className="flex items-center justify-between w-full h-12 px-4 gap-4 min-w-0">
-              <div className="flex items-center gap-4 shrink-0">
-                <div className="shrink-0">
-                  <InsertBlockPlus
-                    editor={editor}
-                    mediableType="Post"
-                    mediableId={resolvedId || undefined}
-                    tooltipSide="top"
-                    trigger={
-                      <button
-                        type="button"
-                        disabled={!editor}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-                        aria-label={POST_EDITOR_TOOLTIP.INSERT_BLOCK}
-                      >
-                        <SelectionPlus className="size-5" />
-                      </button>
-                    }
-                  />
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        'h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground',
-                        settingsOpen && 'bg-accent text-accent-foreground'
-                      )}
-                      aria-label={
-                        settingsOpen
-                          ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
-                          : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN
-                      }
-                      onClick={handleSettingsToggle}
-                    >
-                      <SlidersHorizontal className="size-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    {settingsOpen
-                      ? POST_EDITOR_TOOLTIP.POST_SETTINGS_CLOSE
-                      : POST_EDITOR_TOOLTIP.POST_SETTINGS_OPEN}
-                  </TooltipContent>
-                </Tooltip>
-                <div className="shrink-0">
-                  <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-80 hover:opacity-100" />
-                </div>
-                {slug ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={`/${encodeURIComponent(slug)}?preview=1`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                        aria-label={POST_EDITOR_TOOLTIP.PREVIEW}
-                      >
-                        <Eye className="size-5" />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{POST_EDITOR_TOOLTIP.PREVIEW}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="flex h-9 w-9 shrink-0 cursor-not-allowed items-center justify-center rounded-md text-muted-foreground opacity-50">
-                        <Eye className="size-5" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{POST_EDITOR_TOOLTIP.PREVIEW_DISABLED}</TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-              <div className="flex flex-col items-end justify-center gap-0.5 text-xs text-muted-foreground opacity-70 shrink-0 min-w-0">
-                <span className="tabular-nums">{countWords(extractPlaintextFromLexical(lexical))} words</span>
-                <span className="inline-flex items-center gap-1.5">
-                  {statusLabel}
-                  {statusLabel.includes('Saved') && <Check className="size-3.5 shrink-0 text-green-500/70" weight="bold" />}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMobileBarCollapsed(true)}
-                className="flex items-center justify-center h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Collapse menu"
-              >
-                <CaretDownIcon className="size-5" weight="bold" />
-              </button>
-            </div>
-          )}
-        </nav>
-
+        <PostEditorStatusStrip lexical={lexical} statusLabel={statusLabel} />
+        <PostEditorMobileBar
+          editor={editor}
+          resolvedId={resolvedId ?? undefined}
+          slug={slug}
+          lexical={lexical}
+          statusLabel={statusLabel}
+          settingsOpen={settingsOpen}
+          mobileBarCollapsed={mobileBarCollapsed}
+          onMobileBarCollapsedChange={setMobileBarCollapsed}
+          onSettingsToggle={handleSettingsToggle}
+        />
         {settingsOpen && (
           <PostSettingsPanel
             slug={slug}
-            onSlugChange={(v) => {
-              slugManuallyEditedRef.current = true
-              setSlug(v)
-            }}
+            onSlugChange={handleSlugChange}
             visibility={visibility}
             onVisibilityChange={setVisibility}
             publishedAt={publishedAt}
             onPublishedAtChange={setPublishedAt}
             selectedTagIds={selectedTagIds}
             onSelectedTagIdsChange={setSelectedTagIds}
-            tags={tags.map((t: any) => ({ id: t.id, name: t.name, color: t.color, postCount: t.postCount }))}
-            onCreateTag={async (name) => {
-              try {
-                const tag = await createTagMutation.mutateAsync({
-                  name,
-                  slug: slugify(name),
-                  color: TAG_DEFAULT_COLORS[Math.floor(Math.random() * TAG_DEFAULT_COLORS.length)],
-                })
-                return { value: tag.id, label: tag.name, color: tag.color }
-              } catch {
-                return null
-              }
-            }}
+            tags={tagsForSettings}
+            onCreateTag={handleCreateTag}
             isNew={isNew}
-            postId={resolvedId || undefined}
+            postId={resolvedId ?? undefined}
             onClose={handleSettingsClose}
           />
         )}
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete post</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete «{title || 'this post'}»? It will be moved to Deleted.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (!resolvedId) return
-                softDeletePost.mutate(resolvedId, {
-                  onSuccess: () => router.push('/vivid/posts'),
-                  onSettled: () => setDeleteDialogOpen(false),
-                })
-              }}
-              disabled={softDeletePost.isPending}
-            >
-              {softDeletePost.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <PostEditorDeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title={title}
+          isDeleting={softDeletePost.isPending}
+          onConfirmDelete={handleConfirmDelete}
+        />
       </div>
     </div>
   )

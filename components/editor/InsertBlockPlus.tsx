@@ -25,7 +25,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import MediaUpload from '@/components/media/MediaUpload'
-import { LEXICAL_NODE_TYPE, POST_EDITOR_TOOLTIP } from '@/shared/constants'
+import { LEXICAL_NODE_TYPE } from '@/shared/constants'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type InsertBlockType = typeof LEXICAL_NODE_TYPE.IMAGE | typeof LEXICAL_NODE_TYPE.GALLERY | typeof LEXICAL_NODE_TYPE.AUDIO | typeof LEXICAL_NODE_TYPE.YOUTUBE
@@ -139,7 +139,7 @@ export default function InsertBlockPlus({
                     variant="outline"
                     size="icon"
                     className={['h-9 w-9 rounded-full transition-opacity', triggerClassName ?? 'opacity-70 hover:opacity-100'].filter(Boolean).join(' ')}
-                    aria-label={POST_EDITOR_TOOLTIP.INSERT_BLOCK}
+                    aria-label="Add block"
                     disabled={!editor}
                     suppressHydrationWarning
                   >
@@ -149,7 +149,7 @@ export default function InsertBlockPlus({
             </PopoverTrigger>
           </TooltipTrigger>
           <TooltipContent side={tooltipSide} sideOffset={8}>
-            {POST_EDITOR_TOOLTIP.INSERT_BLOCK}
+            Add block
           </TooltipContent>
         </Tooltip>
         <PopoverContent className="w-56 p-1" align="start">

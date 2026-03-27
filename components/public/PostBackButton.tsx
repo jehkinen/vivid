@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { CaretLeft } from '@phosphor-icons/react'
 import { routes } from '@/lib/routes'
-import { PUBLIC_POST_TOOLTIP, TOOLTIP_BACK } from '@/shared/constants'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type PostBackButtonProps = {
@@ -15,7 +14,7 @@ export default function PostBackButton({ postId, preview }: PostBackButtonProps)
   const href =
     preview && postId ? routes.VIVID_EDITOR_POST.path(postId) : routes.HOME.path
 
-  const label = preview ? PUBLIC_POST_TOOLTIP.BACK_EDITOR : PUBLIC_POST_TOOLTIP.BACK_HOME
+  const label = preview ? 'Back to editor' : 'Back to home'
 
   return (
     <Tooltip>
@@ -29,7 +28,7 @@ export default function PostBackButton({ postId, preview }: PostBackButtonProps)
         </Link>
       </TooltipTrigger>
       <TooltipContent side="left" sideOffset={8}>
-        {TOOLTIP_BACK}
+        Back
       </TooltipContent>
     </Tooltip>
   )

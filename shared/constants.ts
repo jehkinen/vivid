@@ -160,24 +160,6 @@ export type LexicalNodeType = (typeof LEXICAL_NODE_TYPE)[keyof typeof LEXICAL_NO
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024
 
-export const TOOLTIP_BACK = 'Back' as const
-
-export const PUBLIC_POST_TOOLTIP = {
-  BACK_HOME: 'Back to home',
-  BACK_EDITOR: 'Back to editor',
-  READING: 'Reading settings',
-  EDIT: 'Edit post',
-} as const
-
-export const POST_EDITOR_TOOLTIP = {
-  INSERT_BLOCK: 'Add block',
-  POST_SETTINGS_OPEN: 'Post settings',
-  POST_SETTINGS_CLOSE: 'Close post settings',
-  PREVIEW: 'Preview',
-  PREVIEW_DISABLED: 'Set a slug to preview',
-  DELETE: 'Delete post',
-} as const
-
 export const READING_FONTS = [
   { id: 'bitter', label: 'Bitter' },
   { id: 'bookerly', label: 'Bookerly Light' },
