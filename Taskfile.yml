@@ -1,6 +1,11 @@
 version: '3'
 
 tasks:
+  clean:
+    desc: Удаляет кэш Next.js (.next)
+    cmds:
+      - rm -rf .next
+
   dev:
     desc: Запускает Next.js в режиме разработки
     cmds:

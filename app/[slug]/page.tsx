@@ -51,13 +51,15 @@ export default async function PostBySlugPage({
 
   return (
     <PublicLayout showReadingSettingsInHeader={false}>
-      <div className="flex gap-4 items-start">
-        <div className="group sticky top-[50vh] -translate-y-1/2 shrink-0 w-14 flex flex-col items-center gap-3 pr-4">
-          <PostBackButton />
-          <ReadingSettingsPanel iconOnly />
-          {loggedIn && <PostEditButton postId={post.id} />}
+      <PostBackButton postId={post.id} preview={isPreview} />
+      <div className="flex min-h-full w-full max-w-none gap-3 px-4 md:mx-auto md:max-w-[calc(48rem+2.5rem+1.5rem)] md:gap-6 md:px-6">
+        <div className="flex w-10 shrink-0 flex-col self-stretch">
+          <div className="sticky top-[50vh] -translate-y-1/2 shrink-0 flex flex-col items-center gap-3 pt-8">
+            <ReadingSettingsPanel iconOnly />
+            {loggedIn && <PostEditButton postId={post.id} />}
+          </div>
         </div>
-        <article className="relative max-w-3xl mx-auto flex-1 min-w-0 font-reading">
+        <article className="relative w-full min-w-0 max-w-3xl flex-1 font-reading">
         <header className="mb-8">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground mb-4">
             <time>{formatPostDate(post.publishedAt)}</time>

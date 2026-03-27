@@ -389,18 +389,18 @@ export default function PostEditorPage() {
         <div className="flex-1 min-h-0 overflow-auto">
         <div className="flex gap-0 md:gap-20 min-h-full w-full max-w-none md:max-w-[calc(48rem+80px+4rem)] mx-auto px-4 md:px-6">
           <div className="hidden md:flex shrink-0 flex-col w-10">
-            <div className="group sticky top-[50vh] -translate-y-1/2 shrink-0 flex flex-col items-center gap-3 pt-8">
+            <div className="sticky top-[50vh] -translate-y-1/2 shrink-0 flex flex-col items-center gap-3 pt-8">
               <InsertBlockPlus
                 editor={editor}
                 mediableType="Post"
                 mediableId={resolvedId || undefined}
-                triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
               />
               <Button
                 variant="outline"
                 size="icon"
                 className={cn(
-                  'h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100',
+                  'h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100',
                   settingsOpen && 'opacity-100 bg-accent text-accent-foreground'
                 )}
                 aria-label={settingsOpen ? 'Close post settings' : 'Open post settings'}
@@ -408,12 +408,12 @@ export default function PostEditorPage() {
               >
                 <SlidersHorizontal className="size-4" />
               </Button>
-              <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100" />
+              <ReadingSettingsPanel iconOnly triggerClassName="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100" />
               {slug ? (
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                  className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
                   aria-label="Preview"
                   asChild
                 >
@@ -436,7 +436,7 @@ export default function PostEditorPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-md opacity-20 transition-opacity group-hover:opacity-100 hover:opacity-100"
+                  className="h-9 w-9 rounded-md opacity-20 transition-opacity hover:opacity-100"
                   aria-label="Delete"
                   onClick={() => setDeleteDialogOpen(true)}
                 >

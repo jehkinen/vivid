@@ -14,9 +14,10 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { SlidersIcon, BookOpenText } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
-import { READING_FONTS, type ReadingFontId } from '@/shared/constants'
+import { PUBLIC_POST_TOOLTIP, READING_FONTS, type ReadingFontId } from '@/shared/constants'
 
 export interface ReadingSettingsPanelProps {
   iconOnly?: boolean
@@ -137,7 +138,9 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
     }
   }
 
-  const iconOnlyTriggerClass = iconOnly ? cn('h-9 w-9 rounded-full transition-opacity', triggerClassName ?? 'opacity-20 group-hover:opacity-100 hover:opacity-100') : undefined
+  const iconOnlyTriggerClass = iconOnly ? cn('h-9 w-9 rounded-md transition-opacity', triggerClassName ?? 'opacity-20 hover:opacity-100') : undefined
+
+  const readingAriaLabel = PUBLIC_POST_TOOLTIP.READING
 
   const triggerButton = (
     <Button
@@ -147,7 +150,7 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
         !iconOnly && 'gap-1.5 text-muted-foreground hover:text-foreground',
         iconOnlyTriggerClass
       )}
-      aria-label="Reading settings"
+      aria-label={readingAriaLabel}
     >
       {iconOnly ? <BookOpenText className="size-4" /> : <SlidersIcon size={18} />}
       {!iconOnly && <span className="hidden sm:inline">Reading</span>}
@@ -155,28 +158,49 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
   )
 
   if (!mounted) {
-    return (
+    const skeleton = (
       <Button
         variant={iconOnly ? 'outline' : 'ghost'}
         size="icon"
         className={iconOnlyTriggerClass}
-        aria-label="Reading settings"
+        aria-label={readingAriaLabel}
         type="button"
       >
         {iconOnly ? <BookOpenText className="size-4" /> : <SlidersIcon size={18} />}
         {!iconOnly && <span className="hidden sm:inline">Reading</span>}
       </Button>
     )
+    if (iconOnly) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{skeleton}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            {PUBLIC_POST_TOOLTIP.READING}
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
+    return skeleton
   }
 
   const triggerEl = trigger ?? triggerButton
 
   if (variant === 'popover') {
+    const trigger = iconOnly ? (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>{triggerEl}</PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>
+          {PUBLIC_POST_TOOLTIP.READING}
+        </TooltipContent>
+      </Tooltip>
+    ) : (
+      <PopoverTrigger asChild>{triggerEl}</PopoverTrigger>
+    )
     return (
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          {triggerEl}
-        </PopoverTrigger>
+        {trigger}
         <PopoverContent align="end" side="bottom" className="w-72">
           <p className="text-sm font-medium mb-3">Reading settings</p>
           {settingsContent(font, fontSize, handleFontSize, handleFont)}
@@ -185,11 +209,22 @@ export default function ReadingSettingsPanel({ iconOnly = false, triggerClassNam
     )
   }
 
+  const sheetTrigger = iconOnly ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <SheetTrigger asChild>{triggerEl}</SheetTrigger>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
+        {PUBLIC_POST_TOOLTIP.READING}
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    <SheetTrigger asChild>{triggerEl}</SheetTrigger>
+  )
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {triggerEl}
-      </SheetTrigger>
+      {sheetTrigger}
 
       <SheetContent
         side="right"
