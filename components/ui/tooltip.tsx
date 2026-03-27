@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils"
 
 const TOOLTIP_DELAY_MS = 500
 const TOOLTIP_SKIP_DELAY_MS = 200
+const BLOCK_RESET_PADDING_MS = 80
+
+const TriggerPointerDownContext = React.createContext<(() => void) | null>(null)
 
 function TooltipProvider({
   delayDuration = TOOLTIP_DELAY_MS,
@@ -23,20 +26,108 @@ function TooltipProvider({
   )
 }
 
+type TooltipProps = React.ComponentProps<typeof TooltipPrimitive.Root> & {
+  skipDelayDuration?: number
+}
+
 function Tooltip({
-  ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  children,
+  defaultOpen = false,
+  delayDuration = TOOLTIP_DELAY_MS,
+  skipDelayDuration = TOOLTIP_SKIP_DELAY_MS,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+  ...rootProps
+}: TooltipProps) {
+  if (openProp !== undefined) {
+    return (
+      <TooltipProvider delayDuration={delayDuration} skipDelayDuration={skipDelayDuration}>
+        <TooltipPrimitive.Root
+          data-slot="tooltip"
+          open={openProp}
+          onOpenChange={onOpenChangeProp}
+          delayDuration={delayDuration}
+          {...rootProps}
+        >
+          {children}
+        </TooltipPrimitive.Root>
+      </TooltipProvider>
+    )
+  }
+
+  const [open, setOpen] = React.useState(defaultOpen)
+  const blockDelayedOpenRef = React.useRef(false)
+  const blockResetTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (blockResetTimerRef.current) clearTimeout(blockResetTimerRef.current)
+    }
+  }, [])
+
+  const scheduleBlockReset = React.useCallback(() => {
+    if (blockResetTimerRef.current) clearTimeout(blockResetTimerRef.current)
+    blockResetTimerRef.current = setTimeout(() => {
+      blockDelayedOpenRef.current = false
+      blockResetTimerRef.current = null
+    }, delayDuration + BLOCK_RESET_PADDING_MS)
+  }, [delayDuration])
+
+  const notifyTriggerPointerDown = React.useCallback(() => {
+    blockDelayedOpenRef.current = true
+    scheduleBlockReset()
+    setOpen((o) => (o ? false : o))
+  }, [scheduleBlockReset])
+
+  const handleOpenChange = React.useCallback(
+    (v: boolean) => {
+      if (v && blockDelayedOpenRef.current) {
+        blockDelayedOpenRef.current = false
+        if (blockResetTimerRef.current) {
+          clearTimeout(blockResetTimerRef.current)
+          blockResetTimerRef.current = null
+        }
+        setOpen(false)
+        return
+      }
+      setOpen(v)
+      onOpenChangeProp?.(v)
+    },
+    [onOpenChangeProp]
+  )
+
   return (
-    <TooltipProvider>
-      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
-    </TooltipProvider>
+    <TriggerPointerDownContext.Provider value={notifyTriggerPointerDown}>
+      <TooltipProvider delayDuration={delayDuration} skipDelayDuration={skipDelayDuration}>
+        <TooltipPrimitive.Root
+          data-slot="tooltip"
+          open={open}
+          onOpenChange={handleOpenChange}
+          delayDuration={delayDuration}
+          {...rootProps}
+        >
+          {children}
+        </TooltipPrimitive.Root>
+      </TooltipProvider>
+    </TriggerPointerDownContext.Provider>
   )
 }
 
 function TooltipTrigger({
+  onPointerDown,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+  const notifyTriggerPointerDown = React.useContext(TriggerPointerDownContext)
+  return (
+    <TooltipPrimitive.Trigger
+      data-slot="tooltip-trigger"
+      {...props}
+      onPointerDown={(e) => {
+        onPointerDown?.(e)
+        if (!e.defaultPrevented) notifyTriggerPointerDown?.()
+      }}
+    />
+  )
 }
 
 function TooltipContent({
