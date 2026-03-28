@@ -5,7 +5,7 @@ import { useMedia } from '@/hooks/api/use-media'
 import { Button } from '@/components/ui/button'
 import { formatDateTime } from '@/lib/utils'
 import { MEDIA_FILTER_TYPES, type MediaFilterType, MEDIABLE_TYPES } from '@/shared/constants'
-import { Lightbox } from '@/components/ui/lightbox'
+import { Lightbox, type LightboxSlide } from '@/components/ui/lightbox'
 
 const PER_PAGE = 40
 
@@ -21,7 +21,7 @@ export default function MediaLibraryPage() {
   const [page, setPage] = useState(1)
   const [type, setType] = useState<MediaFilterType>(MEDIA_FILTER_TYPES.ALL)
   const [lightbox, setLightbox] = useState<{
-    images: { src: string; alt?: string }[]
+    images: LightboxSlide[]
     index: number
   } | null>(null)
   const { data, isLoading, isFetching } = useMedia({ page, perPage: PER_PAGE, type })
@@ -62,11 +62,18 @@ export default function MediaLibraryPage() {
     }
   }
 
-  const lightboxSlides = items.map((item) => ({
-    src: item.url,
-    alt: item.filename,
-    mimeType: item.mimeType,
-  }))
+  const lightboxSlides: LightboxSlide[] = items.map((item) => {
+    const mime = item.mimeType || ''
+    const isImage = mime.startsWith('image/')
+    const thumb = item.thumbUrl
+    const hasThumb = Boolean(thumb && thumb !== item.url)
+    return {
+      src: item.url,
+      alt: item.filename,
+      mimeType: item.mimeType,
+      previewSrc: isImage && hasThumb ? thumb : null,
+    }
+  })
 
   const openLightbox = (itemId: string) => {
     if (lightboxSlides.length === 0) return

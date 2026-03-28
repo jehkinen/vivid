@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { XIcon, CaretLeftIcon, CaretRightIcon, ImageBrokenIcon } from '@phosphor-icons/react'
+import { cn } from '@/lib/utils'
 
 export type LightboxSlide = {
   src: string
   alt?: string
   mimeType?: string | null
+  previewSrc?: string | null
 }
 
 interface LightboxProps {
@@ -14,6 +16,53 @@ interface LightboxProps {
   initialIndex: number
   onClose: () => void
   rightPanel?: (current: LightboxSlide, index: number) => React.ReactNode
+}
+
+function ProgressiveImage({
+  src,
+  previewSrc,
+  alt,
+  onError,
+}: {
+  src: string
+  previewSrc?: string | null
+  alt: string
+  onError: () => void
+}) {
+  const useProgressive = Boolean(previewSrc && previewSrc !== src)
+  const [fullReady, setFullReady] = useState(() => !useProgressive)
+
+  useEffect(() => {
+    setFullReady(!useProgressive)
+  }, [src, previewSrc, useProgressive])
+
+  return (
+    <div className="relative flex h-[min(90vh,90dvh)] w-[min(70vw,100%)] items-center justify-center overflow-hidden">
+      {useProgressive && (
+        <img
+          src={previewSrc!}
+          alt=""
+          className={cn(
+            'pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-lg transition-opacity duration-300',
+            fullReady ? 'opacity-0' : 'opacity-100'
+          )}
+          draggable={false}
+          aria-hidden
+        />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        onLoad={() => setFullReady(true)}
+        onError={onError}
+        className={cn(
+          'relative z-[1] max-h-full max-w-full object-contain transition-opacity duration-500',
+          useProgressive && !fullReady ? 'opacity-0' : 'opacity-100'
+        )}
+      />
+    </div>
+  )
 }
 
 export function Lightbox({ images, initialIndex, onClose, rightPanel }: LightboxProps) {
@@ -52,8 +101,10 @@ export function Lightbox({ images, initialIndex, onClose, rightPanel }: Lightbox
       <video
         key={current.src}
         src={current.src}
+        poster={current.previewSrc || undefined}
         controls
         playsInline
+        preload="metadata"
         className="max-h-[min(90vh,90dvh)] max-w-[70vw] h-auto w-auto"
         onClick={(e) => e.stopPropagation()}
       />
@@ -80,11 +131,11 @@ export function Lightbox({ images, initialIndex, onClose, rightPanel }: Lightbox
           <span>Image unavailable</span>
         </div>
       ) : (
-        <img
+        <ProgressiveImage
+          key={current.src}
           src={current.src}
+          previewSrc={current.previewSrc}
           alt={current.alt || ''}
-          className="max-h-[90vh] max-w-[70vw] h-auto w-auto object-contain"
-          draggable={false}
           onError={() => setHasError(true)}
         />
       )
@@ -143,7 +194,7 @@ export function Lightbox({ images, initialIndex, onClose, rightPanel }: Lightbox
         >
           {mainContent}
           {rightPanel && (
-            <div className="hidden max-h-[80vh] w-64 flex-col overflow-y-auto rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-xs text-white/80 md:flex">
+            <div className="hidden max-h-[80vh] w-64 shrink-0 flex-col overflow-y-auto rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-xs text-white/80 md:flex md:min-w-0">
               {rightPanel(current, index)}
             </div>
           )}
