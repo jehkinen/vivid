@@ -3,11 +3,17 @@
 import { useEffect, useState } from 'react'
 import { XIcon, CaretLeftIcon, CaretRightIcon, ImageBrokenIcon } from '@phosphor-icons/react'
 
+export type LightboxSlide = {
+  src: string
+  alt?: string
+  mimeType?: string | null
+}
+
 interface LightboxProps {
-  images: { src: string; alt?: string }[]
+  images: LightboxSlide[]
   initialIndex: number
   onClose: () => void
-  rightPanel?: (current: { src: string; alt?: string }, index: number) => React.ReactNode
+  rightPanel?: (current: LightboxSlide, index: number) => React.ReactNode
 }
 
 export function Lightbox({ images, initialIndex, onClose, rightPanel }: LightboxProps) {
@@ -39,13 +45,73 @@ export function Lightbox({ images, initialIndex, onClose, rightPanel }: Lightbox
 
   if (!current) return null
 
+  const mime = (current.mimeType || '').toLowerCase()
+
+  const mainContent =
+    mime.startsWith('video/') ? (
+      <video
+        key={current.src}
+        src={current.src}
+        controls
+        playsInline
+        className="max-h-[min(90vh,90dvh)] max-w-[70vw] h-auto w-auto"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ) : mime.startsWith('audio/') ? (
+      <audio
+        key={current.src}
+        src={current.src}
+        controls
+        className="w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ) : mime === 'application/pdf' ? (
+      <iframe
+        key={current.src}
+        src={current.src}
+        title={current.alt || 'Document'}
+        className="h-[min(90vh,90dvh)] w-[min(90vw,56rem)] max-w-full rounded border border-white/10 bg-white"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ) : !mime || mime.startsWith('image/') ? (
+      hasError ? (
+        <div className="flex flex-col items-center justify-center gap-3 text-white/70">
+          <ImageBrokenIcon className="h-16 w-16" />
+          <span>Image unavailable</span>
+        </div>
+      ) : (
+        <img
+          src={current.src}
+          alt={current.alt || ''}
+          className="max-h-[90vh] max-w-[70vw] h-auto w-auto object-contain"
+          draggable={false}
+          onError={() => setHasError(true)}
+        />
+      )
+    ) : (
+      <div
+        className="flex max-w-md flex-col items-center gap-4 rounded-lg border border-white/10 bg-black/40 px-8 py-10 text-center text-white/90"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="text-sm">{current.alt}</span>
+        <a
+          href={current.src}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-emerald-400 underline underline-offset-2"
+        >
+          Open file
+        </a>
+      </div>
+    )
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Image lightbox"
+      aria-label="Media viewer"
     >
       <button
         type="button"
@@ -56,7 +122,7 @@ export function Lightbox({ images, initialIndex, onClose, rightPanel }: Lightbox
         <XIcon className="h-6 w-6" />
       </button>
 
-      <div className="flex items-center justify-center w-full h-full px-6" onClick={onClose}>
+      <div className="flex h-full w-full items-center justify-center px-6" onClick={onClose}>
         {hasMultiple && (
           <button
             type="button"
@@ -71,23 +137,13 @@ export function Lightbox({ images, initialIndex, onClose, rightPanel }: Lightbox
           </button>
         )}
 
-        <div className="flex items-start gap-8 max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-          {hasError ? (
-            <div className="flex flex-col items-center justify-center gap-3 text-white/70">
-              <ImageBrokenIcon className="h-16 w-16" />
-              <span>Image unavailable</span>
-            </div>
-          ) : (
-            <img
-              src={current.src}
-              alt={current.alt || ''}
-              className="max-w-[70vw] max-h-[90vh] w-auto h-auto object-contain"
-              draggable={false}
-              onError={() => setHasError(true)}
-            />
-          )}
+        <div
+          className="flex max-h-[90vh] max-w-[90vw] items-start gap-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {mainContent}
           {rightPanel && (
-            <div className="hidden md:flex flex-col w-64 max-h-[80vh] overflow-y-auto border border-white/10 rounded-lg bg-black/40 px-4 py-3 text-xs text-white/80">
+            <div className="hidden max-h-[80vh] w-64 flex-col overflow-y-auto rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-xs text-white/80 md:flex">
               {rightPanel(current, index)}
             </div>
           )}
@@ -109,7 +165,7 @@ export function Lightbox({ images, initialIndex, onClose, rightPanel }: Lightbox
       </div>
 
       {hasMultiple && (
-        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-white/70">
           {index + 1} / {images.length}
         </span>
       )}

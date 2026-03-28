@@ -62,18 +62,17 @@ export default function MediaLibraryPage() {
     }
   }
 
-  const imageItems = items.filter((item) => (item.mimeType || '').startsWith('image/'))
-  const lightboxImages = imageItems.map((item) => ({
+  const lightboxSlides = items.map((item) => ({
     src: item.url,
     alt: item.filename,
+    mimeType: item.mimeType,
   }))
 
   const openLightbox = (itemId: string) => {
-    if (type !== MEDIA_FILTER_TYPES.IMAGE) return
-    if (lightboxImages.length === 0) return
-    const index = imageItems.findIndex((it) => it.id === itemId)
+    if (lightboxSlides.length === 0) return
+    const index = items.findIndex((it) => it.id === itemId)
     setLightbox({
-      images: lightboxImages,
+      images: lightboxSlides,
       index: index >= 0 ? index : 0,
     })
   }
@@ -160,13 +159,13 @@ export default function MediaLibraryPage() {
         </div>
       </div>
 
-      {type === MEDIA_FILTER_TYPES.IMAGE && lightbox && lightbox.images.length > 0 && (
+      {lightbox && lightbox.images.length > 0 && (
         <Lightbox
           images={lightbox.images}
           initialIndex={lightbox.index}
           onClose={() => setLightbox(null)}
           rightPanel={(_, idx) => {
-            const media = imageItems[idx]
+            const media = items[idx]
             if (!media) return null
             const conversions =
               media.generatedConversions && typeof media.generatedConversions === 'object'
