@@ -7,7 +7,7 @@ import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
 import { MEDIABLE_TYPES } from '@/shared/constants'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { SlidersHorizontal, Eye, Trash } from '@phosphor-icons/react'
+import { SlidersHorizontalIcon, Eye, Trash } from '@phosphor-icons/react'
 import type { LexicalEditor } from 'lexical'
 
 type PostEditorDesktopRailProps = {
@@ -50,7 +50,7 @@ export default function PostEditorDesktopRail({
               aria-label={settingsOpen ? 'Close post settings' : 'Post settings'}
               onClick={onSettingsToggle}
             >
-              <SlidersHorizontal className="size-4" />
+              <SlidersHorizontalIcon className="size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left" sideOffset={8}>

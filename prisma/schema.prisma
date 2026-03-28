@@ -121,6 +121,7 @@ model Media {
   filename             String   @db.VarChar(255)
   mimeType             String?  @map("mime_type") @db.VarChar(100)
   size                 Int?
+  conversionSize       Int      @default(0) @map("conversion_size")
   order                Int      @default(0)
   customProperties     Json?    @map("custom_properties")
   generatedConversions Json?    @map("generated_conversions")

@@ -28,9 +28,7 @@ export default function MediaLibraryPage() {
 
   const hasMore = data?.hasMore ?? false
   const items = data?.items ?? []
-  const totalOriginalBytes = data?.totalOriginalBytes ?? 0
-
-  const totalBytes = totalOriginalBytes
+  const totalBytes = data?.totalStored ?? 0
 
   const storageLimitBytes = 1 * 1024 * 1024 * 1024
   const usageRatio = Math.min(totalBytes / storageLimitBytes, 1)
@@ -150,8 +148,8 @@ export default function MediaLibraryPage() {
                   </span>
                   <span className="text-[11px] text-muted-foreground">
                     {formatDateTime(item.createdAt)}
-                    {item.size != null && (
-                      <> · {formatBytes(item.size)}</>
+                    {(item.size ?? 0) + (item.conversionSize ?? 0) > 0 && (
+                      <> · {formatBytes((item.size ?? 0) + (item.conversionSize ?? 0))}</>
                     )}
                   </span>
                 </figcaption>
@@ -191,10 +189,24 @@ export default function MediaLibraryPage() {
                     <span className="text-[11px] text-white/60">Type</span>
                     <span className="text-[11px]">{media.mimeType || 'unknown'}</span>
                   </div>
-                  {media.size != null && (
+                  {(media.size ?? 0) + (media.conversionSize ?? 0) > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-[11px] text-white/60">Size</span>
+                      <span className="text-[11px] text-white/60">Stored</span>
+                      <span className="text-[11px]">
+                        {formatBytes((media.size ?? 0) + (media.conversionSize ?? 0))}
+                      </span>
+                    </div>
+                  )}
+                  {(media.conversionSize ?? 0) > 0 && media.size != null && (
+                    <div className="flex justify-between">
+                      <span className="text-[11px] text-white/60">Original</span>
                       <span className="text-[11px]">{formatBytes(media.size)}</span>
+                    </div>
+                  )}
+                  {(media.conversionSize ?? 0) > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-[11px] text-white/60">Conversions</span>
+                      <span className="text-[11px]">{formatBytes(media.conversionSize)}</span>
                     </div>
                   )}
                   {conversions.length > 0 && (

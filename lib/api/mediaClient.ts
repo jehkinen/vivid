@@ -6,6 +6,7 @@ export interface MediaItem {
   filename: string
   mimeType: string | null
   size: number | null
+  conversionSize: number
   key: string
   url: string
   thumbUrl?: string | null
@@ -20,7 +21,7 @@ export interface MediaItem {
 export interface MediaLibraryResponse {
   items: MediaItem[]
   hasMore: boolean
-  totalOriginalBytes: number
+  totalStored: number
 }
 
 export interface MediaLibraryParams {

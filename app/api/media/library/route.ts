@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
     prisma.media.aggregate({
       _sum: {
         size: true,
+        conversionSize: true,
       },
       where,
     }),
@@ -89,11 +90,13 @@ export async function GET(request: NextRequest) {
   )
 
   const hasMore = skip + items.length < total
+  const sumOriginal = totalSize._sum.size ?? 0
+  const sumConversions = totalSize._sum.conversionSize ?? 0
 
   return NextResponse.json({
     items: itemsWithUrls,
     hasMore,
-    totalOriginalBytes: totalSize._sum.size ?? 0,
+    totalStored: sumOriginal + sumConversions,
   })
 }
 

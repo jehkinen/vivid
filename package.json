@@ -12,11 +12,6 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
-    "import:ghost": "tsx scripts/import-ghost.ts",
-    "import:ghost:test": "tsx scripts/import-ghost-test.ts",
-    "update:tag-slugs": "tsx scripts/update-tag-slugs.ts",
-    "import:rgp-journal": "tsx scripts/import-rgp-journal.ts",
-    "import:rgp-journal-to-vivid": "tsx scripts/import-rgp-journal-to-vivid.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

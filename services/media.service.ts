@@ -53,10 +53,12 @@ export class MediaService {
       await storageService.uploadFile(file.buffer, originalKey, file.mimeType)
 
       let generatedConversions: Record<string, boolean> | null = null
+      let conversionSize = 0
 
       if (isImage) {
         const conversions = await imageProcessingService.generateConversions(file.buffer)
         generatedConversions = {}
+        conversionSize = conversions.reduce((sum, c) => sum + c.buffer.byteLength, 0)
 
         for (const conversion of conversions) {
           const conversionKey = `${typePrefix}/${mediaId}/conversions/${basename}-${conversion.name}.${ext}`
@@ -76,6 +78,7 @@ export class MediaService {
           filename: file.filename,
           mimeType: file.mimeType,
           size: file.size,
+          conversionSize,
           generatedConversions: generatedConversions || undefined,
         },
         update: {
@@ -83,6 +86,7 @@ export class MediaService {
           filename: file.filename,
           mimeType: file.mimeType,
           size: file.size,
+          conversionSize,
           generatedConversions: generatedConversions || undefined,
         },
       })
@@ -193,10 +197,12 @@ export class MediaService {
     await storageService.uploadFile(file.buffer, originalKey, file.mimeType)
 
     let generatedConversions: Record<string, boolean> | null = null
+    let conversionSize = 0
 
     if (isImage) {
       const conversions = await imageProcessingService.generateConversions(file.buffer)
       generatedConversions = {}
+      conversionSize = conversions.reduce((sum, c) => sum + c.buffer.byteLength, 0)
 
       for (const conversion of conversions) {
         const conversionKey = `${typePrefix}/${existingMedia.id}/conversions/${basename}-${conversion.name}.${ext}`
@@ -212,6 +218,7 @@ export class MediaService {
         filename: file.filename,
         mimeType: file.mimeType,
         size: file.size,
+        conversionSize,
         generatedConversions: generatedConversions || undefined,
       },
     })

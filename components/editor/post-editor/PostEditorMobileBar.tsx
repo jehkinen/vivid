@@ -7,7 +7,7 @@ import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
 import { MEDIABLE_TYPES } from '@/shared/constants'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { SlidersHorizontal, Eye, Check, CaretUpIcon, CaretDownIcon, SelectionPlus } from '@phosphor-icons/react'
+import { SlidersHorizontalIcon, Eye, Check, CaretUpIcon, CaretDownIcon, SelectionPlus } from '@phosphor-icons/react'
 import { countWords } from '@/lib/utils'
 import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
 import type { LexicalEditor } from 'lexical'
@@ -87,7 +87,7 @@ export default function PostEditorMobileBar({
                   }
                   onClick={onSettingsToggle}
                 >
-                  <SlidersHorizontal className="size-5" />
+                  <SlidersHorizontalIcon className="size-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">
