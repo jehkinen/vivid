@@ -167,3 +167,15 @@ export const READING_FONTS = [
 ] as const
 
 export type ReadingFontId = (typeof READING_FONTS)[number]['id']
+
+export const CLIPBOARD_MIME = {
+  PLAIN: 'text/plain',
+  HTML: 'text/html',
+  URI_LIST: 'text/uri-list',
+  LEXICAL_EDITOR: 'application/x-lexical-editor',
+} as const
+
+export const INPUT_INSERT_TYPES = {
+  PASTE: 'insertFromPaste',
+  PASTE_AS_QUOTATION: 'insertFromPasteAsQuotation',
+} as const

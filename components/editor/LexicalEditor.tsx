@@ -13,11 +13,11 @@ import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode, CodeHighlightNode } from '@lexical/code'
 import { EDITOR_NODES } from './editor-nodes'
-import { EditorTypingProvider, useEditorTyping } from './EditorTypingContext'
 import { MediableProvider } from './MediableContext'
 import { EditorState, type SerializedEditorState, $getRoot, $isDecoratorNode, $isElementNode, $isParagraphNode } from 'lexical'
 import { useEffect, useState, useRef, Component, ReactElement } from 'react'
 import YouTubeOverlayLayer from './YouTubeOverlayLayer'
+import EditorPastePlugin from './EditorPastePlugin'
 import { $generateHtmlFromNodes } from '@lexical/html'
 
 function OnMountPlugin({ onMount }: { onMount?: (editor: LexicalEditorInstance) => void }) {
@@ -255,22 +255,20 @@ function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoad
       return
     }
 
-    queueMicrotask(() => {
-      try {
-        editor.setEditorState(editorState)
-        lastLoadedContentRef.current = currentContent
-        setLoaded(true)
-        setTimeout(() => {
-          onLoadedRef.current?.()
-        }, 300)
-      } catch (error) {
-        lastLoadedContentRef.current = currentContent
-        setLoaded(true)
-        setTimeout(() => {
-          onLoadedRef.current?.()
-        }, 100)
-      }
-    })
+    try {
+      editor.setEditorState(editorState)
+      lastLoadedContentRef.current = currentContent
+      setLoaded(true)
+      setTimeout(() => {
+        onLoadedRef.current?.()
+      }, 300)
+    } catch {
+      lastLoadedContentRef.current = currentContent
+      setLoaded(true)
+      setTimeout(() => {
+        onLoadedRef.current?.()
+      }, 100)
+    }
   }, [editor, content, loaded])
 
   return null
@@ -291,7 +289,6 @@ function EditorContentArea({
   renderFloatingPanel?: (props: { editor: LexicalEditorInstance }) => React.ReactNode
   onToolbarOpenChange?: (open: boolean) => void
 }) {
-  const { setTyping } = useEditorTyping()
   const containerRef = useRef<HTMLDivElement>(null)
   const handleChange = (editorState: EditorState, html: string, lexical: string) => {
     if (onChange) onChange(editorState, html, lexical)
@@ -301,15 +298,15 @@ function EditorContentArea({
       <div
         ref={containerRef}
         className="flex-1 relative min-w-0 flex flex-col bg-transparent"
-        onKeyDown={setTyping}
       >
         <LoadInitialStatePlugin 
           content={initialEditorState || ''} 
           onLoaded={onEditorLoaded} 
         />
+        <EditorPastePlugin />
         <RichTextPlugin
         contentEditable={
-          <ContentEditable className="min-h-[500px] outline-none pl-0 pr-6 pt-6 pb-6 prose prose-lg max-w-none dark:prose-invert focus:outline-none text-left" />
+          <ContentEditable className="relative z-[1] min-h-[500px] text-lg leading-relaxed text-foreground outline-none pl-0 pr-6 pt-6 pb-6 focus:outline-none text-left" />
         }
         placeholder={null}
         ErrorBoundary={({ children }) => (
@@ -358,21 +355,19 @@ export default function LexicalEditor({
 
   return (
     <div className={`lexical-editor bg-transparent ${className}`}>
-      <EditorTypingProvider>
-        <MediableProvider mediableType={mediableType} mediableId={mediableId}>
-          <LexicalComposer initialConfig={initialConfig}>
-            <OnMountPlugin onMount={onEditorMount} />
-            <EditorContentArea
-              initialEditorState={initialEditorState}
-              placeholder={placeholder}
-              onChange={handleChange}
-              onEditorLoaded={onEditorLoaded}
-              renderFloatingPanel={renderFloatingPanel}
-              onToolbarOpenChange={onToolbarOpenChange}
-            />
-          </LexicalComposer>
-        </MediableProvider>
-      </EditorTypingProvider>
+      <MediableProvider mediableType={mediableType} mediableId={mediableId}>
+        <LexicalComposer initialConfig={initialConfig}>
+          <OnMountPlugin onMount={onEditorMount} />
+          <EditorContentArea
+            initialEditorState={initialEditorState}
+            placeholder={placeholder}
+            onChange={handleChange}
+            onEditorLoaded={onEditorLoaded}
+            renderFloatingPanel={renderFloatingPanel}
+            onToolbarOpenChange={onToolbarOpenChange}
+          />
+        </LexicalComposer>
+      </MediableProvider>
     </div>
   )
 }
