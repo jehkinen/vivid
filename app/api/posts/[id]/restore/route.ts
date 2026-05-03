@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { postsService } from '@/services/posts.service'
 import { apiHandler } from '@/lib/api-handler'
 import { validateRequest, idParamSchema } from '@/lib/validators/schemas'
+import { unauthorizedUnlessAuthed } from '@/lib/require-auth-request'
 
 export const PATCH = apiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
+  const denied = await unauthorizedUnlessAuthed(request)
+  if (denied) return denied
+
   const { id } = await params
   const idValidation = validateRequest(idParamSchema, id)
 

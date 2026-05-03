@@ -3,8 +3,12 @@ import { postsService } from '@/services/posts.service'
 import { POST_SORT_OPTIONS, type PostSortOption } from '@/shared/constants'
 import { apiHandler } from '@/lib/api-handler'
 import { postCreateSchema, validateRequest, idParamSchema } from '@/lib/validators/schemas'
+import { unauthorizedUnlessAuthed } from '@/lib/require-auth-request'
 
 export const GET = apiHandler(async (request: NextRequest) => {
+  const denied = await unauthorizedUnlessAuthed(request)
+  if (denied) return denied
+
   const searchParams = request.nextUrl.searchParams
   const id = searchParams.get('id')
   const slug = searchParams.get('slug')
@@ -73,6 +77,9 @@ export const GET = apiHandler(async (request: NextRequest) => {
 })
 
 export const POST = apiHandler(async (request: NextRequest) => {
+  const denied = await unauthorizedUnlessAuthed(request)
+  if (denied) return denied
+
   const body = await request.json()
   const validation = validateRequest(postCreateSchema, body)
 

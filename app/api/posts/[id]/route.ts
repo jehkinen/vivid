@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { postsService } from '@/services/posts.service'
 import { apiHandler } from '@/lib/api-handler'
 import { postUpdateSchema, validateRequest, idParamSchema } from '@/lib/validators/schemas'
+import { unauthorizedUnlessAuthed } from '@/lib/require-auth-request'
 
 export const PUT = apiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
+  const denied = await unauthorizedUnlessAuthed(request)
+  if (denied) return denied
+
   const { id } = await params
   const idValidation = validateRequest(idParamSchema, id)
 
@@ -41,6 +45,9 @@ export const DELETE = apiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
+  const denied = await unauthorizedUnlessAuthed(request)
+  if (denied) return denied
+
   const { id } = await params
   const idValidation = validateRequest(idParamSchema, id)
 
