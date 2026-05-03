@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { postsService } from '@/services/posts.service'
 import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
 import { apiHandler } from '@/lib/api-handler'
+import { unauthorizedUnlessAuthed } from '@/lib/require-auth-request'
 
 const DEFAULT_LIMIT = 10
 
 export const GET = apiHandler(async (request: NextRequest) => {
+  const denied = await unauthorizedUnlessAuthed(request)
+  if (denied) return denied
+
   const searchParams = request.nextUrl.searchParams
   const limit = Math.min(Number(searchParams.get('limit')) || DEFAULT_LIMIT, 50)
   const offset = Number(searchParams.get('offset')) || 0
