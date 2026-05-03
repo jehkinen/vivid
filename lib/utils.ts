@@ -53,6 +53,20 @@ export function formatDateTime(dateString: string): string {
   })
 }
 
+/** Human-readable byte size (binary units). */
+export function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let idx = 0
+  while (value >= 1024 && idx < units.length - 1) {
+    value /= 1024
+    idx += 1
+  }
+  const decimals = idx === 0 ? 0 : 1
+  return `${value.toFixed(decimals)} ${units[idx]}`
+}
+
 const CYRILLIC_TO_LATIN: Record<string, string> = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z',
   и: 'i', й: 'j', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r',

@@ -13,7 +13,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuAction,
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
@@ -21,7 +20,6 @@ import {
   SidebarInset,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import {
   PencilLineIcon,
@@ -29,19 +27,16 @@ import {
   ListChecksIcon,
   MagnifyingGlassIcon,
   BookOpenIcon,
-  UserIcon,
   CaretDownIcon,
   PlusIcon,
 } from '@phosphor-icons/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import GlobalSearch from '@/components/search/GlobalSearch'
 import PublicLogo from '@/components/public/PublicLogo'
 import { PostSettingsProvider, usePostSettings } from '@/lib/post-settings-context'
 import { routes } from '@/lib/routes'
 import { useRoute } from '@/lib/route-context'
 import { ImageIcon as MediaIcon } from '@phosphor-icons/react'
-import { authClient } from '@/lib/api/authClient'
-
 const AdminSidebarProfile = dynamic(() => import('./AdminSidebarProfile'), { ssr: false })
 
 const menuItems = [
@@ -92,7 +87,6 @@ function AdminInsetContent({ children }: { children: React.ReactNode }) {
 
 export default function AdminSidebarLayout({ children }: { children: React.ReactNode }) {
   const route = useRoute()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [searchOpen, setSearchOpen] = useState(false)
   const [postsExpanded, setPostsExpanded] = useState(true)

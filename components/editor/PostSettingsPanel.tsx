@@ -42,21 +42,20 @@ export interface PostSettingsPanelProps {
   onClose: () => void
 }
 
-export default function PostSettingsPanel({
-  slug,
-  onSlugChange,
-  visibility,
-  onVisibilityChange,
-  publishedAt,
-  onPublishedAtChange,
-  selectedTagIds,
-  onSelectedTagIdsChange,
-  tags,
-  onCreateTag,
-  isNew,
-  postId,
-  onClose,
-}: PostSettingsPanelProps) {
+export default function PostSettingsPanel(props: PostSettingsPanelProps) {
+  const {
+    slug,
+    onSlugChange,
+    visibility,
+    onVisibilityChange,
+    publishedAt,
+    onPublishedAtChange,
+    selectedTagIds,
+    onSelectedTagIdsChange,
+    tags,
+    onCreateTag,
+    onClose,
+  } = props
   const [timeInputValue, setTimeInputValue] = useState<string>(() => toTimeLocal(publishedAt))
 
   useEffect(() => {

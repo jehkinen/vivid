@@ -45,7 +45,7 @@ interface InsertBlockPlusProps {
   mediableType?: string
   mediableId?: string
   triggerClassName?: string
-  trigger?: React.ReactElement
+  trigger?: React.ReactElement<{ suppressHydrationWarning?: boolean }>
   tooltipSide?: 'top' | 'right' | 'bottom' | 'left'
 }
 
@@ -85,14 +85,14 @@ export default function InsertBlockPlus({
     setYoutubeUrl('')
   }
 
-  const handleMediaUploaded = (media: any[]) => {
+  const handleMediaUploaded = (media: { id: string; filename: string }[]) => {
     if (!editor || media.length === 0) {
       setShowDialog(false)
       setBlockType(null)
       return
     }
     editor.update(() => {
-      let selection = $getSelection()
+      const selection = $getSelection()
       if (!$isRangeSelection(selection)) {
         $setSelection($getRoot().selectEnd())
       }

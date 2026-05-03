@@ -45,10 +45,9 @@ function batchCacheKey(ids: string[]): string {
 }
 
 export function useMediaUrls(ids: string[]): Record<string, string> {
-  const [urlMap, setUrlMap] = useState<Record<string, string>>(() => {
-    const key = batchCacheKey(ids)
-    return batchCache.get(key) ?? {}
-  })
+  const idsKey = batchCacheKey(ids.filter(Boolean))
+
+  const [urlMap, setUrlMap] = useState<Record<string, string>>(() => batchCache.get(idsKey) ?? {})
 
   useEffect(() => {
     const clean = ids.filter(Boolean)
@@ -74,7 +73,9 @@ export function useMediaUrls(ids: string[]): Record<string, string> {
         setUrlMap(map)
       })
       .catch(() => setUrlMap({}))
-  }, [[...ids].filter(Boolean).sort().join(',')])
+    // idsKey fingerprints `ids` for stable batching; including `ids` retriggers on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- idsKey
+  }, [idsKey])
 
   return urlMap
 }

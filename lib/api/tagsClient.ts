@@ -30,7 +30,7 @@ export const tagsClient = {
     })
   },
 
-  update(slug: string, data: { name?: string; slug?: string; color?: string }) {
+  update(slug: string, data: { name?: string; slug?: string; color?: string | null; description?: string | null }) {
     return apiRequest<TagDto>({
       path: `/api/tags/${slug}`,
       method: 'PUT',
@@ -46,7 +46,7 @@ export const tagsClient = {
   },
 
   merge(sourceTagId: string, targetTagId: string) {
-    return apiRequest<any>({
+    return apiRequest<Record<string, unknown>>({
       path: '/api/tags/merge',
       method: 'POST',
       body: { sourceTagId, targetTagId },

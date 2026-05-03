@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { postsService } from '@/services/posts.service'
-import { POST_SORT_OPTIONS } from '@/shared/constants'
+import { POST_SORT_OPTIONS, type PostSortOption } from '@/shared/constants'
 import { apiHandler } from '@/lib/api-handler'
 import { postCreateSchema, validateRequest, idParamSchema } from '@/lib/validators/schemas'
 
@@ -10,7 +10,10 @@ export const GET = apiHandler(async (request: NextRequest) => {
   const slug = searchParams.get('slug')
   const search = searchParams.get('search')
   const tagIdsParam = searchParams.get('tagIds')
-  const sort = (searchParams.get('sort') || POST_SORT_OPTIONS.NEWEST) as any
+  const sortParam = searchParams.get('sort') || POST_SORT_OPTIONS.NEWEST
+  const sort: PostSortOption = (Object.values(POST_SORT_OPTIONS) as string[]).includes(sortParam)
+    ? (sortParam as PostSortOption)
+    : POST_SORT_OPTIONS.NEWEST
   const includeDeletedParam = searchParams.get('includeDeleted')
   const includeDeleted = includeDeletedParam === 'true'
 

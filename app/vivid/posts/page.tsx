@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dialog'
 import { POST_SORT_OPTIONS, POST_STATUS, POST_VISIBILITY, TAG_DEFAULT_COLORS, type PostSortOption } from '@/shared/constants'
 import { useInfinitePosts, useSoftDeletePost, useRestorePost, useHardDeletePost, useUpdatePost } from '@/hooks/api/use-posts'
+import type { PostWithListRelations } from '@/lib/api/postsClient'
 import { useTags, useCreateTag, type Tag } from '@/hooks/api/use-tags'
 import { formatDateRelative, formatTime, slugify } from '@/lib/utils'
 import { TagInput } from '@/components/ui/tag-input'
@@ -79,7 +80,7 @@ export default function PostsPage() {
     sort,
   })
 
-  const posts = data?.pages.flatMap((p: { posts: any[] }) => p.posts) ?? []
+  const posts = (data?.pages.flatMap((p) => p.posts) ?? []) as PostWithListRelations[]
   const returnToId = searchParams.get('returnTo')
 
   useEffect(() => {
@@ -121,18 +122,18 @@ export default function PostsPage() {
     })
   }
 
-  const displayDate = (post: any) => {
+  const displayDate = (post: PostWithListRelations) => {
     const d = post.publishedAt || post.updatedAt
     if (!d) return '–'
     return `${formatDateRelative(d)}, ${formatTime(d)}`
   }
 
-  const authorNames = (post: any) => {
-    const list = post.authors?.map((a: any) => a.author?.name).filter(Boolean)
+  const authorNames = (post: PostWithListRelations) => {
+    const list = post.authors?.map((a) => a.author?.name).filter(Boolean)
     return list?.length ? list.join(', ') : null
   }
 
-  const subtitle = (post: any) => {
+  const subtitle = (post: PostWithListRelations) => {
     if (post.deletedAt) return `Deleted ${formatDateRelative(post.deletedAt)}, ${formatTime(post.deletedAt)}`
     const authors = authorNames(post)
     const date = displayDate(post)
@@ -143,8 +144,8 @@ export default function PostsPage() {
     return '–'
   }
 
-  const postTags = (post: any) => {
-    const list = post.tags?.map((t: any) => t.tag).filter(Boolean) ?? []
+  const postTags = (post: PostWithListRelations) => {
+    const list = post.tags?.map((t) => t.tag).filter(Boolean) ?? []
     return list
   }
 
@@ -168,11 +169,11 @@ export default function PostsPage() {
     }
   }
 
-  const openQuickTagEdit = (post: any) => {
+  const openQuickTagEdit = (post: PostWithListRelations) => {
     if (editingTagsPostId && editingTagsPostId !== post.id) {
       closeQuickTagEdit({ keepOpen: true })
     }
-    const ids = postTags(post).map((t: any) => t.id)
+    const ids = postTags(post).map((t) => t.id)
     setEditingTagsPostId(post.id)
     setEditingTagsSelected(ids)
     setEditingTagsInitial(ids)
@@ -287,7 +288,7 @@ export default function PostsPage() {
           <div className="p-12 text-center text-muted-foreground">No posts found</div>
         ) : (
           <>
-            {posts.map((post: any) => (
+            {posts.map((post: PostWithListRelations) => (
               <div
                 key={post.id}
                 data-post-id={post.id}
@@ -373,7 +374,7 @@ export default function PostsPage() {
                     ) : (
                       <>
                         {postTags(post).length > 0 ? (
-                          postTags(post).map((tag: any, i: number) => (
+                          postTags(post).map((tag, i: number) => (
                             <span key={tag.id} className="inline-flex items-center gap-1">
                               {i > 0 && <span className="text-border select-none">·</span>}
                               <Link

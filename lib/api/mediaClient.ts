@@ -21,6 +21,8 @@ export interface MediaItem {
 export interface MediaLibraryResponse {
   items: MediaItem[]
   hasMore: boolean
+  /** Count of media rows matching the current filter (all pages). */
+  total: number
   totalStored: number
 }
 

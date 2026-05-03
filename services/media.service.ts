@@ -1,9 +1,10 @@
+import type { Media, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { generateId } from '@/shared/id'
 import { sanitizeFilenameForS3 } from '@/lib/utils'
 import { storageService } from './storage.service'
 import { imageProcessingService } from './image-processing.service'
-import { MEDIABLE_TYPES, MEDIA_COLLECTIONS, IMAGE_CONVERSIONS, ALLOWED_IMAGE_MIME_TYPES } from '@/shared/constants'
+import { MEDIA_COLLECTIONS, ALLOWED_IMAGE_MIME_TYPES } from '@/shared/constants'
 
 interface UploadFile {
   buffer: Buffer
@@ -29,7 +30,7 @@ export class MediaService {
 
     for (const file of files) {
       const mediaId = options.replaceMediaId || generateId()
-      const isImage = ALLOWED_IMAGE_MIME_TYPES.includes(file.mimeType as any)
+      const isImage = (ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(file.mimeType)
       const { basename, ext } = sanitizeFilenameForS3(file.filename)
 
       if (options.replaceMediaId) {
@@ -99,7 +100,7 @@ export class MediaService {
   }
 
   async findMany(mediableType: string, mediableId: string, collection?: string) {
-    const where: any = {
+    const where: Prisma.MediaWhereInput = {
       mediableType,
       mediableId,
       deletedAt: null,
@@ -190,7 +191,7 @@ export class MediaService {
 
     await storageService.deleteFilesByPrefix(`${existingMedia.mediableType.toLowerCase()}/${existingMedia.id}/`)
 
-    const isImage = ALLOWED_IMAGE_MIME_TYPES.includes(file.mimeType as any)
+    const isImage = (ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(file.mimeType)
     const { basename, ext } = sanitizeFilenameForS3(file.filename)
     const typePrefix = existingMedia.mediableType.toLowerCase()
     const originalKey = `${typePrefix}/${existingMedia.id}/${basename}.${ext}`
@@ -227,7 +228,7 @@ export class MediaService {
     return { ...updatedMedia, url }
   }
 
-  async getConversionUrl(media: any, conversionName: string): Promise<string> {
+  async getConversionUrl(media: Pick<Media, 'id' | 'filename' | 'mediableType'>, conversionName: string): Promise<string> {
     const { basename, ext } = sanitizeFilenameForS3(media.filename)
     const conversionKey = `${media.mediableType.toLowerCase()}/${media.id}/conversions/${basename}-${conversionName}.${ext}`
     return storageService.getFileUrl(conversionKey)

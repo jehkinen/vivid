@@ -58,7 +58,7 @@ export class PostsService {
   constructor(private mediaService: MediaService) {}
 
   async findOne(params: { id?: string; slug?: string; includeDeleted?: boolean }) {
-    const where: any = {}
+    const where: Prisma.PostWhereInput = {}
     if (params.id) {
       where.id = params.id
     } else if (params.slug) {
@@ -98,7 +98,7 @@ export class PostsService {
   }
 
   async findMany(params: FindPostsParams) {
-    const where: any = {}
+    const where: Prisma.PostWhereInput = {}
 
     if (params.deletedOnly) {
       where.deletedAt = { not: null }
@@ -320,7 +320,7 @@ export class PostsService {
         }
         return tx.post.update({
           where: { id },
-          data: updateData as any,
+          data: updateData as Prisma.PostUpdateInput,
           include: {
             tags: {
               include: {
@@ -334,7 +334,7 @@ export class PostsService {
 
     return prisma.post.update({
       where: { id },
-      data: updateData as any,
+      data: updateData as Prisma.PostUpdateInput,
       include: {
         tags: {
           include: {

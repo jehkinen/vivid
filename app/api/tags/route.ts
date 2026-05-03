@@ -4,6 +4,7 @@ import { apiHandler } from '@/lib/api-handler'
 import { tagCreateSchema, validateRequest } from '@/lib/validators/schemas'
 
 export const GET = apiHandler(async (request: NextRequest) => {
+  void request
   const tags = await tagsService.findMany()
   const tagsWithCount = tags.map((tag) => ({
     id: tag.id,

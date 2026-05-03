@@ -39,7 +39,6 @@ import Loader from '@/components/ui/Loader'
 
 function SortableListItem({
   item,
-  listId,
   onToggle,
   onDelete,
 }: {

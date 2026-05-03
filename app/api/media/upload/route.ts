@@ -67,7 +67,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
       )
     }
 
-    if (!ALLOWED_UPLOAD_MIME_TYPES.includes(file.type as any)) {
+    if (!(ALLOWED_UPLOAD_MIME_TYPES as readonly string[]).includes(file.type)) {
       return NextResponse.json(
         { error: 'Invalid file type', errors: [{ field: 'files', message: `File ${file.name} has invalid MIME type. Images and audio are allowed.` }] },
         { status: 400 }

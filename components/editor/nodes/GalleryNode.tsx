@@ -5,7 +5,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   DecoratorNode,
   NodeKey,
-  EditorConfig,
   LexicalNode,
   SerializedLexicalNode,
   Spread,
@@ -119,7 +118,7 @@ function GalleryComponent({
   )
 
   const handleAddImages = useCallback(
-    (media: any[]) => {
+    (media: { id: string; filename: string }[]) => {
       if (media.length === 0) {
         setShowAddDialog(false)
         return

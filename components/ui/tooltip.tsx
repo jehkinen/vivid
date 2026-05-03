@@ -39,22 +39,6 @@ function Tooltip({
   onOpenChange: onOpenChangeProp,
   ...rootProps
 }: TooltipProps) {
-  if (openProp !== undefined) {
-    return (
-      <TooltipProvider delayDuration={delayDuration} skipDelayDuration={skipDelayDuration}>
-        <TooltipPrimitive.Root
-          data-slot="tooltip"
-          open={openProp}
-          onOpenChange={onOpenChangeProp}
-          delayDuration={delayDuration}
-          {...rootProps}
-        >
-          {children}
-        </TooltipPrimitive.Root>
-      </TooltipProvider>
-    )
-  }
-
   const [open, setOpen] = React.useState(defaultOpen)
   const blockDelayedOpenRef = React.useRef(false)
   const blockResetTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -95,6 +79,22 @@ function Tooltip({
     },
     [onOpenChangeProp]
   )
+
+  if (openProp !== undefined) {
+    return (
+      <TooltipProvider delayDuration={delayDuration} skipDelayDuration={skipDelayDuration}>
+        <TooltipPrimitive.Root
+          data-slot="tooltip"
+          open={openProp}
+          onOpenChange={onOpenChangeProp}
+          delayDuration={delayDuration}
+          {...rootProps}
+        >
+          {children}
+        </TooltipPrimitive.Root>
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TriggerPointerDownContext.Provider value={notifyTriggerPointerDown}>

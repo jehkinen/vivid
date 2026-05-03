@@ -4,9 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { listsClient, type ListDto, type ListItemDto } from '@/lib/api/listsClient'
 
-export interface ListItem extends ListItemDto {}
+export type ListItem = ListItemDto
 
-export interface List extends ListDto {}
+export type List = ListDto
 
 async function fetchLists(visibility?: string) {
   return listsClient.list(visibility)
@@ -34,14 +34,6 @@ async function addListItem(listId: string, data: { text: string }) {
 
 async function updateListItem(listId: string, itemId: string, data: { text?: string; checked?: boolean }) {
   return listsClient.updateItem(listId, itemId, data)
-}
-
-async function deleteListItem(listId: string, itemId: string) {
-  return listsClient.deleteItem(listId, itemId)
-}
-
-async function reorderListItems(listId: string, itemIds: string[]) {
-  return listsClient.reorderItems(listId, itemIds)
 }
 
 export function useLists(visibility?: string) {

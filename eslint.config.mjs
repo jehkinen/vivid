@@ -13,6 +13,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    files: ["**/*.{js,mjs,ts,tsx}"],
+    rules: {
+      // React Compiler–style rules: many valid patterns (effects, DOM, Lexical) trip these.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/immutability": "off",
+      // Rich text / arbitrary URLs; Next Image is not always applicable.
+      "@next/next/no-img-element": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

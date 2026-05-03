@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import {
   POST_STATUS,
-  POST_TYPE,
   POST_VISIBILITY,
   MEDIABLE_TYPES,
   SLUG_MAX_LENGTH,

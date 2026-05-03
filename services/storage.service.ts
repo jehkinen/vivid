@@ -57,8 +57,9 @@ export class StorageService {
         Key: key,
       })
       await s3Client.send(command)
-    } catch (error: any) {
-      if (error.name !== 'NoSuchKey') {
+    } catch (error: unknown) {
+      const name = error && typeof error === 'object' && 'name' in error ? String((error as { name: unknown }).name) : ''
+      if (name !== 'NoSuchKey') {
         throw error
       }
     }
@@ -88,8 +89,9 @@ export class StorageService {
           listCommand.input.ContinuationToken = continuationToken
         }
       } while (continuationToken)
-    } catch (error: any) {
-      if (error.name !== 'NoSuchKey') {
+    } catch (error: unknown) {
+      const name = error && typeof error === 'object' && 'name' in error ? String((error as { name: unknown }).name) : ''
+      if (name !== 'NoSuchKey') {
         throw error
       }
     }

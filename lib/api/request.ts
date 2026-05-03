@@ -55,26 +55,27 @@ export async function apiRequest<T>(options: RequestOptions): Promise<T> {
 
   const response = await fetch(url, init)
 
-  let data: any = null
+  let data: unknown = null
   const text = await response.text()
   if (text) {
     try {
-      data = JSON.parse(text)
+      data = JSON.parse(text) as unknown
     } catch {
       data = text
     }
   }
 
   if (!response.ok) {
-    const error: ApiError = new Error(
-      (data && typeof data === 'object' && 'error' in data && (data as any).error) ||
-        (data && typeof data === 'object' && 'message' in data && (data as any).message) ||
-        `Request failed with status ${response.status}`
-    ) as ApiError
+    const errBody = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
+    const messageFromBody =
+      (errBody && typeof errBody.error === 'string' && errBody.error) ||
+      (errBody && typeof errBody.message === 'string' && errBody.message) ||
+      `Request failed with status ${response.status}`
+    const error: ApiError = new Error(messageFromBody) as ApiError
     error.status = response.status
     if (data && typeof data === 'object') {
-      if ('code' in data && typeof (data as any).code === 'string') {
-        error.code = (data as any).code
+      if ('code' in data && typeof (data as Record<string, unknown>).code === 'string') {
+        error.code = (data as Record<string, unknown>).code as string
       }
       error.details = data
     }

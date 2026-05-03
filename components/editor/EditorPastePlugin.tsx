@@ -74,7 +74,7 @@ function captureRangeSnapshot(editor: LexicalEditor): RangeSelection | null {
 }
 
 function restoreSelectionForPaste(editor: LexicalEditor) {
-  let sel = $getSelection()
+  const sel = $getSelection()
   if (sel !== null) {
     return sel
   }

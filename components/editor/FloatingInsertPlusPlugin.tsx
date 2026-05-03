@@ -55,7 +55,7 @@ export default function FloatingInsertPlusPlugin() {
 
           setTop(topPosition)
           setShow(true)
-        } catch (error) {
+        } catch {
           setShow(false)
         }
       })

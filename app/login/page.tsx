@@ -23,8 +23,8 @@ export default function LoginPage() {
       await authClient.login({ email, password })
       router.push('/vivid/posts')
       router.refresh()
-    } catch (err: any) {
-      setError(err?.message || 'Something went wrong')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setPending(false)
     }

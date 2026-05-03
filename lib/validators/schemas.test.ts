@@ -4,7 +4,7 @@ import {
   postUpdateSchema,
   validateRequest,
 } from './schemas'
-import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
+import { POST_STATUS } from '@/shared/constants'
 
 describe('postCreateSchema', () => {
   it('accepts empty title and no lexical', () => {

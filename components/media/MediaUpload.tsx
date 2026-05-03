@@ -6,14 +6,20 @@ import { toast } from 'sonner'
 import { UploadSimpleIcon, CheckIcon, WarningCircleIcon, MusicNotesIcon } from '@phosphor-icons/react'
 import { MEDIABLE_TYPES, UPLOAD_ITEM_STATUS, type UploadItemStatus } from '@/shared/constants'
 
+type UploadResult = { id: string; url: string; filename: string }
+
 interface UploadItem {
   id: string
   file: File
   previewUrl: string
   status: UploadItemStatus
   progress: number
-  result?: { id: string; url: string; filename: string }
+  result?: UploadResult
   error?: string
+}
+
+function isDoneWithResult(item: UploadItem): item is UploadItem & { result: UploadResult } {
+  return item.status === UPLOAD_ITEM_STATUS.DONE && item.result != null
 }
 
 interface MediaUploadProps {
@@ -22,7 +28,7 @@ interface MediaUploadProps {
   collection?: string
   replaceMediaId?: string
   multiple?: boolean
-  onUploaded?: (media: any[]) => void
+  onUploaded?: (media: UploadResult[]) => void
   buttonLabel?: string
   buttonIcon?: React.ReactNode
   buttonClassName?: string
@@ -46,7 +52,10 @@ export default function MediaUpload({
   const haveCalledOnUploadedRef = useRef(false)
   const uploadAbortRef = useRef<AbortController | null>(null)
   const itemsRef = useRef<UploadItem[]>([])
-  itemsRef.current = items
+
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
 
   useEffect(() => {
     return () => {
@@ -59,7 +68,7 @@ export default function MediaUpload({
     if (items.length === 0) return
     if (items.some((i) => i.status === UPLOAD_ITEM_STATUS.PENDING || i.status === UPLOAD_ITEM_STATUS.UPLOADING)) return
     if (haveCalledOnUploadedRef.current) return
-    const done = items.filter((i) => i.status === UPLOAD_ITEM_STATUS.DONE && i.result)
+    const done = items.filter(isDoneWithResult)
     if (done.length === 0) {
       toast.error('Upload failed')
       return
@@ -185,7 +194,7 @@ export default function MediaUpload({
     <div className="space-y-4">
       {items.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {items.map((item, index) => {
+          {items.map((item) => {
             const isAudio = item.file.type.startsWith('audio/')
             return (
               <div key={item.id} className="flex flex-col gap-1.5">

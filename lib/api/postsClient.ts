@@ -1,5 +1,6 @@
 import { apiRequest } from './request'
 import { POST_SORT_OPTIONS, type PostSortOption } from '@/shared/constants'
+import type { PostEditorFeaturedMedia } from '@/types/post-editor'
 
 export interface PostSummary {
   id: string
@@ -11,9 +12,33 @@ export interface PostSummary {
   deletedAt?: string | null
 }
 
+/** Shape returned by list/infinite APIs (includes relations used in admin UI). */
+export type PostWithListRelations = PostSummary & {
+  publishedAt?: string | null
+  plaintext?: string | null
+  visibility?: string | null
+  authors?: Array<{ author: { name?: string | null } }>
+  tags?: Array<{ tag: { id: string; slug: string; name: string; color?: string | null } }>
+  featuredMedia?: { url?: string } | null
+}
+
 export interface PostListResponse {
-  posts: PostSummary[]
+  posts: PostWithListRelations[]
   hasMore: boolean
+}
+
+/** Single post from GET /api/posts?id=… (editor / detail). */
+export interface PostDetail {
+  id: string
+  title?: string | null
+  slug?: string
+  lexical?: string | null
+  plaintext?: string | null
+  status?: string | null
+  visibility?: string | null
+  publishedAt?: string | null
+  tags?: Array<{ tag: { id: string } }>
+  featuredMedia?: PostEditorFeaturedMedia | null
 }
 
 export interface FindPostsParams {
@@ -47,7 +72,7 @@ export const postsClient = {
   },
 
   get(id: string, options?: { includeDeleted?: boolean }) {
-    return apiRequest<any>({
+    return apiRequest<PostDetail>({
       path: '/api/posts',
       query: {
         id,
@@ -56,16 +81,16 @@ export const postsClient = {
     })
   },
 
-  create(data: any) {
-    return apiRequest<any>({
+  create(data: Record<string, unknown>) {
+    return apiRequest<{ id: string }>({
       path: '/api/posts',
       method: 'POST',
       body: data,
     })
   },
 
-  update(id: string, data: any) {
-    return apiRequest<any>({
+  update(id: string, data: Record<string, unknown>) {
+    return apiRequest<Record<string, unknown>>({
       path: `/api/posts/${id}`,
       method: 'PUT',
       body: data,
@@ -73,21 +98,21 @@ export const postsClient = {
   },
 
   softDelete(id: string) {
-    return apiRequest<any>({
+    return apiRequest<Record<string, unknown>>({
       path: `/api/posts/${id}`,
       method: 'DELETE',
     })
   },
 
   restore(id: string) {
-    return apiRequest<any>({
+    return apiRequest<Record<string, unknown>>({
       path: `/api/posts/${id}/restore`,
       method: 'PATCH',
     })
   },
 
   hardDelete(id: string) {
-    return apiRequest<any>({
+    return apiRequest<Record<string, unknown>>({
       path: `/api/posts/${id}/permanent`,
       method: 'DELETE',
     })

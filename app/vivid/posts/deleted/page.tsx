@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { useState } from 'react'
 import { useDeletedPosts, useRestorePost, useHardDeletePost } from '@/hooks/api/use-posts'
+import type { PostSummary } from '@/lib/api/postsClient'
 import { formatDateTime } from '@/lib/utils'
 
 export default function DeletedPostsPage() {
@@ -81,8 +82,8 @@ export default function DeletedPostsPage() {
               </TableRow>
             ) : (
               posts
-                .filter((post: any) => post.deletedAt)
-                .map((post: any) => (
+                .filter((post: PostSummary): post is PostSummary & { deletedAt: string } => Boolean(post.deletedAt))
+                .map((post) => (
                   <TableRow key={post.id}>
                     <TableCell className="font-medium">{post.title || 'Untitled'}</TableCell>
                     <TableCell>{formatDateTime(post.deletedAt)}</TableCell>

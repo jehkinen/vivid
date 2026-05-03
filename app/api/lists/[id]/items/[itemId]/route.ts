@@ -11,10 +11,11 @@ export const PATCH = apiHandler(async (
   const idValidation = validateRequest(idParamSchema, id)
   const itemIdValidation = validateRequest(idParamSchema, itemId)
   if (!idValidation.success || !itemIdValidation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: idValidation.success ? itemIdValidation.errors : idValidation.errors },
-      { status: 400 }
-    )
+    const errors = [
+      ...(!idValidation.success ? idValidation.errors : []),
+      ...(!itemIdValidation.success ? itemIdValidation.errors : []),
+    ]
+    return NextResponse.json({ error: 'Validation failed', errors }, { status: 400 })
   }
   const list = await listsService.findOne(idValidation.data)
   if (!list) {
@@ -41,10 +42,11 @@ export const DELETE = apiHandler(async (
   const idValidation = validateRequest(idParamSchema, id)
   const itemIdValidation = validateRequest(idParamSchema, itemId)
   if (!idValidation.success || !itemIdValidation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: idValidation.success ? itemIdValidation.errors : idValidation.errors },
-      { status: 400 }
-    )
+    const errors = [
+      ...(!idValidation.success ? idValidation.errors : []),
+      ...(!itemIdValidation.success ? itemIdValidation.errors : []),
+    ]
+    return NextResponse.json({ error: 'Validation failed', errors }, { status: 400 })
   }
   const list = await listsService.findOne(idValidation.data)
   if (!list) {

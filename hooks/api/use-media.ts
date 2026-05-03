@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { mediaClient, type MediaLibraryParams, type MediaLibraryResponse } from '@/lib/api/mediaClient'
+import { mediaClient, type MediaLibraryResponse } from '@/lib/api/mediaClient'
 import type { MediaFilterType } from '@/shared/constants'
 
 interface MediaListParams {

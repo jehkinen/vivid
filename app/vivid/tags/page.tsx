@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PencilIcon, TrashIcon } from '@phosphor-icons/react'
-import { useTags, useDeleteTag } from '@/hooks/api/use-tags'
+import { useTags, useDeleteTag, type Tag } from '@/hooks/api/use-tags'
 
 export default function TagsPage() {
   const router = useRouter()
@@ -69,7 +69,7 @@ export default function TagsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              tags.map((tag: any) => (
+              tags.map((tag: Tag) => (
                 <TableRow key={tag.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">

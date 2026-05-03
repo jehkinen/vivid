@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { storageService } from '@/services/storage.service'
 import { IMAGE_CONVERSIONS, MEDIA_FILTER_TYPES, type MediaFilterType } from '@/shared/constants'
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     ? typeParam
     : MEDIA_FILTER_TYPES.ALL
 
-  const where: any = {
+  const where: Prisma.MediaWhereInput = {
     deletedAt: null,
   }
 
@@ -96,6 +97,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     items: itemsWithUrls,
     hasMore,
+    total,
     totalStored: sumOriginal + sumConversions,
   })
 }

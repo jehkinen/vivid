@@ -5,7 +5,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   DecoratorNode,
   NodeKey,
-  EditorConfig,
   LexicalNode,
   SerializedLexicalNode,
   Spread,

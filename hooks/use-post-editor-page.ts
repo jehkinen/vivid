@@ -77,8 +77,9 @@ export function usePostEditorPage() {
     slugManuallyEditedRef.current = false
     setTitle(post.title || '')
     setSlug(post.slug || '')
-    setLexical(post.lexical)
-    lastLexicalContentRef.current = post.lexical
+    const lexicalVal = post.lexical ?? null
+    setLexical(lexicalVal)
+    lastLexicalContentRef.current = lexicalVal
     setStatus((post.status as PostStatus) || POST_STATUS.DRAFT)
     setVisibility(
       post.visibility === POST_VISIBILITY.PUBLIC || post.visibility === POST_VISIBILITY.PRIVATE
@@ -210,7 +211,7 @@ export function usePostEditorPage() {
         )
       }
     },
-    [title, slug, lexical, status, visibility, publishedAt, selectedTagIds, createPost, updatePost, router, editor, hasSavedOnce]
+    [title, slug, lexical, status, visibility, publishedAt, selectedTagIds, createPost, updatePost, router, editor, hasSavedOnce, postId]
   )
 
   const scheduleAutosave = useCallback(() => {

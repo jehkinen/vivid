@@ -8,12 +8,12 @@ import { UserIcon, CaretDownIcon } from '@phosphor-icons/react'
 import { routes } from '@/lib/routes'
 import { useRoute } from '@/lib/route-context'
 import { cn } from '@/lib/utils'
-import { authClient } from '@/lib/api/authClient'
+import { authClient, type MeResponse } from '@/lib/api/authClient'
 
 export default function AdminSidebarProfile() {
   const router = useRouter()
   const route = useRoute()
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null)
+  const [user, setUser] = useState<MeResponse | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)
 
   useEffect(() => {

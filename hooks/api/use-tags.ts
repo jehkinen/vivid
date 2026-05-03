@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { tagsClient, type TagDto } from '@/lib/api/tagsClient'
 
-export interface Tag extends TagDto {}
+export type Tag = TagDto
 
 export function useTags() {
   return useQuery({
@@ -38,7 +38,13 @@ export function useCreateTag() {
 export function useUpdateTag() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ slug, data }: { slug: string; data: any }) => tagsClient.update(slug, data),
+    mutationFn: ({
+      slug,
+      data,
+    }: {
+      slug: string
+      data: Partial<Pick<TagDto, 'name' | 'slug' | 'color' | 'description'>>
+    }) => tagsClient.update(slug, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tags'] })
       queryClient.invalidateQueries({ queryKey: ['tag', variables.slug] })

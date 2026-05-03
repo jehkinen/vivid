@@ -2,8 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { POST_SORT_OPTIONS, type PostSortOption } from '@/shared/constants'
-import { postsClient, type FindPostsParams, type PostListResponse } from '@/lib/api/postsClient'
+import { postsClient, type FindPostsParams, type PostListResponse, type PostSummary } from '@/lib/api/postsClient'
 
 const POSTS_PAGE_SIZE = 20
 
@@ -37,7 +36,7 @@ export function useDeletedPosts() {
     queryFn: async () => {
       const result = await postsClient.listDeleted()
       const list = result.posts ?? []
-      return list.filter((post: any) => post.deletedAt)
+      return list.filter((post: PostSummary) => post.deletedAt)
     },
   })
 }
@@ -67,7 +66,8 @@ export function useCreatePost() {
 export function useUpdatePost() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (v: { id: string; data: any; silent?: boolean }) => postsClient.update(v.id, v.data),
+    mutationFn: (v: { id: string; data: Record<string, unknown>; silent?: boolean }) =>
+      postsClient.update(v.id, v.data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['posts'] })
       queryClient.invalidateQueries({ queryKey: ['post', variables.id] })
