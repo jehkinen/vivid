@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ✨ Vivid
 
-## Getting Started
+**Writing-first** personal publishing: a calm admin, Lexical editor, tags, lists, and media — tuned so you spend time on text, not tooling.
 
-First, run the development server:
+The stack is built around **Supabase Postgres** (via Prisma: pooled `DATABASE_URL` + `DIRECT_URL` for migrations) and **S3-compatible object storage** for uploads (Supabase Storage, R2, MinIO, etc.). Auth uses a signed JWT in an httpOnly cookie.
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![License](https://img.shields.io/badge/License-PolyForm--Noncommercial-1.0.0-orange?style=flat-square)
+
+## Screenshots
+
+**Post editor** — Lexical, cover image, word count, draft/published, sidebar settings (date, tags, visibility, slug).
+
+![Post editor](docs/SCR-20260503-todw.png)
+
+**Posts** — filters, thumbnails, tags, quick edit/delete.
+
+![Posts](docs/SCR-20260503-tpaw.png)
+
+**Sign in** — email/password on the glass-style login screen.
+
+![Sign in](docs/SCR-20260503-tpfe.png)
+
+---
+
+## Highlights
+
+- ✍️ **Comfortable writing** — Lexical, drafts, publish flow, command palette, reading mode  
+- 🗄️ **Supabase-friendly DB** — PostgreSQL + Prisma  
+- 📦 **Files on S3** — presigned uploads; any S3 API–compatible backend  
+- 🔐 **Private by default** — blog routes expect a logged-in session  
+
+**Stack:** Next.js 16 · React 19 · Tailwind 4 · Radix · TanStack Query · Task (`Taskfile.yml`)
+
+---
+
+## Quick start
+
+**Needs Node 22** and a Postgres URL (Supabase is a natural fit).
 
 ```bash
+git clone https://github.com/jehkinen/vivid.git && cd vivid && npm install
+# copy .env — DATABASE_URL, DIRECT_URL, AUTH_SECRET, S3_* …
+npx prisma generate && npx prisma db push
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) → login.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | What it does |
+|---------|----------------|
+| `npm run dev` / `build` / `start` | usual Next.js |
+| `npm run test` | Vitest |
+| `task check` | lint → test → build |
+| `task deploy` | push `.env` to Vercel + deploy |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Deploy on **Vercel** with the same env vars; build runs `prisma generate` then `next build`.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Layout
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`app/` · `components/` · `hooks/` · `lib/` · `prisma/` · `services/`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Licensed under the **[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)** — see [`LICENSE`](LICENSE).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**In short:** use, modify, and share for **noncommercial** purposes (personal projects, learning, many nonprofits). **Commercial use** — including **selling** the software, hosting it as a paid product, or using it primarily for revenue — is **not** allowed without a separate agreement from the copyright holder. No warranty.
+
+---
+
+<p align="center"><strong>Vivid</strong> · keep writing ✍️</p>
