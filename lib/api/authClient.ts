@@ -14,6 +14,15 @@ export interface MeResponse {
   email: string
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}
+
+export interface ChangePasswordResponse {
+  success: boolean
+}
+
 export const authClient = {
   login(payload: LoginPayload) {
     return apiRequest<LoginResponse>({
@@ -33,6 +42,14 @@ export const authClient = {
     return apiRequest<void>({
       path: '/api/auth/logout',
       method: 'POST',
+    })
+  },
+
+  changePassword(payload: ChangePasswordPayload) {
+    return apiRequest<ChangePasswordResponse>({
+      path: '/api/auth/change-password',
+      method: 'POST',
+      body: payload,
     })
   },
 }
