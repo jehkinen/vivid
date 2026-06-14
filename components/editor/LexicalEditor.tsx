@@ -251,19 +251,27 @@ function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoad
       return
     }
 
-    try {
-      editor.setEditorState(editorState)
-      lastLoadedContentRef.current = currentContent
-      setLoaded(true)
-      setTimeout(() => {
-        onLoadedRef.current?.()
-      }, 300)
-    } catch {
-      lastLoadedContentRef.current = currentContent
-      setLoaded(true)
-      setTimeout(() => {
-        onLoadedRef.current?.()
-      }, 100)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+      try {
+        editor.setEditorState(editorState)
+        lastLoadedContentRef.current = currentContent
+        setLoaded(true)
+        setTimeout(() => {
+          onLoadedRef.current?.()
+        }, 300)
+      } catch {
+        lastLoadedContentRef.current = currentContent
+        setLoaded(true)
+        setTimeout(() => {
+          onLoadedRef.current?.()
+        }, 100)
+      }
+    })
+
+    return () => {
+      cancelled = true
     }
   }, [editor, content, loaded])
 

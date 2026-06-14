@@ -19,9 +19,35 @@ tasks:
       - rm -rf .next
 
   dev:
-    desc: Run Next.js in development mode
+    desc: Start Next.js + local reverse proxy
     cmds:
-      - npm run dev
+      - sudo -v
+      - task: dev:run
+
+  dev:run:
+    desc: Start Next.js + proxy (after sudo auth)
+    parallel: true
+    deps:
+      - dev:next
+      - dev:proxy
+
+  dev:next:
+    desc: Start Next.js dev server
+    vars:
+      DEV_HOST:
+        sh: basename "$PWD" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | sed 's/--*/-/g; s/^-//; s/-$//' | awk '{print $0 ".test"}'
+    cmds:
+      - echo "Open https://{{.DEV_HOST}}/login"
+      - script -q /dev/null npm run dev -- --hostname "{{.DEV_HOST}}" --port 3000
+
+  dev:proxy:
+    desc: Start Caddy reverse proxy (vivid.test)
+    vars:
+      DEV_HOST:
+        sh: basename "$PWD" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | sed 's/--*/-/g; s/^-//; s/-$//' | awk '{print $0 ".test"}'
+    cmds:
+      - sudo pkill -f "caddy run --watch --config Caddyfile" || true
+      - DEV_HOST="{{.DEV_HOST}}" DEV_PORT=3000 DEV_HTTPS_PORT=443 sudo -n caddy run --watch --config Caddyfile
 
   build:
     desc: Build the project for production

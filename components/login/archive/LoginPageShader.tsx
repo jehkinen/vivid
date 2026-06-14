@@ -4,7 +4,8 @@ import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import PretextLoginBackground from '@/components/login/PretextLoginBackground'
+import ShaderBackground from '@/components/login/archive/ShaderBackground'
+import PublicLogo from '@/components/public/PublicLogo'
 import { authClient } from '@/lib/api/authClient'
 
 function safeReturnPath(from: string | null): string | null {
@@ -38,12 +39,13 @@ function LoginForm() {
   }
 
   return (
-    <div className="relative z-10 w-full max-w-[400px] flex flex-col items-center">
-      <div className="mb-7 h-[2.75rem] w-full shrink-0 pointer-events-none" aria-hidden />
-      <p className="sr-only">Vivid</p>
-      <div className="rounded-2xl border border-[#3eb8b5]/15 bg-[#0a0c14]/75 px-8 py-7 shadow-2xl shadow-black/50 backdrop-blur-xl w-full" data-login-form>
+    <div className="relative z-10 w-full max-w-[380px] flex flex-col items-center">
+      <div className="mb-6 px-4 py-2 rounded-lg bg-black/30 backdrop-blur-sm">
+        <PublicLogo />
+      </div>
+      <div className="rounded-2xl border border-white/[0.07] bg-black/30 px-8 py-7 shadow-2xl shadow-black/40 backdrop-blur-xl w-full">
         <h1 className="text-[1.25rem] font-medium tracking-tight text-white mb-0.5">Sign in</h1>
-        <p className="text-[0.8125rem] text-white/50 mb-6">Return to your stories</p>
+        <p className="text-[0.8125rem] text-white/50 mb-6">Email and password</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-[0.8125rem] font-medium text-white/80 mb-1.5">
@@ -57,7 +59,7 @@ function LoginForm() {
               placeholder="you@example.com"
               autoComplete="email"
               required
-              className="h-10 bg-white/[0.06] border-white/15 text-white placeholder:text-white/35 focus-visible:border-[#3eb8b5]/40"
+              className="h-10 bg-white/[0.06] border-white/15 text-white placeholder:text-white/35 focus-visible:border-white/25"
             />
           </div>
           <div>
@@ -72,7 +74,7 @@ function LoginForm() {
               placeholder="••••••••"
               autoComplete="current-password"
               required
-              className="h-10 bg-white/[0.06] border-white/15 text-white placeholder:text-white/35 focus-visible:border-[#3eb8b5]/40"
+              className="h-10 bg-white/[0.06] border-white/15 text-white placeholder:text-white/35 focus-visible:border-white/25"
             />
           </div>
           {error && (
@@ -92,13 +94,13 @@ function LoginForm() {
   )
 }
 
-export default function LoginPage() {
+export default function LoginPageShaderArchive() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
-      <PretextLoginBackground />
+    <div className="relative min-h-screen flex items-center justify-center p-4">
+      <ShaderBackground />
       <Suspense
         fallback={
-          <div className="relative z-10 w-full max-w-[400px] flex flex-col items-center text-white/50 text-sm">
+          <div className="relative z-10 w-full max-w-[380px] flex flex-col items-center text-white/50 text-sm">
             Loading…
           </div>
         }

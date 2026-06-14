@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "preinstall": "node -e \"if(process.version.split('.')[0].slice(1) !== '22'){console.error('❌ Node.js version 22 required. Run: nvm use');process.exit(1)}\"",
+    "preinstall": "node scripts/check-node-version.mjs",
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
