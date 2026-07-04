@@ -27,18 +27,19 @@ import {
   TextHThreeIcon,
   QuotesIcon,
   EraserIcon,
+  LinkIcon,
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { HIGHLIGHT_COLORS, getContrastTextColor } from '@/lib/editor/constants'
-
-interface FloatingToolbarProps {
-  show: boolean
-  style: { top: string; left: string; transform?: string }
-}
+import { $isSelectionInLink, $removeLinksInSelection } from '@/lib/editor/link-utils'
 
 type HeadingTag = 'h1' | 'h2' | 'h3'
 
-export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
+type FloatingToolbarProps = {
+  onOpenLink: () => void
+}
+
+export default function FloatingToolbar({ onOpenLink }: FloatingToolbarProps) {
   const [editor] = useLexicalComposerContext()
   const [isBold, setIsBold] = useState(false)
   const [isItalic, setIsItalic] = useState(false)
@@ -46,6 +47,7 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
   const [headingTag, setHeadingTag] = useState<HeadingTag | null>(null)
   const [isQuote, setIsQuote] = useState(false)
   const [highlightBg, setHighlightBg] = useState<string | null>(null)
+  const [isLink, setIsLink] = useState(false)
 
   const updateFormat = useCallback(() => {
     editor.getEditorState().read(() => {
@@ -62,12 +64,13 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
       setHeadingTag(
         $isHeadingNode(anchorBlock) ? (anchorBlock.getTag() as HeadingTag) : null
       )
+      setIsLink($isSelectionInLink(selection))
     })
   }, [editor])
 
   useEffect(() => {
-    if (show) updateFormat()
-  }, [show, updateFormat])
+    updateFormat()
+  }, [updateFormat])
 
   const handleFormat = (format: 'bold' | 'italic' | 'code') => {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, format)
@@ -107,16 +110,18 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
         if (parent.getKey() === root.getKey()) {
           const index = nodeAfter ? nodeAfter.getIndexWithinParent() : root.getChildrenSize()
           root.splice(index, 0, [quoteNode])
-        } else {
-        if (nodeAfter) {
+        } else if (nodeAfter) {
           nodeAfter.insertBefore(quoteNode)
-          } else {
-            parent.append(quoteNode)
-          }
+        } else {
+          parent.append(quoteNode)
         }
       }
     })
     setTimeout(updateFormat, 10)
+  }
+
+  const handleLink = () => {
+    onOpenLink()
   }
 
   const handleInsertBlock = (type: string, options?: Record<string, string>) => {
@@ -129,9 +134,20 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
       if (!$isRangeSelection(selection)) return
       const tag = (options?.tag || 'h1') as HeadingTag
       switch (type) {
-        case 'heading':
-          $setBlocksType(selection, () => $createHeadingNode(tag))
+        case 'heading': {
+          const anchorBlock = selection.anchor.getNode().getTopLevelElementOrThrow()
+          const focusBlock = selection.focus.getNode().getTopLevelElementOrThrow()
+          if (
+            $isHeadingNode(anchorBlock) &&
+            anchorBlock.getTag() === tag &&
+            anchorBlock.getKey() === focusBlock.getKey()
+          ) {
+            $setBlocksType(selection, () => $createParagraphNode())
+          } else {
+            $setBlocksType(selection, () => $createHeadingNode(tag))
+          }
           break
+        }
         case 'code':
           selection.insertNodes([$createCodeNode()])
           break
@@ -161,6 +177,7 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
     editor.update(() => {
       const selection = $getSelection()
       if (!$isRangeSelection(selection)) return
+      $removeLinksInSelection()
       $patchStyleText(selection, { 'background-color': null, color: null })
       ;['bold', 'italic', 'code'].forEach((f) => {
         if (selection.hasFormat(f as 'bold' | 'italic' | 'code')) {
@@ -172,13 +189,8 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
     setTimeout(updateFormat, 10)
   }
 
-  if (!show) return null
-
   return (
-    <div
-      className="fixed z-50 flex flex-col gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-1.5"
-      style={{ ...style, position: 'fixed' }}
-    >
+    <>
       <div className="flex items-center gap-1">
         <Button
           variant="ghost"
@@ -207,13 +219,26 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
         >
           <CodeIcon className="h-4 w-4" />
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            handleLink()
+          }}
+          className={isLink ? 'bg-gray-100 dark:bg-gray-700' : ''}
+          title="Link (Cmd+K)"
+        >
+          <LinkIcon className="h-4 w-4" />
+        </Button>
         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
         <Button
           variant="ghost"
           size="sm"
           onClick={() => handleInsertBlock('heading', { tag: 'h1' })}
           className={headingTag === 'h1' ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Heading 1"
+          title={headingTag === 'h1' ? 'Heading 1 (click again to remove)' : 'Heading 1'}
         >
           <TextHOneIcon className="h-4 w-4" />
         </Button>
@@ -222,7 +247,7 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
           size="sm"
           onClick={() => handleInsertBlock('heading', { tag: 'h2' })}
           className={headingTag === 'h2' ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Heading 2"
+          title={headingTag === 'h2' ? 'Heading 2 (click again to remove)' : 'Heading 2'}
         >
           <TextHTwoIcon className="h-4 w-4" />
         </Button>
@@ -231,7 +256,7 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
           size="sm"
           onClick={() => handleInsertBlock('heading', { tag: 'h3' })}
           className={headingTag === 'h3' ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Heading 3"
+          title={headingTag === 'h3' ? 'Heading 3 (click again to remove)' : 'Heading 3'}
         >
           <TextHThreeIcon className="h-4 w-4" />
         </Button>
@@ -274,6 +299,6 @@ export default function FloatingToolbar({ show, style }: FloatingToolbarProps) {
           )
         })}
       </div>
-    </div>
+    </>
   )
 }

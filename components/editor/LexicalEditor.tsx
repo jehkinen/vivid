@@ -8,13 +8,18 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import FloatingToolbarPlugin from './FloatingToolbarPlugin'
 import FloatingInsertPlusPlugin, { FloatingPanelContext } from './FloatingInsertPlusPlugin'
+import { EditorFloatingUIProvider } from './EditorFloatingUIContext'
 import { EDITOR_NODES } from './editor-nodes'
 import { MediableProvider } from './MediableContext'
 import { EditorState, type SerializedEditorState, $getRoot, $isDecoratorNode, $isElementNode, $isParagraphNode } from 'lexical'
 import { useEffect, useState, useRef, Component, ReactElement } from 'react'
 import YouTubeOverlayLayer from './YouTubeOverlayLayer'
 import EditorPastePlugin from './EditorPastePlugin'
+import EditorLinkSelectionPlugin from './EditorLinkSelectionPlugin'
 import { $generateHtmlFromNodes } from '@lexical/html'
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
+import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
+import { AUTO_LINK_MATCHERS } from '@/lib/editor/link-matchers'
 
 function OnMountPlugin({ onMount }: { onMount?: (editor: LexicalEditorInstance) => void }) {
   const [editor] = useLexicalComposerContext()
@@ -121,7 +126,7 @@ const theme = {
     ul: 'list-disc',
   },
   quote: 'border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4 text-gray-700 dark:text-gray-300',
-  link: 'text-blue-600 dark:text-blue-400 hover:underline',
+  link: 'underline decoration-from-font cursor-text',
   code: 'bg-gray-100 dark:bg-gray-800 p-4 rounded font-mono text-sm overflow-x-auto block my-4',
 }
 
@@ -298,35 +303,40 @@ function EditorContentArea({
     if (onChange) onChange(editorState, html, lexical)
   }
   return (
-    <FloatingPanelContext.Provider value={renderFloatingPanel ?? null}>
-      <div
-        ref={containerRef}
-        className="flex-1 relative min-w-0 flex flex-col bg-transparent"
-      >
-        <LoadInitialStatePlugin 
-          content={initialEditorState || ''} 
-          onLoaded={onEditorLoaded} 
+    <EditorFloatingUIProvider>
+      <FloatingPanelContext.Provider value={renderFloatingPanel ?? null}>
+        <div
+          ref={containerRef}
+          className="flex-1 relative min-w-0 flex flex-col bg-transparent"
+        >
+          <LoadInitialStatePlugin 
+            content={initialEditorState || ''} 
+            onLoaded={onEditorLoaded} 
+          />
+          <EditorPastePlugin />
+          <LinkPlugin />
+          <AutoLinkPlugin matchers={AUTO_LINK_MATCHERS} />
+          <EditorLinkSelectionPlugin />
+          <RichTextPlugin
+          contentEditable={
+            <ContentEditable className="relative z-[1] min-h-[500px] text-lg leading-relaxed text-foreground outline-none pl-0 pr-6 pt-6 pb-6 focus:outline-none text-left [&_a]:select-text [&_a]:cursor-text [&_a:not(:has([style*='color']))]:text-blue-600 [&_a:not(:has([style*='color']))]:dark:text-blue-400" />
+          }
+          placeholder={null}
+          ErrorBoundary={({ children }) => (
+            <LexicalErrorBoundary onError={(error) => console.error('Lexical error:', error)}>
+              {children}
+            </LexicalErrorBoundary>
+          )}
         />
-        <EditorPastePlugin />
-        <RichTextPlugin
-        contentEditable={
-          <ContentEditable className="relative z-[1] min-h-[500px] text-lg leading-relaxed text-foreground outline-none pl-0 pr-6 pt-6 pb-6 focus:outline-none text-left" />
-        }
-        placeholder={null}
-        ErrorBoundary={({ children }) => (
-          <LexicalErrorBoundary onError={(error) => console.error('Lexical error:', error)}>
-            {children}
-          </LexicalErrorBoundary>
-        )}
-      />
-      <CustomPlaceholder text={placeholder} />
-      <YouTubeOverlayLayer containerRef={containerRef} />
-      <HistoryPlugin />
-      <FloatingToolbarPlugin onOpenChange={onToolbarOpenChange} />
-      <FloatingInsertPlusPlugin />
-      <CustomOnChangePlugin onChange={handleChange} />
-      </div>
-    </FloatingPanelContext.Provider>
+        <CustomPlaceholder text={placeholder} />
+        <YouTubeOverlayLayer containerRef={containerRef} />
+        <HistoryPlugin />
+        <FloatingToolbarPlugin onOpenChange={onToolbarOpenChange} />
+        <FloatingInsertPlusPlugin />
+        <CustomOnChangePlugin onChange={handleChange} />
+        </div>
+      </FloatingPanelContext.Provider>
+    </EditorFloatingUIProvider>
   )
 }
 

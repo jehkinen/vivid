@@ -5,12 +5,14 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $getSelection, $isRangeSelection } from 'lexical'
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useMediable } from './MediableContext'
+import { useEditorFloatingUI } from './EditorFloatingUIContext'
 import InsertBlockPlus from './InsertBlockPlus'
 
 export const FloatingPanelContext = createContext<((props: { editor: LexicalEditor }) => React.ReactNode) | null>(null)
 
 export default function FloatingInsertPlusPlugin() {
   const [editor] = useLexicalComposerContext()
+  const { mode } = useEditorFloatingUI()
   const { mediableType, mediableId } = useMediable()
   const renderFloatingPanel = useContext(FloatingPanelContext)
   const [show, setShow] = useState(false)
@@ -18,7 +20,18 @@ export default function FloatingInsertPlusPlugin() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    if (mode === 'link') {
+      setShow(false)
+    }
+  }, [mode])
+
+  useEffect(() => {
     const updatePosition = () => {
+      if (mode === 'link') {
+        setShow(false)
+        return
+      }
+
       editor.getEditorState().read(() => {
         const selection = $getSelection()
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -104,7 +117,7 @@ export default function FloatingInsertPlusPlugin() {
       document.removeEventListener('keydown', handleKeyDown)
       document.removeEventListener('click', handleClick)
     }
-  }, [editor])
+  }, [editor, mode])
 
   if (!show || top === null) return null
 

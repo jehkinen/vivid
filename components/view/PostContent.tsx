@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, ReactNode, Fragment } from 'react'
+import { useState, useCallback, useMemo, useRef, ReactNode, Fragment } from 'react'
 import { ImageBrokenIcon } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { IMAGE_CARD_WIDTH, LEXICAL_NODE_TYPE } from '@/shared/constants'
@@ -75,6 +75,48 @@ function parseStyleString(str: string): React.CSSProperties {
     if (key && value) out[key] = value
   }
   return out as React.CSSProperties
+}
+
+function PostLink({
+  href,
+  target,
+  children,
+}: {
+  href: string
+  target: string
+  children: ReactNode
+}) {
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null)
+
+  return (
+    <a
+      href={href}
+      target={target}
+      rel="noopener noreferrer"
+      className="text-primary hover:underline select-text"
+      onMouseDown={(e) => {
+        pointerDownRef.current = { x: e.clientX, y: e.clientY }
+      }}
+      onClick={(e) => {
+        const down = pointerDownRef.current
+        pointerDownRef.current = null
+        if (down) {
+          const dx = Math.abs(e.clientX - down.x)
+          const dy = Math.abs(e.clientY - down.y)
+          if (dx > 4 || dy > 4) {
+            e.preventDefault()
+            return
+          }
+        }
+        const selection = window.getSelection()
+        if (selection && !selection.isCollapsed()) {
+          e.preventDefault()
+        }
+      }}
+    >
+      {children}
+    </a>
+  )
 }
 
 function renderText(node: LexJson): ReactNode {
@@ -289,19 +331,20 @@ export default function PostContent({ lexicalJson, className = '' }: PostContent
           </pre>
         )
       }
-      if (node.type === LEXICAL_NODE_TYPE.LINK) {
+      if (node.type === LEXICAL_NODE_TYPE.LINK || node.type === LEXICAL_NODE_TYPE.AUTOLINK) {
         const lc = Array.isArray(node.children) ? node.children : []
         const children = lc.map((c) => renderNode(c as LexJson))
+        if (node.type === LEXICAL_NODE_TYPE.AUTOLINK && node.isUnlinked) {
+          return <Fragment key={lexicalReactKey(node)}>{children}</Fragment>
+        }
         return (
-          <a
+          <PostLink
             key={lexicalReactKey(node)}
             href={String(node.url ?? '#')}
             target={String(node.target ?? '_blank')}
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
           >
             {children}
-          </a>
+          </PostLink>
         )
       }
       if (node.children && Array.isArray(node.children)) {

@@ -3,13 +3,10 @@
 import * as React from 'react'
 import type { LexicalEditor } from 'lexical'
 import { $insertNodes, $getSelection, $getRoot, $setSelection, $isRangeSelection, $createParagraphNode } from 'lexical'
-import {
-  $createImageNode,
-  $createGalleryNode,
-  $createAudioNode,
-  $createYouTubeNode,
-  extractYouTubeVideoId,
-} from './editor-nodes'
+import { $createGalleryNode } from './nodes/gallery-node'
+import { $createImageNode } from './nodes/ImageNode'
+import { $createAudioNode } from './nodes/AudioNode'
+import { $createYouTubeNode, extractYouTubeVideoId } from './nodes/YouTubeNode'
 import { useState } from 'react'
 import { PlusIcon, ImageIcon, SquaresFourIcon, MusicNotesIcon, YoutubeLogo } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'

@@ -154,6 +154,7 @@ export const LEXICAL_NODE_TYPE = {
   QUOTE: 'quote',
   CODE: 'code',
   LINK: 'link',
+  AUTOLINK: 'autolink',
 } as const
 
 export type LexicalNodeType = (typeof LEXICAL_NODE_TYPE)[keyof typeof LEXICAL_NODE_TYPE]

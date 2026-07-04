@@ -94,10 +94,13 @@ export function renderLexicalToHtml(
       if (node.type === LEXICAL_NODE_TYPE.CODE) {
         return `<pre class="bg-muted p-4 rounded overflow-x-auto my-4"><code>${String(node.code ?? '')}</code></pre>`
       }
-      if (node.type === LEXICAL_NODE_TYPE.LINK) {
+      if (node.type === LEXICAL_NODE_TYPE.LINK || node.type === LEXICAL_NODE_TYPE.AUTOLINK) {
         const ch = Array.isArray(node.children) ? node.children : []
         const children = ch.map((c) => renderNode(c as LexicalJson)).join('')
-        return `<a href="${String(node.url ?? '')}" target="${String(node.target ?? '_blank')}" class="text-primary hover:underline">${children}</a>`
+        if (node.type === LEXICAL_NODE_TYPE.AUTOLINK && node.isUnlinked) {
+          return children
+        }
+        return `<a href="${String(node.url ?? '')}" target="${String(node.target ?? '_blank')}" rel="noopener noreferrer" class="text-primary hover:underline">${children}</a>`
       }
       if (node.children && Array.isArray(node.children)) {
         return (node.children as unknown[]).map((c) => renderNode(c as LexicalJson)).join('')
