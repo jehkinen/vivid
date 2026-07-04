@@ -3,12 +3,13 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode, type RefObject } from 'react'
 import type { SavedLinkSelection } from '@/lib/editor/link-utils'
 
-export type FloatingUIMode = 'none' | 'format' | 'link'
+export type FloatingSurface = 'none' | 'format' | 'link'
+export type LinkPhase = 'none' | 'view' | 'edit' | 'create'
 
 export type FloatingPanelPosition = {
   top: string
   left: string
-  transform?: string
+  transform: string
 }
 
 export type LinkSession = {
@@ -19,63 +20,108 @@ export type LinkSession = {
 }
 
 type EditorFloatingUIContextValue = {
-  mode: FloatingUIMode
-  modeRef: RefObject<FloatingUIMode>
-  setMode: (mode: FloatingUIMode) => void
-  panelRef: RefObject<HTMLDivElement | null>
-  position: FloatingPanelPosition | null
-  setPosition: (position: FloatingPanelPosition | null) => void
+  surface: FloatingSurface
+  surfaceRef: RefObject<FloatingSurface>
+  linkPhase: LinkPhase
+  linkPhaseRef: RefObject<LinkPhase>
+  toolbarRef: RefObject<HTMLDivElement | null>
+  linkPopoverRef: RefObject<HTMLDivElement | null>
+  toolbarPosition: FloatingPanelPosition | null
+  linkPopoverPosition: FloatingPanelPosition | null
+  setToolbarPosition: (position: FloatingPanelPosition | null) => void
+  setLinkPopoverPosition: (position: FloatingPanelPosition | null) => void
   linkSession: LinkSession | null
-  openLinkSession: (session: LinkSession) => void
-  closeLinkSession: () => void
+  setSurface: (surface: FloatingSurface) => void
+  openLinkView: (session: LinkSession) => void
+  openLinkEdit: (session: LinkSession) => void
+  openLinkCreate: (session: LinkSession) => void
+  closeAll: () => void
+  formatVisible: boolean
+  setFormatVisible: (visible: boolean) => void
 }
 
 const EditorFloatingUIContext = createContext<EditorFloatingUIContextValue | null>(null)
 
-const emptyLinkSession = (): LinkSession => ({
-  savedSelection: null,
-  linkText: '',
-  linkUrl: '',
-  editingLinkKey: null,
-})
-
 export function EditorFloatingUIProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<FloatingUIMode>('none')
-  const modeRef = useRef<FloatingUIMode>('none')
-  const panelRef = useRef<HTMLDivElement | null>(null)
-  const [position, setPosition] = useState<FloatingPanelPosition | null>(null)
+  const [surface, setSurfaceState] = useState<FloatingSurface>('none')
+  const surfaceRef = useRef<FloatingSurface>('none')
+  const [linkPhase, setLinkPhaseState] = useState<LinkPhase>('none')
+  const linkPhaseRef = useRef<LinkPhase>('none')
+  const toolbarRef = useRef<HTMLDivElement | null>(null)
+  const linkPopoverRef = useRef<HTMLDivElement | null>(null)
+  const [toolbarPosition, setToolbarPosition] = useState<FloatingPanelPosition | null>(null)
+  const [linkPopoverPosition, setLinkPopoverPosition] = useState<FloatingPanelPosition | null>(null)
   const [linkSession, setLinkSession] = useState<LinkSession | null>(null)
+  const [formatVisible, setFormatVisible] = useState(false)
 
-  const setMode = useCallback((next: FloatingUIMode) => {
-    modeRef.current = next
-    setModeState(next)
+  const setSurface = useCallback((next: FloatingSurface) => {
+    surfaceRef.current = next
+    setSurfaceState(next)
   }, [])
 
-  const openLinkSession = useCallback(
+  const setLinkPhase = useCallback((next: LinkPhase) => {
+    linkPhaseRef.current = next
+    setLinkPhaseState(next)
+  }, [])
+
+  const openLinkView = useCallback(
     (session: LinkSession) => {
       setLinkSession(session)
-      setMode('link')
+      setLinkPhase('view')
+      setSurface('link')
+      setFormatVisible(false)
     },
-    [setMode]
+    [setLinkPhase, setSurface]
   )
 
-  const closeLinkSession = useCallback(() => {
+  const openLinkEdit = useCallback(
+    (session: LinkSession) => {
+      setLinkSession(session)
+      setLinkPhase('edit')
+      setSurface('link')
+      setFormatVisible(false)
+    },
+    [setLinkPhase, setSurface]
+  )
+
+  const openLinkCreate = useCallback(
+    (session: LinkSession) => {
+      setLinkSession(session)
+      setLinkPhase('create')
+      setSurface('link')
+      setFormatVisible(true)
+    },
+    [setLinkPhase, setSurface]
+  )
+
+  const closeAll = useCallback(() => {
     setLinkSession(null)
-    setMode('none')
-  }, [setMode])
+    setLinkPhase('none')
+    setSurface('none')
+    setFormatVisible(false)
+  }, [setLinkPhase, setSurface])
 
   return (
     <EditorFloatingUIContext.Provider
       value={{
-        mode,
-        modeRef,
-        setMode,
-        panelRef,
-        position,
-        setPosition,
+        surface,
+        surfaceRef,
+        linkPhase,
+        linkPhaseRef,
+        toolbarRef,
+        linkPopoverRef,
+        toolbarPosition,
+        linkPopoverPosition,
+        setToolbarPosition,
+        setLinkPopoverPosition,
         linkSession,
-        openLinkSession,
-        closeLinkSession,
+        setSurface,
+        openLinkView,
+        openLinkEdit,
+        openLinkCreate,
+        closeAll,
+        formatVisible,
+        setFormatVisible,
       }}
     >
       {children}
@@ -90,5 +136,3 @@ export function useEditorFloatingUI() {
   }
   return ctx
 }
-
-export { emptyLinkSession }

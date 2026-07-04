@@ -12,7 +12,7 @@ export const FloatingPanelContext = createContext<((props: { editor: LexicalEdit
 
 export default function FloatingInsertPlusPlugin() {
   const [editor] = useLexicalComposerContext()
-  const { mode } = useEditorFloatingUI()
+  const { linkPhase } = useEditorFloatingUI()
   const { mediableType, mediableId } = useMediable()
   const renderFloatingPanel = useContext(FloatingPanelContext)
   const [show, setShow] = useState(false)
@@ -20,14 +20,14 @@ export default function FloatingInsertPlusPlugin() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (mode === 'link') {
+    if (linkPhase !== 'none') {
       setShow(false)
     }
-  }, [mode])
+  }, [linkPhase])
 
   useEffect(() => {
     const updatePosition = () => {
-      if (mode === 'link') {
+      if (linkPhase !== 'none') {
         setShow(false)
         return
       }
@@ -117,7 +117,7 @@ export default function FloatingInsertPlusPlugin() {
       document.removeEventListener('keydown', handleKeyDown)
       document.removeEventListener('click', handleClick)
     }
-  }, [editor, mode])
+  }, [editor, linkPhase])
 
   if (!show || top === null) return null
 

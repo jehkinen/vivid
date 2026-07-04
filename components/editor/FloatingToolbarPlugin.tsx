@@ -7,7 +7,7 @@ import {
   COMMAND_PRIORITY_HIGH,
   KEY_MODIFIER_COMMAND,
 } from 'lexical'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import {
   $getActiveLinkNode,
   $getLinkDisplayText,
@@ -16,14 +16,20 @@ import {
   type SavedLinkSelection,
 } from '@/lib/editor/link-utils'
 import {
-  computeFloatingPanelPosition,
+  computePanelPositionAbove,
+  computePanelPositionAboveLink,
+  computePanelPositionBelowLink,
   getDefaultPanelSize,
+  getLinkAnchorRect,
   getSelectionAnchorRect,
   FLOATING_PANEL_OFFSET,
 } from '@/lib/editor/floating-panel-position'
+import { cn } from '@/lib/utils'
 import { useEditorFloatingUI } from './EditorFloatingUIContext'
 import FloatingToolbar from './FloatingToolbar'
 import FloatingLinkEditor from './FloatingLinkEditor'
+import FloatingLinkPreview from './FloatingLinkPreview'
+import { editorFloatingShellClassName } from './editor-floating-shell'
 
 interface FloatingToolbarPluginProps {
   onOpenChange?: (open: boolean) => void
@@ -32,58 +38,110 @@ interface FloatingToolbarPluginProps {
 export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarPluginProps) {
   const [editor] = useLexicalComposerContext()
   const {
-    mode,
-    modeRef,
-    setMode,
-    panelRef,
-    position,
-    setPosition,
+    surface,
+    surfaceRef,
+    linkPhase,
+    linkPhaseRef,
+    toolbarRef,
+    linkPopoverRef,
+    toolbarPosition,
+    linkPopoverPosition,
+    setToolbarPosition,
+    setLinkPopoverPosition,
     linkSession,
-    openLinkSession,
-    closeLinkSession,
+    openLinkCreate,
+    openLinkEdit,
+    closeAll,
+    formatVisible,
+    setFormatVisible,
+    setSurface,
   } = useEditorFloatingUI()
-  const [formatVisible, setFormatVisible] = useState(false)
+
   const cachedSelectionRef = useRef<SavedLinkSelection | null>(null)
   const cachedLinkTextRef = useRef('')
   const cachedAnchorRectRef = useRef<DOMRect | null>(null)
   const openingLinkRef = useRef(false)
 
-  useEffect(() => {
-    onOpenChange?.(formatVisible || mode === 'link')
-  }, [formatVisible, mode, onOpenChange])
+  const toolbarOpen =
+    formatVisible && (surface === 'format' || (surface === 'link' && linkPhase === 'create'))
+  const linkPopoverOpen = linkPhase === 'view' || linkPhase === 'edit' || linkPhase === 'create'
 
-  const applyPanelPosition = useCallback(
-    (anchorRect: DOMRect, panelMode: 'format' | 'link') => {
-      cachedAnchorRectRef.current = anchorRect
-      const measuredWidth = panelRef.current?.offsetWidth
-      const measuredHeight = panelRef.current?.offsetHeight
-      const defaults = getDefaultPanelSize(panelMode)
-      const width = measuredWidth ?? defaults.width
-      const height = measuredHeight ?? defaults.height
-      setPosition(
-        computeFloatingPanelPosition(anchorRect, width, height, FLOATING_PANEL_OFFSET)
-      )
-    },
-    [panelRef, setPosition]
-  )
+  useEffect(() => {
+    onOpenChange?.(toolbarOpen || linkPopoverOpen)
+  }, [toolbarOpen, linkPopoverOpen, onOpenChange])
 
   const resolveAnchorRect = useCallback(() => {
     const rootElement = editor.getRootElement()
+    const linkKey = linkSession?.editingLinkKey
+    if (linkKey) {
+      const linkRect = getLinkAnchorRect(editor, linkKey)
+      if (linkRect) return linkRect
+    }
     return getSelectionAnchorRect(rootElement) ?? cachedAnchorRectRef.current
-  }, [editor])
+  }, [editor, linkSession?.editingLinkKey])
 
-  const refreshPanelPosition = useCallback(
-    (panelMode: 'format' | 'link') => {
-      const rect = resolveAnchorRect()
-      if (!rect) return false
-      applyPanelPosition(rect, panelMode)
-      return true
+  const applyToolbarPosition = useCallback(
+    (anchorRect: DOMRect) => {
+      cachedAnchorRectRef.current = anchorRect
+      const measuredWidth = toolbarRef.current?.offsetWidth
+      const measuredHeight = toolbarRef.current?.offsetHeight
+      const defaults = getDefaultPanelSize('format')
+      const width = measuredWidth ?? defaults.width
+      const height = measuredHeight ?? defaults.height
+      setToolbarPosition(
+        computePanelPositionAbove(anchorRect, width, height, FLOATING_PANEL_OFFSET)
+      )
     },
-    [applyPanelPosition, resolveAnchorRect]
+    [toolbarRef, setToolbarPosition]
   )
 
+  const applyLinkPopoverPosition = useCallback(
+    (anchorRect: DOMRect, panelMode: 'link-preview' | 'link-edit') => {
+      cachedAnchorRectRef.current = anchorRect
+      const measuredWidth = linkPopoverRef.current?.offsetWidth
+      const measuredHeight = linkPopoverRef.current?.offsetHeight
+      const defaults = getDefaultPanelSize(panelMode)
+      const width = measuredWidth ?? defaults.width
+      const height = measuredHeight ?? defaults.height
+
+      const phase = linkPhaseRef.current
+      if (phase === 'view' || phase === 'edit') {
+        setLinkPopoverPosition(
+          computePanelPositionAboveLink(anchorRect, width, height)
+        )
+      } else {
+        setLinkPopoverPosition(
+          computePanelPositionBelowLink(anchorRect, width, height)
+        )
+      }
+    },
+    [linkPopoverRef, setLinkPopoverPosition, linkPhaseRef]
+  )
+
+  const refreshPositions = useCallback(() => {
+    const rect = resolveAnchorRect()
+    if (!rect) return false
+
+    if (toolbarOpen) {
+      applyToolbarPosition(rect)
+    }
+    if (linkPopoverOpen && linkSession) {
+      const panelMode = linkPhase === 'view' ? 'link-preview' : 'link-edit'
+      applyLinkPopoverPosition(rect, panelMode)
+    }
+    return true
+  }, [
+    resolveAnchorRect,
+    toolbarOpen,
+    linkPopoverOpen,
+    linkSession,
+    linkPhase,
+    applyToolbarPosition,
+    applyLinkPopoverPosition,
+  ])
+
   const updateFormatPanel = useCallback(() => {
-    if (modeRef.current === 'link') return
+    if (linkPhaseRef.current !== 'none') return
 
     editor.getEditorState().read(() => {
       const selection = $getSelection()
@@ -93,6 +151,7 @@ export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarP
         $isSelectionInLink(selection)
       ) {
         setFormatVisible(false)
+        setSurface('none')
         return
       }
     })
@@ -101,12 +160,14 @@ export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarP
     const rect = getSelectionAnchorRect(rootElement)
     if (!rect) {
       setFormatVisible(false)
+      setSurface('none')
       return
     }
 
     const domSelection = window.getSelection()
     if (!domSelection?.rangeCount || domSelection.getRangeAt(0).collapsed) {
       setFormatVisible(false)
+      setSurface('none')
       return
     }
 
@@ -118,10 +179,10 @@ export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarP
       }
     })
 
-    applyPanelPosition(rect, 'format')
+    applyToolbarPosition(rect)
+    setSurface('format')
     setFormatVisible(true)
-    setMode('format')
-  }, [editor, modeRef, applyPanelPosition, setMode])
+  }, [editor, linkPhaseRef, applyToolbarPosition, setFormatVisible, setSurface])
 
   const buildLinkSession = useCallback(() => {
     let savedSelection: SavedLinkSelection | null = cachedSelectionRef.current
@@ -159,22 +220,51 @@ export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarP
     }
   }, [editor])
 
-  const handleOpenLink = useCallback(() => {
+  const handleEditLink = useCallback(
+    (session: NonNullable<typeof linkSession>) => {
+      openingLinkRef.current = true
+      openLinkEdit(session)
+      const rect = resolveAnchorRect() ?? getLinkAnchorRect(editor, session.editingLinkKey!)
+      if (rect) {
+        applyLinkPopoverPosition(rect, 'link-edit')
+      }
+      requestAnimationFrame(() => {
+        openingLinkRef.current = false
+      })
+    },
+    [resolveAnchorRect, editor, applyLinkPopoverPosition, openLinkEdit]
+  )
+
+  const handleOpenLinkCreate = useCallback(() => {
     openingLinkRef.current = true
     const session = buildLinkSession()
-    if (!refreshPanelPosition('link')) {
-      const rootElement = editor.getRootElement()
-      const fallbackRect =
-        cachedAnchorRectRef.current ??
-        rootElement?.getBoundingClientRect() ??
-        new DOMRect(window.innerWidth / 2, window.innerHeight / 3, 0, 0)
-      applyPanelPosition(fallbackRect, 'link')
+
+    const rect = resolveAnchorRect()
+    if (rect) {
+      applyToolbarPosition(rect)
+      applyLinkPopoverPosition(rect, 'link-edit')
     }
-    openLinkSession(session)
+
+    if (session.editingLinkKey) {
+      openLinkEdit({
+        ...session,
+        savedSelection: null,
+      })
+    } else {
+      openLinkCreate(session)
+    }
+
     requestAnimationFrame(() => {
       openingLinkRef.current = false
     })
-  }, [buildLinkSession, openLinkSession, refreshPanelPosition, applyPanelPosition, editor])
+  }, [
+    buildLinkSession,
+    resolveAnchorRect,
+    applyToolbarPosition,
+    applyLinkPopoverPosition,
+    openLinkCreate,
+    openLinkEdit,
+  ])
 
   useEffect(() => {
     return editor.registerCommand(
@@ -182,18 +272,18 @@ export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarP
       (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
           event.preventDefault()
-          handleOpenLink()
+          handleOpenLinkCreate()
           return true
         }
         return false
       },
       COMMAND_PRIORITY_HIGH
     )
-  }, [editor, handleOpenLink])
+  }, [editor, handleOpenLinkCreate])
 
   useEffect(() => {
     const handleSelectionChange = () => {
-      if (modeRef.current === 'link') return
+      if (linkPhaseRef.current !== 'none') return
 
       editor.getEditorState().read(() => {
         const selection = $getSelection()
@@ -202,76 +292,55 @@ export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarP
           return
         }
         setTimeout(() => {
-          if (modeRef.current === 'link') return
+          if (linkPhaseRef.current !== 'none') return
           setFormatVisible(false)
-          if (modeRef.current === 'format') setMode('none')
+          setSurface('none')
         }, 100)
       })
     }
 
     const handleMouseUp = () => {
-      if (modeRef.current === 'link') return
+      if (linkPhaseRef.current !== 'none') return
       setTimeout(updateFormatPanel, 10)
-    }
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (modeRef.current === 'link') return
-      const editorElement = editor.getRootElement()
-      if (editorElement?.contains(e.target as Node)) return
-      if (e.target instanceof Element && e.target.closest('[data-editor-floating-ui]')) return
-      setTimeout(() => {
-        if (modeRef.current === 'link') return
-        setFormatVisible(false)
-        if (modeRef.current === 'format') setMode('none')
-      }, 100)
     }
 
     document.addEventListener('selectionchange', handleSelectionChange)
     document.addEventListener('mouseup', handleMouseUp)
-    document.addEventListener('mousedown', handleMouseDown)
 
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange)
       document.removeEventListener('mouseup', handleMouseUp)
-      document.removeEventListener('mousedown', handleMouseDown)
     }
-  }, [editor, updateFormatPanel, setMode, modeRef])
-
-  useEffect(() => {
-    if (mode === 'link') {
-      setFormatVisible(false)
-    }
-  }, [mode])
+  }, [editor, updateFormatPanel, linkPhaseRef, setFormatVisible, setSurface])
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       if (openingLinkRef.current) return
-      if (modeRef.current !== 'link') return
+      if (surfaceRef.current === 'none' && linkPhaseRef.current === 'none') return
+
       const target = e.target
       if (!(target instanceof Node)) return
-      if (panelRef.current?.contains(target)) return
+      if (toolbarRef.current?.contains(target)) return
+      if (linkPopoverRef.current?.contains(target)) return
       if (target instanceof Element && target.closest('[data-editor-floating-ui]')) return
-      closeLinkSession()
+
+      closeAll()
     }
 
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [closeLinkSession, modeRef, panelRef])
-
-  const panelOpen = (formatVisible && mode === 'format') || (mode === 'link' && linkSession !== null)
+  }, [closeAll, surfaceRef, linkPhaseRef, toolbarRef, linkPopoverRef])
 
   useLayoutEffect(() => {
-    if (!panelOpen) return
-    const panelMode = mode === 'link' ? 'link' : 'format'
-    refreshPanelPosition(panelMode)
-  }, [panelOpen, mode, refreshPanelPosition, linkSession, formatVisible])
+    if (!toolbarOpen && !linkPopoverOpen) return
+    refreshPositions()
+  }, [toolbarOpen, linkPopoverOpen, linkPhase, linkSession, refreshPositions])
 
   useEffect(() => {
-    if (!panelOpen) return
+    if (!toolbarOpen && !linkPopoverOpen) return
 
     const handleReposition = () => {
-      const panelMode = modeRef.current === 'link' ? 'link' : 'format'
-      refreshPanelPosition(panelMode)
+      refreshPositions()
     }
 
     window.addEventListener('scroll', handleReposition, true)
@@ -280,32 +349,58 @@ export default function FloatingToolbarPlugin({ onOpenChange }: FloatingToolbarP
       window.removeEventListener('scroll', handleReposition, true)
       window.removeEventListener('resize', handleReposition)
     }
-  }, [panelOpen, modeRef, refreshPanelPosition])
+  }, [toolbarOpen, linkPopoverOpen, refreshPositions])
 
-  if (!panelOpen) return null
-
-  const panelStyle = position ?? {
+  const defaultToolbarStyle = {
     top: '33%',
     left: '50%',
     transform: 'translate(-50%, -100%)',
   }
 
+  const defaultPopoverStyle = {
+    top: '40%',
+    left: '50%',
+    transform: 'translate(-50%, 0)',
+  }
+
   return (
-    <div
-      ref={panelRef}
-      data-editor-floating-ui="true"
-      data-editor-link-card={mode === 'link' ? 'true' : undefined}
-      className="fixed z-50"
-      style={{ ...panelStyle, position: 'fixed' }}
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      {mode === 'link' && linkSession ? (
-        <FloatingLinkEditor session={linkSession} />
-      ) : (
-        <div className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-          <FloatingToolbar onOpenLink={handleOpenLink} />
+    <>
+      {toolbarOpen && (
+        <div
+          ref={toolbarRef}
+          data-editor-floating-ui="true"
+          className="fixed z-50"
+          style={{ ...(toolbarPosition ?? defaultToolbarStyle), position: 'fixed' }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className={cn(editorFloatingShellClassName, 'px-3 py-2.5')}>
+            <FloatingToolbar
+              onOpenLink={handleOpenLinkCreate}
+              forceLinkActive={surface === 'link'}
+            />
+          </div>
         </div>
       )}
-    </div>
+
+      {linkPopoverOpen && linkSession && (
+        <div
+          ref={linkPopoverRef}
+          data-editor-floating-ui="true"
+          data-editor-link-card="true"
+          className="fixed z-50"
+          style={{ ...(linkPopoverPosition ?? defaultPopoverStyle), position: 'fixed' }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {linkPhase === 'view' ? (
+            <FloatingLinkPreview session={linkSession} onEdit={handleEditLink} />
+          ) : (
+            <FloatingLinkEditor
+              session={linkSession}
+              phase={linkPhase === 'create' ? 'create' : 'edit'}
+            />
+          )}
+        </div>
+      )}
+    </>
   )
 }

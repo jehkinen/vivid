@@ -2,26 +2,32 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createEditor,
   $getRoot,
+  $getSelection,
   $createParagraphNode,
   $createTextNode,
-  $getSelection,
   $isRangeSelection,
   $setSelection,
   $createRangeSelection,
   $isElementNode,
+  $isTextNode,
   type LexicalEditor,
   type LexicalNode,
 } from 'lexical'
-import { $isLinkNode, $createAutoLinkNode, $isAutoLinkNode, LinkNode } from '@lexical/link'
+import { $isLinkNode, $createAutoLinkNode, $isAutoLinkNode, $createLinkNode } from '@lexical/link'
 import { EDITOR_NODES } from '@/components/editor/editor-nodes'
 import {
   $commitLinkEdit,
   $removeLinksInSelection,
   $restoreLinkSelection,
   $saveLinkSelection,
+  $buildLinkSessionFromKey,
+  $updateLinkDisplayTextByKey,
+  $isSelectionInLink,
+  $isSelectionInManualLink,
+  $getLinkDisplayText,
   $savedSelectionFromRange,
   type SavedLinkSelection,
-} from './link-utils'
+} from '@/lib/editor/link-utils'
 
 const URL = 'https://example.com/page'
 
@@ -146,7 +152,7 @@ describe('$commitLinkEdit', () => {
     expect(linkKey).not.toBeNull()
 
     $commitLinkEdit(editor, {
-      url: 'https://updated.example',
+      url: URL,
       displayText: 'Updated',
       savedSelection: saved,
       editingLinkKey: linkKey,
@@ -156,7 +162,7 @@ describe('$commitLinkEdit', () => {
       const paragraph = $getRoot().getFirstChild()
       if (!paragraph || !$isElementNode(paragraph)) return
       const link = paragraph.getChildren().find($isLinkNode)
-      expect(link?.getURL()).toBe('https://updated.example')
+      expect(link?.getURL()).toBe(URL)
       expect(link?.getTextContent()).toBe('Updated')
     })
   })
@@ -190,7 +196,7 @@ describe('$commitLinkEdit', () => {
       const link = paragraph.getChildren().find($isLinkNode)
       const child = link?.getFirstChild()
       expect(link?.getTextContent()).toBe('Custom label')
-      expect(child?.getStyle()).toContain('color')
+      expect($isTextNode(child) && child.getStyle()).toContain('color')
     })
   })
 
@@ -222,7 +228,7 @@ describe('$commitLinkEdit', () => {
       if (!paragraph || !$isElementNode(paragraph)) return
       const link = paragraph.getChildren().find($isLinkNode)
       const child = link?.getFirstChild()
-      expect(child?.getStyle()).toContain('color')
+      expect($isTextNode(child) && child.getStyle()).toContain('color')
     })
   })
 })
@@ -301,6 +307,241 @@ describe('$restoreLinkSelection', () => {
       const restored = $restoreLinkSelection(saved!)
       expect(restored).not.toBeNull()
       expect(restored?.getTextContent()).toBe(URL)
+    })
+  })
+})
+
+describe('$buildLinkSessionFromKey', () => {
+  it('returns session data for an existing link', () => {
+    const editor = createTestEditor()
+    let linkKey = ''
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const link = $createLinkNode(URL)
+      link.append($createTextNode('My link'))
+      paragraph.append(link)
+      $getRoot().append(paragraph)
+      linkKey = link.getKey()
+    })
+
+    editor.getEditorState().read(() => {
+      const session = $buildLinkSessionFromKey(linkKey)
+      expect(session).toEqual({
+        editingLinkKey: linkKey,
+        linkText: 'My link',
+        linkUrl: URL,
+        savedSelection: null,
+      })
+    })
+  })
+
+  it('returns null for unlinked autolink', () => {
+    const editor = createTestEditor()
+    let linkKey = ''
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const autoLink = $createAutoLinkNode(URL)
+      autoLink.setIsUnlinked(true)
+      autoLink.append($createTextNode(URL))
+      paragraph.append(autoLink)
+      $getRoot().append(paragraph)
+      linkKey = autoLink.getKey()
+    })
+
+    editor.getEditorState().read(() => {
+      expect($buildLinkSessionFromKey(linkKey)).toBeNull()
+    })
+  })
+})
+
+describe('$updateLinkDisplayTextByKey', () => {
+  it('changes display text without changing URL', () => {
+    const editor = createTestEditor()
+    let linkKey = ''
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const link = $createLinkNode(URL)
+      link.append($createTextNode(URL))
+      paragraph.append(link)
+      $getRoot().append(paragraph)
+      linkKey = link.getKey()
+    })
+
+    updateEditor(editor, () => {
+      $updateLinkDisplayTextByKey(linkKey, 'Short label')
+    })
+
+    editor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChild()
+      if (!paragraph || !$isElementNode(paragraph)) return
+      const link = paragraph.getChildren().find($isLinkNode)
+      expect(link?.getURL()).toBe(URL)
+      expect(link?.getTextContent()).toBe('Short label')
+    })
+  })
+})
+
+describe('$isSelectionInLink', () => {
+  it('returns true when caret is inside a link', () => {
+    const editor = createTestEditor()
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const link = $createLinkNode(URL)
+      link.append($createTextNode('click here'))
+      paragraph.append(link)
+      $getRoot().append(paragraph)
+      link.select(3, 3)
+    })
+
+    editor.getEditorState().read(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) throw new Error('expected range selection')
+      expect($isSelectionInLink(selection)).toBe(true)
+    })
+  })
+
+  it('returns false outside a link', () => {
+    const editor = createTestEditor()
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      paragraph.append($createTextNode('plain'))
+      $getRoot().append(paragraph)
+      paragraph.select(0, 0)
+    })
+
+    editor.getEditorState().read(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) throw new Error('expected range selection')
+      expect($isSelectionInLink(selection)).toBe(false)
+    })
+  })
+})
+
+describe('$saveLinkSelection', () => {
+  it('returns null for collapsed selection', () => {
+    const editor = createTestEditor()
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const text = $createTextNode('abc')
+      paragraph.append(text)
+      $getRoot().append(paragraph)
+      text.select(1, 1)
+      expect($saveLinkSelection()).toBeNull()
+    })
+  })
+})
+
+describe('$isSelectionInManualLink', () => {
+  it('returns false for autolink', () => {
+    const editor = createTestEditor()
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const autoLink = $createAutoLinkNode(URL)
+      autoLink.append($createTextNode(URL))
+      paragraph.append(autoLink)
+      $getRoot().append(paragraph)
+      autoLink.select(2, 2)
+    })
+
+    editor.getEditorState().read(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) throw new Error('expected range selection')
+      expect($isSelectionInManualLink(selection)).toBe(false)
+    })
+  })
+
+  it('returns true for manual link', () => {
+    const editor = createTestEditor()
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const link = $createLinkNode(URL)
+      link.append($createTextNode('label'))
+      paragraph.append(link)
+      $getRoot().append(paragraph)
+      link.select(1, 1)
+    })
+
+    editor.getEditorState().read(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) throw new Error('expected range selection')
+      expect($isSelectionInManualLink(selection)).toBe(true)
+    })
+  })
+})
+
+describe('$savedSelectionFromRange and $getLinkDisplayText', () => {
+  it('round-trips selection metadata', () => {
+    const editor = createTestEditor()
+    let saved: SavedLinkSelection | null = null
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const text = $createTextNode('abcdef')
+      paragraph.append(text)
+      $getRoot().append(paragraph)
+      selectText(text, 1, 4)
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) throw new Error('expected range selection')
+      saved = $savedSelectionFromRange(selection)
+    })
+
+    expect(saved).toMatchObject({
+      anchorOffset: 1,
+      focusOffset: 4,
+    })
+  })
+
+  it('reads link display text', () => {
+    const editor = createTestEditor()
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const link = $createLinkNode(URL)
+      link.append($createTextNode('Visible'))
+      paragraph.append(link)
+      $getRoot().append(paragraph)
+    })
+
+    editor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChild()
+      if (!paragraph || !$isElementNode(paragraph)) return
+      const link = paragraph.getChildren().find($isLinkNode)
+      if (!link) throw new Error('missing link')
+      expect($getLinkDisplayText(link)).toBe('Visible')
+    })
+  })
+})
+
+describe('$removeLinksInSelection range', () => {
+  it('unlinks autolinks in non-collapsed selection', () => {
+    const editor = createTestEditor()
+
+    updateEditor(editor, () => {
+      const paragraph = $createParagraphNode()
+      const autoLink = $createAutoLinkNode(URL)
+      autoLink.append($createTextNode(URL))
+      paragraph.append(autoLink)
+      $getRoot().append(paragraph)
+      autoLink.select(0, URL.length)
+    })
+
+    updateEditor(editor, () => {
+      $removeLinksInSelection()
+    })
+
+    editor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChild()
+      if (!paragraph || !$isElementNode(paragraph)) return
+      const autoLink = paragraph.getChildren().find($isAutoLinkNode)
+      expect(autoLink?.getIsUnlinked()).toBe(true)
     })
   })
 })

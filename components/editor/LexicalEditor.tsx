@@ -20,6 +20,7 @@ import { $generateHtmlFromNodes } from '@lexical/html'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
 import { AUTO_LINK_MATCHERS } from '@/lib/editor/link-matchers'
+import { sanitizeLexicalRoot } from '@/lib/editor/sanitize-lexical-state'
 
 function OnMountPlugin({ onMount }: { onMount?: (editor: LexicalEditorInstance) => void }) {
   const [editor] = useLexicalComposerContext()
@@ -126,7 +127,7 @@ const theme = {
     ul: 'list-disc',
   },
   quote: 'border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4 text-gray-700 dark:text-gray-300',
-  link: 'underline decoration-from-font cursor-text',
+  link: 'text-foreground underline underline-offset-2 decoration-foreground/35 hover:decoration-foreground/60 cursor-text',
   code: 'bg-gray-100 dark:bg-gray-800 p-4 rounded font-mono text-sm overflow-x-auto block my-4',
 }
 
@@ -157,53 +158,6 @@ interface LexicalEditorProps {
   onEditorLoaded?: () => void
   renderFloatingPanel?: (props: { editor: LexicalEditorInstance }) => React.ReactNode
   onToolbarOpenChange?: (open: boolean) => void
-}
-
-const ROOT_ELEMENT_TYPES = new Set([
-  'paragraph',
-  'heading',
-  'quote',
-  'list',
-  'code',
-  'image',
-  'gallery',
-  'audio',
-])
-
-const NODE_TYPE_ALIASES: Record<string, string> = {
-  'extended-text': 'text',
-  'extended-heading': 'heading',
-}
-
-function sanitizeNode(node: { type?: string; children?: unknown[] }): typeof node {
-  if (!node || typeof node !== 'object') return node
-  const type = node.type
-  const normalizedType = type ? (NODE_TYPE_ALIASES[type] ?? type) : type
-  const children = Array.isArray(node.children)
-    ? node.children.map((c) => sanitizeNode(c as { type?: string; children?: unknown[] }))
-    : node.children
-  return { ...node, type: normalizedType, children }
-}
-
-function sanitizeLexicalRoot(parsed: { root?: { children?: unknown[] } }): typeof parsed {
-  const root = parsed?.root
-  if (!root?.children || !Array.isArray(root.children)) return parsed
-  root.children = root.children.map((child: unknown) => {
-    const sanitized = sanitizeNode(child as { type?: string; children?: unknown[] })
-    const type = sanitized?.type
-    if (type === 'text' || (type && !ROOT_ELEMENT_TYPES.has(type))) {
-      return {
-        type: 'paragraph',
-        children: type === 'text' ? [sanitized] : [],
-        direction: null,
-        format: '',
-        indent: 0,
-        version: 1,
-      }
-    }
-    return sanitized
-  })
-  return parsed
 }
 
 function LoadInitialStatePlugin({ content, onLoaded }: { content: string; onLoaded?: () => void }) {
@@ -319,7 +273,7 @@ function EditorContentArea({
           <EditorLinkSelectionPlugin />
           <RichTextPlugin
           contentEditable={
-            <ContentEditable className="relative z-[1] min-h-[500px] text-lg leading-relaxed text-foreground outline-none pl-0 pr-6 pt-6 pb-6 focus:outline-none text-left [&_a]:select-text [&_a]:cursor-text [&_a:not(:has([style*='color']))]:text-blue-600 [&_a:not(:has([style*='color']))]:dark:text-blue-400" />
+            <ContentEditable className="relative z-[1] min-h-[500px] text-lg leading-relaxed text-foreground outline-none pl-0 pr-6 pt-6 pb-6 focus:outline-none text-left [&_a]:select-text [&_a]:cursor-text [&_a:not(:has([style*='color']))]:text-foreground" />
           }
           placeholder={null}
           ErrorBoundary={({ children }) => (

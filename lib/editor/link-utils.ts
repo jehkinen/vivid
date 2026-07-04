@@ -100,6 +100,23 @@ export function $getLinkDisplayText(linkNode: LinkNode): string {
   return linkNode.getTextContent()
 }
 
+export function $buildLinkSessionFromKey(linkKey: NodeKey): {
+  editingLinkKey: string
+  linkText: string
+  linkUrl: string
+  savedSelection: null
+} | null {
+  const node = $getNodeByKey(linkKey)
+  if (!node || !$isLinkNode(node)) return null
+  if ($isAutoLinkNode(node) && node.getIsUnlinked()) return null
+  return {
+    editingLinkKey: linkKey,
+    linkText: $getLinkDisplayText(node),
+    linkUrl: node.getURL(),
+    savedSelection: null,
+  }
+}
+
 export function $setLinkDisplayText(linkNode: LinkNode, text: string) {
   const writable = linkNode.getWritable()
   const firstChild = writable.getFirstChild()
@@ -189,30 +206,32 @@ export type CommitLinkEditInput = {
   editingLinkKey: string | null
 }
 
-export function $commitLinkEdit(editor: LexicalEditor, input: CommitLinkEditInput) {
-  const trimmedUrl = input.url.trim()
-  if (!trimmedUrl) return
+export function $updateLinkDisplayTextByKey(linkKey: NodeKey, displayText: string) {
+  const node = $getNodeByKey(linkKey)
+  if (!node || !$isLinkNode(node)) return null
 
-  const displayText = input.displayText.trim() || trimmedUrl
-  const formattedUrl = formatUrl(trimmedUrl)
+  const text = displayText || node.getTextContent()
+  let linkNode = $isAutoLinkNode(node) ? $convertAutoLinkToLink(node) : node
+  $setLinkDisplayText(linkNode, text)
+  return linkNode
+}
+
+export function $commitLinkEdit(editor: LexicalEditor, input: CommitLinkEditInput) {
+  const displayText = input.displayText.trim()
+  if (!displayText && !input.editingLinkKey) return
 
   editor.update(
     () => {
       if (input.editingLinkKey) {
-        const node = $getNodeByKey(input.editingLinkKey)
-        if (node && $isLinkNode(node)) {
-          let linkNode = $isAutoLinkNode(node) ? $convertAutoLinkToLink(node) : node
-          linkNode.setURL(formattedUrl)
-          const child = linkNode.getFirstChild()
-          if ($isTextNode(child)) {
-            child.getWritable().setTextContent(displayText)
-            child.select(displayText.length, displayText.length)
-          } else {
-            $setLinkDisplayText(linkNode, displayText)
-          }
-          return
-        }
+        $updateLinkDisplayTextByKey(input.editingLinkKey, displayText || $getNodeByKey(input.editingLinkKey)?.getTextContent() || '')
+        return
       }
+
+      const trimmedUrl = input.url.trim()
+      if (!trimmedUrl) return
+
+      const formattedUrl = formatUrl(trimmedUrl)
+      const finalDisplayText = displayText || trimmedUrl
 
       if (input.savedSelection) {
         $restoreLinkSelection(input.savedSelection)
@@ -221,11 +240,11 @@ export function $commitLinkEdit(editor: LexicalEditor, input: CommitLinkEditInpu
       const selection = $getSelection()
       if ($isRangeSelection(selection)) {
         const autoLink = $getActiveLinkNode(selection)
-        if (autoLink && $isAutoLinkNode(autoLink) && !input.editingLinkKey) {
+        if (autoLink && $isAutoLinkNode(autoLink)) {
           const linkNode = $convertAutoLinkToLink(autoLink)
           linkNode.setURL(formattedUrl)
-          if (displayText !== linkNode.getTextContent()) {
-            $setLinkDisplayText(linkNode, displayText)
+          if (finalDisplayText !== linkNode.getTextContent()) {
+            $setLinkDisplayText(linkNode, finalDisplayText)
           } else {
             $selectLinkEnd(linkNode)
           }
@@ -254,8 +273,8 @@ export function $commitLinkEdit(editor: LexicalEditor, input: CommitLinkEditInpu
       if (!linkNode) return
 
       linkNode = $finalizeLinkNode(linkNode)
-      if (displayText !== linkNode.getTextContent()) {
-        $setLinkDisplayText(linkNode, displayText)
+      if (finalDisplayText !== linkNode.getTextContent()) {
+        $setLinkDisplayText(linkNode, finalDisplayText)
       } else {
         $selectLinkEnd(linkNode)
       }

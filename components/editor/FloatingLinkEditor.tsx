@@ -1,177 +1,125 @@
 'use client'
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getNodeByKey } from 'lexical'
-import { $isLinkNode } from '@lexical/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeftIcon, CheckIcon, TrashIcon } from '@phosphor-icons/react'
+import { GlobeIcon } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import {
-  $commitLinkEdit,
-  $removeLinksInSelection,
-  $restoreLinkSelection,
-} from '@/lib/editor/link-utils'
+import { $commitLinkEdit } from '@/lib/editor/link-utils'
+import { editorFloatingShellClassName } from './editor-floating-shell'
 import { useEditorFloatingUI, type LinkSession } from './EditorFloatingUIContext'
 
 type FloatingLinkEditorProps = {
   session: LinkSession
+  phase: 'edit' | 'create'
 }
 
-export default function FloatingLinkEditor({ session }: FloatingLinkEditorProps) {
+export default function FloatingLinkEditor({ session, phase }: FloatingLinkEditorProps) {
   const [editor] = useLexicalComposerContext()
-  const { closeLinkSession } = useEditorFloatingUI()
+  const { closeAll } = useEditorFloatingUI()
   const [linkText, setLinkText] = useState(session.linkText)
-  const [linkUrl, setLinkUrl] = useState(session.linkUrl)
-  const [canRemove, setCanRemove] = useState(!!session.editingLinkKey)
-  const urlInputRef = useRef<HTMLInputElement>(null)
+  const textInputRef = useRef<HTMLInputElement>(null)
   const sessionRef = useRef(session)
 
   sessionRef.current = session
 
   useEffect(() => {
     setLinkText(session.linkText)
-    setLinkUrl(session.linkUrl)
-    setCanRemove(!!session.editingLinkKey)
     requestAnimationFrame(() => {
-      urlInputRef.current?.focus()
-      urlInputRef.current?.select()
+      textInputRef.current?.focus()
+      textInputRef.current?.select()
     })
   }, [session])
 
-  const apply = useCallback(
-    (closeAfter: boolean) => {
-      const current = sessionRef.current
-      const trimmedUrl = linkUrl.trim()
-      if (!trimmedUrl) return
+  const apply = useCallback(() => {
+    const current = sessionRef.current
+    const trimmedText = linkText.trim()
+    if (!trimmedText && phase === 'create') return
 
-      $commitLinkEdit(editor, {
-        url: trimmedUrl,
-        displayText: linkText.trim() || trimmedUrl,
-        savedSelection: current.savedSelection,
-        editingLinkKey: current.editingLinkKey,
-      })
+    $commitLinkEdit(editor, {
+      url: current.linkUrl,
+      displayText: trimmedText || current.linkUrl,
+      savedSelection: current.savedSelection,
+      editingLinkKey: phase === 'edit' ? current.editingLinkKey : null,
+    })
 
-      setCanRemove(true)
-
-      if (closeAfter) {
-        closeLinkSession()
-      }
-    },
-    [editor, linkText, linkUrl, closeLinkSession]
-  )
-
-  const remove = () => {
-    editor.update(
-      () => {
-        const key = sessionRef.current.editingLinkKey
-        if (key) {
-          const node = $getNodeByKey(key)
-          if (node && $isLinkNode(node)) {
-            node.selectStart()
-          }
-        } else if (sessionRef.current.savedSelection) {
-          $restoreLinkSelection(sessionRef.current.savedSelection)
-        }
-        $removeLinksInSelection()
-      },
-      { discrete: true }
-    )
-    closeLinkSession()
-  }
+    closeAll()
+  }, [editor, linkText, phase, closeAll])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      apply(true)
+      apply()
     }
     if (e.key === 'Escape') {
       e.preventDefault()
-      closeLinkSession()
+      closeAll()
     }
   }
+
+  const canSave = phase === 'edit' || linkText.trim().length > 0
 
   return (
     <div
       className={cn(
-        'w-80 rounded-md border bg-popover p-3 text-popover-foreground shadow-md',
-        'flex flex-col gap-2.5'
+        editorFloatingShellClassName,
+        'flex w-[min(420px,calc(100vw-24px))] flex-col gap-3 p-4'
       )}
       onMouseDown={(e) => {
         const target = e.target as HTMLElement
-        if (target.closest('input, textarea, button, select')) return
+        if (target.closest('input, textarea, button, select, a')) return
         e.preventDefault()
       }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={closeLinkSession}
-            title="Back"
-            className="shrink-0 text-muted-foreground"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium">Link</span>
-        </div>
-        {canRemove && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={remove}
-            title="Remove link"
-            className="shrink-0 text-muted-foreground hover:text-destructive"
-          >
-            <TrashIcon className="h-4 w-4" weight="regular" />
-          </Button>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="editor-link-text" className="text-xs text-muted-foreground">
-          Display text
+      <div className="space-y-2">
+        <label htmlFor="link-display-text" className="text-sm font-medium leading-none">
+          {phase === 'create' ? 'Link text' : 'Display text'}
         </label>
         <Input
-          id="editor-link-text"
+          id="link-display-text"
+          ref={textInputRef}
           value={linkText}
           onChange={(e) => setLinkText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Link text"
-          className="h-8 text-sm"
+          placeholder={phase === 'create' ? 'Text to show' : 'Link text'}
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="editor-link-url" className="text-xs text-muted-foreground">
-          URL
-        </label>
-        <Input
-          id="editor-link-url"
-          ref={urlInputRef}
-          value={linkUrl}
-          onChange={(e) => setLinkUrl(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="https://example.com"
-          className="h-8 text-sm"
-        />
-      </div>
+      <p className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+        <GlobeIcon className="size-3.5 shrink-0" weight="regular" />
+        <span className="truncate" title={session.linkUrl}>
+          {session.linkUrl}
+        </span>
+      </p>
 
-      <div className="flex justify-end pt-0.5">
+      <div className="flex justify-end gap-2">
         <Button
           type="button"
+          variant="outline"
           size="sm"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => apply(true)}
-          disabled={!linkUrl.trim()}
-          className="gap-1.5"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            closeAll()
+          }}
         >
-          <CheckIcon className="h-4 w-4" weight="bold" />
-          Apply
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          disabled={!canSave}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            apply()
+          }}
+        >
+          Save
         </Button>
       </div>
     </div>

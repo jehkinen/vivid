@@ -3,7 +3,7 @@ import {
   postCreateSchema,
   postUpdateSchema,
   validateRequest,
-} from './schemas'
+} from '@/lib/validators/schemas'
 import { POST_STATUS } from '@/shared/constants'
 
 describe('postCreateSchema', () => {

@@ -30,16 +30,21 @@ import {
   LinkIcon,
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { Toggle } from '@/components/ui/toggle'
+import { cn } from '@/lib/utils'
 import { HIGHLIGHT_COLORS, getContrastTextColor } from '@/lib/editor/constants'
 import { $isSelectionInLink, $removeLinksInSelection } from '@/lib/editor/link-utils'
+import EditorToolbarTooltip from './EditorToolbarTooltip'
 
 type HeadingTag = 'h1' | 'h2' | 'h3'
 
 type FloatingToolbarProps = {
   onOpenLink: () => void
+  forceLinkActive?: boolean
 }
 
-export default function FloatingToolbar({ onOpenLink }: FloatingToolbarProps) {
+export default function FloatingToolbar({ onOpenLink, forceLinkActive = false }: FloatingToolbarProps) {
   const [editor] = useLexicalComposerContext()
   const [isBold, setIsBold] = useState(false)
   const [isItalic, setIsItalic] = useState(false)
@@ -71,6 +76,8 @@ export default function FloatingToolbar({ onOpenLink }: FloatingToolbarProps) {
   useEffect(() => {
     updateFormat()
   }, [updateFormat])
+
+  const linkActive = forceLinkActive || isLink
 
   const handleFormat = (format: 'bold' | 'italic' | 'code') => {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, format)
@@ -189,96 +196,103 @@ export default function FloatingToolbar({ onOpenLink }: FloatingToolbarProps) {
     setTimeout(updateFormat, 10)
   }
 
+  const toggleProps = { variant: 'outline' as const, size: 'sm' as const }
+
   return (
-    <>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleFormat('bold')}
-          className={isBold ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Bold (Cmd+B)"
-        >
-          <TextBIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleFormat('italic')}
-          className={isItalic ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Italic (Cmd+I)"
-        >
-          <TextItalicIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleFormat('code')}
-          className={isCode ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Code"
-        >
-          <CodeIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onMouseDown={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            handleLink()
-          }}
-          className={isLink ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Link (Cmd+K)"
-        >
-          <LinkIcon className="h-4 w-4" />
-        </Button>
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleInsertBlock('heading', { tag: 'h1' })}
-          className={headingTag === 'h1' ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title={headingTag === 'h1' ? 'Heading 1 (click again to remove)' : 'Heading 1'}
-        >
-          <TextHOneIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleInsertBlock('heading', { tag: 'h2' })}
-          className={headingTag === 'h2' ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title={headingTag === 'h2' ? 'Heading 2 (click again to remove)' : 'Heading 2'}
-        >
-          <TextHTwoIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleInsertBlock('heading', { tag: 'h3' })}
-          className={headingTag === 'h3' ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title={headingTag === 'h3' ? 'Heading 3 (click again to remove)' : 'Heading 3'}
-        >
-          <TextHThreeIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleWrapQuote}
-          className={isQuote ? 'bg-gray-100 dark:bg-gray-700' : ''}
-          title="Quote"
-        >
-          <QuotesIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClearFormat}
-          title="Clear formatting"
-        >
-          <EraserIcon className="h-4 w-4" />
-        </Button>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <EditorToolbarTooltip label="Bold" shortcuts={['⌘', 'B']}>
+          <Toggle
+            {...toggleProps}
+            pressed={isBold}
+            onPressedChange={() => handleFormat('bold')}
+            aria-label="Bold"
+          >
+            <TextBIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <EditorToolbarTooltip label="Italic" shortcuts={['⌘', 'I']}>
+          <Toggle
+            {...toggleProps}
+            pressed={isItalic}
+            onPressedChange={() => handleFormat('italic')}
+            aria-label="Italic"
+          >
+            <TextItalicIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <EditorToolbarTooltip label="Code">
+          <Toggle
+            {...toggleProps}
+            pressed={isCode}
+            onPressedChange={() => handleFormat('code')}
+            aria-label="Code"
+          >
+            <CodeIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <EditorToolbarTooltip label="Link" shortcuts={['⌘', 'K']}>
+          <Toggle
+            {...toggleProps}
+            pressed={linkActive}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+            onPressedChange={() => handleLink()}
+            aria-label="Link"
+          >
+            <LinkIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <Separator orientation="vertical" className="mx-1 h-6" />
+        <EditorToolbarTooltip label="Heading 1">
+          <Toggle
+            {...toggleProps}
+            pressed={headingTag === 'h1'}
+            onPressedChange={() => handleInsertBlock('heading', { tag: 'h1' })}
+            aria-label="Heading 1"
+          >
+            <TextHOneIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <EditorToolbarTooltip label="Heading 2">
+          <Toggle
+            {...toggleProps}
+            pressed={headingTag === 'h2'}
+            onPressedChange={() => handleInsertBlock('heading', { tag: 'h2' })}
+            aria-label="Heading 2"
+          >
+            <TextHTwoIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <EditorToolbarTooltip label="Heading 3">
+          <Toggle
+            {...toggleProps}
+            pressed={headingTag === 'h3'}
+            onPressedChange={() => handleInsertBlock('heading', { tag: 'h3' })}
+            aria-label="Heading 3"
+          >
+            <TextHThreeIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <EditorToolbarTooltip label="Quote" shortcuts={['⌘', '⇧', '9']}>
+          <Toggle
+            {...toggleProps}
+            pressed={isQuote}
+            onPressedChange={handleWrapQuote}
+            aria-label="Quote"
+          >
+            <QuotesIcon className="h-4 w-4" />
+          </Toggle>
+        </EditorToolbarTooltip>
+        <EditorToolbarTooltip label="Clear formatting">
+          <Button {...toggleProps} variant="outline" onClick={handleClearFormat} aria-label="Clear formatting">
+            <EraserIcon className="h-4 w-4" />
+          </Button>
+        </EditorToolbarTooltip>
       </div>
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex flex-wrap items-center gap-1.5">
         {HIGHLIGHT_COLORS.map((bg) => {
           const isActive =
             highlightBg?.toLowerCase().replace(/\s/g, '') === bg.toLowerCase().replace(/\s/g, '')
@@ -287,18 +301,18 @@ export default function FloatingToolbar({ onOpenLink }: FloatingToolbarProps) {
               key={bg}
               type="button"
               onClick={() => handleHighlight(bg)}
-              className={`w-5 h-5 rounded border-2 shrink-0 transition-colors ${
+              className={cn(
+                'size-6 shrink-0 rounded-sm border-2 transition-colors',
                 isActive
-                  ? 'border-gray-900 dark:border-gray-100 ring-1 ring-offset-1'
-                  : 'border-transparent hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
+                  ? 'border-foreground ring-2 ring-ring ring-offset-1 ring-offset-muted'
+                  : 'border-transparent hover:border-border'
+              )}
               style={{ backgroundColor: bg }}
-              title="Highlight"
               aria-label="Highlight color"
             />
           )
         })}
       </div>
-    </>
+    </div>
   )
 }
