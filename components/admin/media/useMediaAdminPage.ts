@@ -12,7 +12,6 @@ import {
   storedBytes,
 } from '@/components/admin/media/media-utils'
 import { applyMediaSelection, type MediaSelectionModifiers } from '@/components/admin/media/media-selection'
-import { createDeferredItemClickHandle } from '@/components/admin/media/deferred-item-click'
 
 export function useMediaAdminPage() {
   const [page, setPage] = useState(1)
@@ -25,7 +24,6 @@ export function useMediaAdminPage() {
     index: number
   } | null>(null)
   const selectionAnchorRef = useRef<string | null>(null)
-  const deferredClickRef = useRef(createDeferredItemClickHandle())
   const { data, isLoading, isFetching } = useMedia({ page, perPage: MEDIA_PER_PAGE, type })
   const bulkDelete = useBulkDeleteMedia()
 
@@ -38,10 +36,7 @@ export function useMediaAdminPage() {
   useEffect(() => {
     setSelectedIds(new Set())
     selectionAnchorRef.current = null
-    deferredClickRef.current.cancelAll()
   }, [page, type])
-
-  useEffect(() => () => deferredClickRef.current.cancelAll(), [])
 
   const handleTypeChange = useCallback((next: MediaFilterType) => {
     setType(next)
@@ -85,7 +80,6 @@ export function useMediaAdminPage() {
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set())
     selectionAnchorRef.current = null
-    deferredClickRef.current.cancelAll()
   }, [])
 
   const allPageSelected = useMemo(
@@ -156,21 +150,6 @@ export function useMediaAdminPage() {
     [items, buildLightboxSlides]
   )
 
-  const handleItemClick = useCallback(
-    (id: string, modifiers: MediaSelectionModifiers) => {
-      deferredClickRef.current.schedule(id, () => handleItemSelect(id, modifiers))
-    },
-    [handleItemSelect]
-  )
-
-  const handleItemPreview = useCallback(
-    (id: string) => {
-      deferredClickRef.current.cancel(id)
-      openLightbox(id)
-    },
-    [openLightbox]
-  )
-
   return {
     page,
     type,
@@ -195,8 +174,8 @@ export function useMediaAdminPage() {
     handleTypeChange,
     handlePrev,
     handleNext,
-    handleItemClick,
-    handleItemPreview,
+    handleItemSelect,
+    openLightbox,
     toggleSelectAllOnPage,
     clearSelection,
     handleConfirmDelete,

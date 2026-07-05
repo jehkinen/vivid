@@ -26,7 +26,7 @@ export function MediaBulkToolbar({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2">
       <span className="text-xs text-muted-foreground">
-        Click to select · Shift+click range · Double-click preview · ⌘/Ctrl+click toggle
+        Click file to preview · Click circle to select · Shift+click range · ⌘/Ctrl+click toggle
       </span>
       <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
         <input
