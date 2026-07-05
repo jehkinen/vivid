@@ -207,7 +207,12 @@ export function MediaUpload({
   const uploadProgress = items.length === 1 ? items[0] : null
 
   return (
-    <div className={isFeatured ? 'mb-3' : 'space-y-4'}>
+    <div
+      className={cn(
+        !isFeatured && 'space-y-4',
+        isFeatured && items.length === 0 && 'contents'
+      )}
+    >
       {items.length > 0 ? (
         isFeatured && uploadProgress ? (
           <div className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-2 py-1.5">
@@ -280,7 +285,7 @@ export function MediaUpload({
         </div>
         )
       ) : (
-        <div className={cn(isFeatured ? 'w-fit' : 'w-full')}>
+        <div className={cn(isFeatured ? 'contents' : 'w-full')}>
           <input
             ref={fileInputRef}
             type="file"

@@ -99,6 +99,7 @@ export function GenerateCoverSheet({
   useEffect(() => {
     if (wasOpenRef.current && !open) {
       reset()
+      acceptCover.reset()
       setPreview(null)
       setLastConcept(null)
       setLastScene(null)
@@ -107,10 +108,11 @@ export function GenerateCoverSheet({
       setStylePreset('editorial')
     }
     wasOpenRef.current = open
-  }, [open, reset])
+  }, [open, reset, acceptCover])
 
   const handleStyleChange = (preset: CoverStylePreset) => {
     setStylePreset(preset)
+    setPreview(null)
     if (lastScene) {
       setPromptOverride(rebuildCoverPromptFromScene(lastScene, preset))
       return
@@ -152,21 +154,26 @@ export function GenerateCoverSheet({
 
   const handleAccept = async () => {
     if (!preview) return
-    const result = await acceptCover.mutateAsync({
-      postId,
-      body: {
-        previewBase64: preview.base64,
-        replaceMediaId,
-      },
-    })
-    invalidateMediaUrlCache(result.media.id)
-    const url = (await refreshMediaUrl(result.media.id)) ?? result.media.url
-    onAccepted({ ...result.media, url })
-    toast.success('Cover set')
-    onOpenChange(false)
+    try {
+      const result = await acceptCover.mutateAsync({
+        postId,
+        body: {
+          previewBase64: preview.base64,
+          replaceMediaId,
+        },
+      })
+      invalidateMediaUrlCache(result.media.id)
+      const url = (await refreshMediaUrl(result.media.id)) ?? result.media.url
+      onAccepted({ ...result.media, url })
+      toast.success('Cover set')
+      onOpenChange(false)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save cover'
+      toast.error(message)
+    }
   }
 
-  const apiError = error as ApiError | null
+  const apiError = (acceptCover.error ?? error) as ApiError | null
   const isNotConfigured =
     apiError?.details &&
     typeof apiError.details === 'object' &&
@@ -268,9 +275,9 @@ export function GenerateCoverSheet({
             </div>
           </div>
 
-          {error ? (
+          {apiError ? (
             <div className="shrink-0 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-              {error.message}
+              {apiError.message}
               {isNotConfigured ? (
                 <>
                   {' '}
