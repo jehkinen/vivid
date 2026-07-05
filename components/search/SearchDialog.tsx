@@ -299,7 +299,7 @@ function SearchDialogPublic({
   )
 }
 
-export default function SearchDialog({ variant, ...props }: SearchDialogProps) {
+export function SearchDialog({ variant, ...props }: SearchDialogProps) {
   if (variant === 'public') {
     return <SearchDialogPublic {...props} />
   }

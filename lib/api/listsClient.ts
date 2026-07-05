@@ -1,25 +1,7 @@
 import { apiRequest } from './request'
+import type { ListDto, ListItemDto } from '@/types/lists'
 
-export interface ListItemDto {
-  id: string
-  listId: string
-  text: string
-  checked: boolean
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
-}
-
-export interface ListDto {
-  id: string
-  title: string
-  slug: string
-  visibility: string
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
-  items: ListItemDto[]
-}
+export type { ListDto, ListItemDto }
 
 export const listsClient = {
   list(visibility?: string) {

@@ -9,7 +9,7 @@ interface PostEditButtonProps {
   postId: string
 }
 
-export default function PostEditButton({ postId }: PostEditButtonProps) {
+export function PostEditButton({ postId }: PostEditButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>

@@ -10,7 +10,7 @@ type PostBackButtonProps = {
   preview?: boolean
 }
 
-export default function PostBackButton({ postId, preview }: PostBackButtonProps) {
+export function PostBackButton({ postId, preview }: PostBackButtonProps) {
   const href =
     preview && postId ? routes.VIVID_EDITOR_POST.path(postId) : routes.HOME.path
 

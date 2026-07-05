@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { mediaClient, type MediaLibraryResponse } from '@/lib/api/mediaClient'
 import type { MediaFilterType } from '@/shared/constants'
+import { queryKeys } from '@/lib/query-keys'
 
 interface MediaListParams {
   page?: number
@@ -14,7 +15,7 @@ export function useMedia(params: MediaListParams = {}) {
   const type = params.type
 
   return useQuery<MediaLibraryResponse>({
-    queryKey: ['media', { page, perPage, type }],
+    queryKey: queryKeys.media.list({ page, perPage, type }),
     queryFn: () => mediaClient.library({ page, perPage, type }),
   })
 }

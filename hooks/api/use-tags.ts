@@ -3,19 +3,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { tagsClient, type TagDto } from '@/lib/api/tagsClient'
+import { queryKeys } from '@/lib/query-keys'
 
 export type Tag = TagDto
 
 export function useTags() {
   return useQuery({
-    queryKey: ['tags'],
+    queryKey: queryKeys.tags.all,
     queryFn: () => tagsClient.list(),
   })
 }
 
 export function useTag(slug: string) {
   return useQuery({
-    queryKey: ['tag', slug],
+    queryKey: queryKeys.tags.detail(slug),
     queryFn: () => tagsClient.get(slug),
     enabled: !!slug,
   })
@@ -26,7 +27,7 @@ export function useCreateTag() {
   return useMutation({
     mutationFn: tagsClient.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
       toast.success('Tag created successfully')
     },
     onError: (error: Error) => {
@@ -46,8 +47,8 @@ export function useUpdateTag() {
       data: Partial<Pick<TagDto, 'name' | 'slug' | 'color' | 'description'>>
     }) => tagsClient.update(slug, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] })
-      queryClient.invalidateQueries({ queryKey: ['tag', variables.slug] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.detail(variables.slug) })
       toast.success('Tag updated successfully')
     },
     onError: (error: Error) => {
@@ -61,7 +62,7 @@ export function useDeleteTag() {
   return useMutation({
     mutationFn: tagsClient.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
       toast.success('Tag deleted successfully')
     },
     onError: (error: Error) => {
@@ -76,9 +77,9 @@ export function useMergeTag() {
     mutationFn: ({ sourceTagId, targetTagId }: { sourceTagId: string; targetTagId: string }) =>
       tagsClient.merge(sourceTagId, targetTagId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
       if (data?.targetTagSlug) {
-        queryClient.invalidateQueries({ queryKey: ['tag', data.targetTagSlug] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.tags.detail(data.targetTagSlug) })
       }
       toast.success('Tag merged successfully')
     },

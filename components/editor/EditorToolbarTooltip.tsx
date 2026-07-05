@@ -21,7 +21,7 @@ function ShortcutBadge({ children }: { children: ReactNode }) {
   )
 }
 
-export default function EditorToolbarTooltip({
+export function EditorToolbarTooltip({
   label,
   shortcuts,
   children,

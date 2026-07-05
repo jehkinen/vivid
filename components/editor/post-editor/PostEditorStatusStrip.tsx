@@ -9,7 +9,7 @@ type PostEditorStatusStripProps = {
   statusLabel: string
 }
 
-export default function PostEditorStatusStrip({ lexical, statusLabel }: PostEditorStatusStripProps) {
+export function PostEditorStatusStrip({ lexical, statusLabel }: PostEditorStatusStripProps) {
   return (
     <div className="pointer-events-none fixed bottom-0 left-0 z-10 hidden flex-col gap-0.5 px-6 pb-4 text-xs text-muted-foreground opacity-70 md:flex">
       <span className="tabular-nums">{countWords(extractPlaintextFromLexical(lexical))} words</span>

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { tagsService } from '@/services/tags.service'
-import { apiHandler } from '@/lib/api-handler'
-import { tagCreateSchema, validateRequest } from '@/lib/validators/schemas'
+import { authedHandler } from '@/lib/authed-handler'
+import { tagCreateSchema } from '@/lib/validators/schemas'
+import { parseJsonBody } from '@/lib/validators/parse'
 
-export const GET = apiHandler(async (request: NextRequest) => {
-  void request
+export const GET = authedHandler(async () => {
   const tags = await tagsService.findMany()
   const tagsWithCount = tags.map((tag) => ({
     id: tag.id,
@@ -20,17 +20,8 @@ export const GET = apiHandler(async (request: NextRequest) => {
   return NextResponse.json(tagsWithCount)
 })
 
-export const POST = apiHandler(async (request: NextRequest) => {
-  const body = await request.json()
-  const validation = validateRequest(tagCreateSchema, body)
-
-  if (!validation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: validation.errors },
-      { status: 400 }
-    )
-  }
-
-  const tag = await tagsService.create(validation.data)
+export const POST = authedHandler(async (request: NextRequest) => {
+  const data = await parseJsonBody(tagCreateSchema, request)
+  const tag = await tagsService.create(data)
   return NextResponse.json(tag)
 })

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { listsClient, type ListDto, type ListItemDto } from '@/lib/api/listsClient'
+import { queryKeys } from '@/lib/query-keys'
 
 export type ListItem = ListItemDto
 
@@ -38,14 +39,14 @@ async function updateListItem(listId: string, itemId: string, data: { text?: str
 
 export function useLists(visibility?: string) {
   return useQuery({
-    queryKey: ['lists', visibility],
+    queryKey: queryKeys.lists.list(visibility),
     queryFn: () => fetchLists(visibility),
   })
 }
 
 export function useList(id: string | null) {
   return useQuery({
-    queryKey: ['list', id],
+    queryKey: queryKeys.lists.detail(id!),
     queryFn: () => fetchList(id!),
     enabled: !!id,
   })
@@ -56,7 +57,7 @@ export function useCreateList() {
   return useMutation({
     mutationFn: createList,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lists'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all })
       toast.success('List created')
     },
     onError: (error: Error) => toast.error(error.message),
@@ -68,8 +69,8 @@ export function useUpdateList() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateList>[1] }) => updateList(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['lists'] })
-      queryClient.invalidateQueries({ queryKey: ['list', variables.id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(variables.id) })
       toast.success('List updated')
     },
     onError: (error: Error) => toast.error(error.message),
@@ -81,7 +82,7 @@ export function useDeleteList() {
   return useMutation({
     mutationFn: deleteList,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lists'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all })
       toast.success('List deleted')
     },
     onError: (error: Error) => toast.error(error.message),
@@ -94,7 +95,7 @@ export function useAddListItem() {
     mutationFn: ({ listId, data }: { listId: string; data: { text: string } }) => addListItem(listId, data),
     onSuccess: (newItem: ListItem, variables) => {
       queryClient.setQueriesData<List[]>(
-        { queryKey: ['lists'] },
+        { queryKey: queryKeys.lists.all },
         (old) => {
           if (!old) return old
           return old.map((list) =>
@@ -104,8 +105,8 @@ export function useAddListItem() {
           )
         }
       )
-      queryClient.invalidateQueries({ queryKey: ['lists'] })
-      queryClient.invalidateQueries({ queryKey: ['list', variables.listId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(variables.listId) })
     },
     onError: (error: Error) => toast.error(error.message),
   })
@@ -124,9 +125,9 @@ export function useUpdateListItem() {
       data: { text?: string; checked?: boolean }
     }) => updateListItem(listId, itemId, data),
     onMutate: (variables) => {
-      const previousLists = queryClient.getQueriesData<List[]>({ queryKey: ['lists'] })
+      const previousLists = queryClient.getQueriesData<List[]>({ queryKey: queryKeys.lists.all })
       queryClient.setQueriesData<List[]>(
-        { queryKey: ['lists'] },
+        { queryKey: queryKeys.lists.all },
         (old) => {
           if (!old) return old
           return old.map((list) =>
@@ -154,8 +155,8 @@ export function useUpdateListItem() {
       toast.error(error.message)
     },
     onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['lists'] })
-      queryClient.invalidateQueries({ queryKey: ['list', variables.listId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(variables.listId) })
     },
   })
 }
@@ -166,8 +167,8 @@ export function useDeleteListItem() {
     mutationFn: ({ listId, itemId }: { listId: string; itemId: string }) =>
       listsClient.deleteItem(listId, itemId),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['lists'] })
-      queryClient.invalidateQueries({ queryKey: ['list', variables.listId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(variables.listId) })
     },
     onError: (error: Error) => toast.error(error.message),
   })
@@ -179,8 +180,8 @@ export function useReorderListItems() {
     mutationFn: ({ listId, itemIds }: { listId: string; itemIds: string[] }) =>
       listsClient.reorderItems(listId, itemIds),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['lists'] })
-      queryClient.invalidateQueries({ queryKey: ['list', variables.listId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(variables.listId) })
     },
     onError: (error: Error) => toast.error(error.message),
   })

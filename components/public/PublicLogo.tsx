@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { FlowerLotus } from '@phosphor-icons/react'
 
-export default function PublicLogo() {
+export function PublicLogo() {
   return (
     <Link
       href="/"

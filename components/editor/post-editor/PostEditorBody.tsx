@@ -1,8 +1,8 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import LexicalEditor from '@/components/editor/LexicalEditor'
-import MediaUpload from '@/components/media/MediaUpload'
+import { LexicalEditor } from '@/components/editor/LexicalEditor'
+import { MediaUpload } from '@/components/media/MediaUpload'
 import { XIcon, Image as ImageIcon } from '@phosphor-icons/react'
 import type { LexicalEditor as LexicalEditorInstance } from 'lexical'
 import { MEDIA_COLLECTIONS, MEDIABLE_TYPES } from '@/shared/constants'
@@ -23,7 +23,7 @@ type PostEditorBodyProps = {
   onFeaturedUploaded: (postId: string, media: { id: string }[]) => void
 }
 
-export default function PostEditorBody({
+export function PostEditorBody({
   postId,
   resolvedId,
   title,

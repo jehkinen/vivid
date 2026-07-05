@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { tagsService } from '@/services/tags.service'
-import { apiHandler } from '@/lib/api-handler'
-import { tagMergeSchema, validateRequest } from '@/lib/validators/schemas'
+import { authedHandler } from '@/lib/authed-handler'
+import { tagMergeSchema } from '@/lib/validators/schemas'
+import { parseJsonBody } from '@/lib/validators/parse'
 
-export const POST = apiHandler(async (request: NextRequest) => {
-  const body = await request.json()
-  const validation = validateRequest(tagMergeSchema, body)
-
-  if (!validation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: validation.errors },
-      { status: 400 }
-    )
-  }
-
-  const result = await tagsService.merge(validation.data.sourceTagId, validation.data.targetTagId)
+export const POST = authedHandler(async (request: NextRequest) => {
+  const data = await parseJsonBody(tagMergeSchema, request)
+  const result = await tagsService.merge(data.sourceTagId, data.targetTagId)
   return NextResponse.json(result)
 })

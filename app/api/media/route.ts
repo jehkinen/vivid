@@ -1,39 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { apiHandler } from '@/lib/api-handler'
-import { mediaGetSchema, validateRequest } from '@/lib/validators/schemas'
+import { authedHandler } from '@/lib/authed-handler'
+import { mediaGetSchema } from '@/lib/validators/schemas'
+import { parseSearchParams } from '@/lib/validators/parse'
+import { mediaDeleteQuerySchema } from '@/lib/validators/query-schemas'
 import { mediaService } from '@/services/media.service'
 
-export const GET = apiHandler(async (request: NextRequest) => {
-  const searchParams = request.nextUrl.searchParams
-  const mediableType = searchParams.get('mediableType')
-  const mediableId = searchParams.get('mediableId')
-  const collection = searchParams.get('collection')
-  const conversion = searchParams.get('conversion')
-
-  const validation = validateRequest(mediaGetSchema, {
-    mediableType: mediableType || '',
-    mediableId: mediableId || '',
-    collection: collection || undefined,
-    conversion: conversion || undefined,
-  })
-
-  if (!validation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: validation.errors },
-      { status: 400 }
-    )
-  }
-
+export const GET = authedHandler(async (request: NextRequest) => {
+  const query = parseSearchParams(mediaGetSchema, request.nextUrl.searchParams)
   const media = await mediaService.findMany(
-    validation.data.mediableType,
-    validation.data.mediableId,
-    validation.data.collection
+    query.mediableType,
+    query.mediableId,
+    query.collection
   )
 
-  if (validation.data.conversion) {
+  if (query.conversion) {
     const mediaWithConversions = await Promise.all(
       media.map(async (m) => {
-        const conversionUrl = await mediaService.getConversionUrl(m, validation.data.conversion!)
+        const conversionUrl = await mediaService.getConversionUrl(m, query.conversion!)
         return { ...m, conversionUrl }
       })
     )
@@ -43,26 +26,8 @@ export const GET = apiHandler(async (request: NextRequest) => {
   return NextResponse.json(media)
 })
 
-export const DELETE = apiHandler(async (request: NextRequest) => {
-  const searchParams = request.nextUrl.searchParams
-  const id = searchParams.get('id')
-
-  if (!id) {
-    return NextResponse.json(
-      { error: 'ID is required', errors: [{ field: 'id', message: 'ID parameter is required' }] },
-      { status: 400 }
-    )
-  }
-
-  const { idParamSchema } = await import('@/lib/validators/schemas')
-  const idValidation = validateRequest(idParamSchema, id)
-  if (!idValidation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: idValidation.errors },
-      { status: 400 }
-    )
-  }
-
-  await mediaService.softDelete(idValidation.data)
+export const DELETE = authedHandler(async (request: NextRequest) => {
+  const { id } = parseSearchParams(mediaDeleteQuerySchema, request.nextUrl.searchParams)
+  await mediaService.softDelete(id)
   return NextResponse.json({ success: true })
 })

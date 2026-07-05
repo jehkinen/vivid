@@ -35,7 +35,7 @@ interface MediaUploadProps {
   accept?: string
 }
 
-export default function MediaUpload({
+export function MediaUpload({
   mediableType = MEDIABLE_TYPES.POST,
   mediableId,
   collection,

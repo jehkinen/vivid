@@ -18,7 +18,7 @@ type PostEditorDeleteDialogProps = {
   onConfirmDelete: () => void
 }
 
-export default function PostEditorDeleteDialog({
+export function PostEditorDeleteDialog({
   open,
   onOpenChange,
   title,

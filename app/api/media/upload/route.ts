@@ -1,40 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { apiHandler } from '@/lib/api-handler'
-import { mediaUploadSchema, validateRequest, idParamSchema } from '@/lib/validators/schemas'
+import { authedHandler } from '@/lib/authed-handler'
+import { mediaUploadSchema } from '@/lib/validators/schemas'
+import { parseRequest } from '@/lib/validators/parse'
 import { mediaService } from '@/services/media.service'
 import { MAX_FILE_SIZE, ALLOWED_UPLOAD_MIME_TYPES } from '@/shared/constants'
 
-export const POST = apiHandler(async (request: NextRequest) => {
+export const POST = authedHandler(async (request: NextRequest) => {
   const formData = await request.formData()
-  const mediableType = formData.get('mediableType') as string
-  const mediableId = formData.get('mediableId') as string
-  const collection = formData.get('collection') as string | null
-  const replaceMediaId = formData.get('replaceMediaId') as string | null
-
-  const validation = validateRequest(mediaUploadSchema, {
-    mediableType,
-    mediableId,
-    collection: collection || undefined,
-    replaceMediaId: replaceMediaId || undefined,
+  const data = parseRequest(mediaUploadSchema, {
+    mediableType: formData.get('mediableType'),
+    mediableId: formData.get('mediableId'),
+    collection: formData.get('collection') || undefined,
+    replaceMediaId: formData.get('replaceMediaId') || undefined,
   })
 
-  if (!validation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: validation.errors },
-      { status: 400 }
-    )
-  }
-
-  if (replaceMediaId) {
-    const idValidation = validateRequest(idParamSchema, replaceMediaId)
-    if (!idValidation.success) {
-      return NextResponse.json(
-        { error: 'Validation failed', errors: idValidation.errors },
-        { status: 400 }
-      )
-    }
-
-    const existingMedia = await mediaService.findOne(replaceMediaId)
+  if (data.replaceMediaId) {
+    const existingMedia = await mediaService.findOne(data.replaceMediaId)
     if (!existingMedia) {
       return NextResponse.json(
         { error: 'Media not found', errors: [{ field: 'replaceMediaId', message: 'Media not found' }] },
@@ -42,7 +23,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
       )
     }
 
-    if (existingMedia.mediableType !== mediableType || existingMedia.mediableId !== mediableId) {
+    if (existingMedia.mediableType !== data.mediableType || existingMedia.mediableId !== data.mediableId) {
       return NextResponse.json(
         { error: 'Validation failed', errors: [{ field: 'replaceMediaId', message: 'Media does not belong to this entity' }] },
         { status: 400 }
@@ -86,12 +67,12 @@ export const POST = apiHandler(async (request: NextRequest) => {
   }
 
   const results = await mediaService.upload(
-    validation.data.mediableType,
-    validation.data.mediableId,
+    data.mediableType,
+    data.mediableId,
     uploadFiles,
     {
-      collection: validation.data.collection,
-      replaceMediaId: validation.data.replaceMediaId,
+      collection: data.collection,
+      replaceMediaId: data.replaceMediaId,
     }
   )
 

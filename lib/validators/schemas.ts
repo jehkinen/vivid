@@ -120,6 +120,11 @@ export const listReorderSchema = z.object({
   itemIds: z.array(cuidSchema),
 })
 
+export const nonEmptyPostUpdateSchema = postUpdateSchema.refine(
+  (data) => Object.keys(data).length > 0,
+  { message: 'Request body must be a non-empty object' }
+)
+
 export function validateRequest<T extends z.ZodTypeAny>(
   schema: T,
   data: unknown

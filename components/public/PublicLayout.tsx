@@ -1,10 +1,9 @@
 'use client'
 
-import { QueryProvider } from '@/components/providers/QueryProvider'
-import HeaderSearch from './HeaderSearch'
-import ReadingSettingsPanel from './ReadingSettingsPanel'
-import PublicLogo from './PublicLogo'
-import PublicHeaderProfile from './PublicHeaderProfile'
+import { HeaderSearch } from './HeaderSearch'
+import { ReadingSettingsPanel } from './ReadingSettingsPanel'
+import { PublicLogo } from './PublicLogo'
+import { PublicHeaderProfile } from './PublicHeaderProfile'
 
 interface PublicLayoutProps {
   children: React.ReactNode
@@ -13,10 +12,9 @@ interface PublicLayoutProps {
   showReadingSettingsInHeader?: boolean
 }
 
-export default function PublicLayout({ children, sidebar, headerRight, showReadingSettingsInHeader = true }: PublicLayoutProps) {
+export function PublicLayout({ children, sidebar, headerRight, showReadingSettingsInHeader = true }: PublicLayoutProps) {
   return (
-    <QueryProvider>
-      <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-10 border-b border-border bg-background">
           <div className="flex w-full items-center justify-between gap-4 pl-[50px] pr-4 py-6">
             <PublicLogo />
@@ -42,7 +40,6 @@ export default function PublicLayout({ children, sidebar, headerRight, showReadi
             )}
           </div>
         </main>
-      </div>
-    </QueryProvider>
+    </div>
   )
 }

@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listsService } from '@/services/lists.service'
-import { apiHandler } from '@/lib/api-handler'
-import { listCreateSchema, validateRequest } from '@/lib/validators/schemas'
+import { authedHandler } from '@/lib/authed-handler'
+import { listCreateSchema } from '@/lib/validators/schemas'
+import { parseJsonBody, parseSearchParams } from '@/lib/validators/parse'
+import { listsQuerySchema } from '@/lib/validators/query-schemas'
 
-export const GET = apiHandler(async (request: NextRequest) => {
-  const visibility = request.nextUrl.searchParams.get('visibility') ?? undefined
+export const GET = authedHandler(async (request: NextRequest) => {
+  const { visibility } = parseSearchParams(listsQuerySchema, request.nextUrl.searchParams)
   const lists = await listsService.findMany(visibility)
   return NextResponse.json(lists)
 })
 
-export const POST = apiHandler(async (request: NextRequest) => {
-  const body = await request.json()
-  const validation = validateRequest(listCreateSchema, body)
-
-  if (!validation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: validation.errors },
-      { status: 400 }
-    )
-  }
-
-  const list = await listsService.create(validation.data)
+export const POST = authedHandler(async (request: NextRequest) => {
+  const data = await parseJsonBody(listCreateSchema, request)
+  const list = await listsService.create(data)
   return NextResponse.json(list)
 })

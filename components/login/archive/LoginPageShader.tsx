@@ -4,8 +4,8 @@ import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import ShaderBackground from '@/components/login/archive/ShaderBackground'
-import PublicLogo from '@/components/public/PublicLogo'
+import { ShaderBackground } from '@/components/login/archive/ShaderBackground'
+import { PublicLogo } from '@/components/public/PublicLogo'
 import { authClient } from '@/lib/api/authClient'
 
 function safeReturnPath(from: string | null): string | null {
@@ -94,7 +94,7 @@ function LoginForm() {
   )
 }
 
-export default function LoginPageShaderArchive() {
+export function LoginPageShaderArchive() {
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4">
       <ShaderBackground />

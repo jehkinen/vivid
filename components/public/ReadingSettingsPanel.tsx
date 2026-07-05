@@ -105,7 +105,7 @@ const settingsContent = (
   </div>
 )
 
-export default function ReadingSettingsPanel({ iconOnly = false, triggerClassName, sheetBelowHeader = false, variant = 'sheet', trigger }: ReadingSettingsPanelProps) {
+export function ReadingSettingsPanel({ iconOnly = false, triggerClassName, sheetBelowHeader = false, variant = 'sheet', trigger }: ReadingSettingsPanelProps) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [font, setFont] = useState<ReadingFontId>(READING_FONTS[0].id)

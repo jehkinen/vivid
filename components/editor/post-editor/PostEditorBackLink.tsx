@@ -9,7 +9,7 @@ type PostEditorBackLinkProps = {
   resolvedId: string | null
 }
 
-export default function PostEditorBackLink({ resolvedId }: PostEditorBackLinkProps) {
+export function PostEditorBackLink({ resolvedId }: PostEditorBackLinkProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>

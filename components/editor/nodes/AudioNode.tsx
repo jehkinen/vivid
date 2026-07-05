@@ -1,6 +1,5 @@
 'use client'
 
-import { $getNodeByKey } from 'lexical'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   DecoratorNode,
@@ -10,9 +9,12 @@ import {
   Spread,
 } from 'lexical'
 import { ReactNode, useCallback } from 'react'
-import { XIcon, MusicNotesIcon } from '@phosphor-icons/react'
+import { MusicNotesIcon } from '@phosphor-icons/react'
 import { LEXICAL_NODE_TYPE } from '@/shared/constants'
 import { useMediaUrl } from '@/hooks/use-media-url'
+import { resolveMediaSrc } from '@/lib/editor/lexical/resolve-media-src'
+import { removeDecoratorNode } from '@/lib/editor/insert-block'
+import { DecoratorRemoveButton } from './shared/DecoratorRemoveButton'
 
 export interface AudioPayload {
   src: string
@@ -37,12 +39,12 @@ function AudioComponent({
 }: AudioPayload & { nodeKey: string }) {
   const [editor] = useLexicalComposerContext()
   const resolvedUrl = useMediaUrl(mediaId)
-  const audioSrc = mediaId ? (resolvedUrl ?? '') : src
+  const urlMap = mediaId && resolvedUrl ? { [mediaId]: resolvedUrl } : {}
+  const audioSrc = resolveMediaSrc(mediaId, src, urlMap)
 
   const handleRemove = useCallback(() => {
     editor.update(() => {
-      const node = $getNodeByKey(nodeKey)
-      if (node && $isAudioNode(node)) node.remove()
+      removeDecoratorNode(nodeKey, $isAudioNode)
     })
   }, [editor, nodeKey])
 
@@ -60,14 +62,7 @@ function AudioComponent({
           <span>Audio unavailable</span>
         </div>
       )}
-      <button
-        type="button"
-        onClick={handleRemove}
-        className="absolute right-2 top-2 z-10 rounded p-1.5 bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/70"
-        aria-label="Remove audio"
-      >
-        <XIcon size={16} />
-      </button>
+      <DecoratorRemoveButton onClick={handleRemove} ariaLabel="Remove audio" />
       {title && (
         <figcaption className="text-sm text-muted-foreground mt-2 text-center">
           {title}

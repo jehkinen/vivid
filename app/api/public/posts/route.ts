@@ -1,34 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { postsService } from '@/services/posts.service'
 import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
-import { apiHandler } from '@/lib/api-handler'
-import { unauthorizedUnlessAuthed } from '@/lib/require-auth-request'
+import { authedHandler } from '@/lib/authed-handler'
+import { parseSearchParams } from '@/lib/validators/parse'
+import { publicPostsQuerySchema } from '@/lib/validators/query-schemas'
 
-const DEFAULT_LIMIT = 10
-
-export const GET = apiHandler(async (request: NextRequest) => {
-  const denied = await unauthorizedUnlessAuthed(request)
-  if (denied) return denied
-
-  const searchParams = request.nextUrl.searchParams
-  const limit = Math.min(Number(searchParams.get('limit')) || DEFAULT_LIMIT, 50)
-  const offset = Number(searchParams.get('offset')) || 0
-  const tagSlug = searchParams.get('tagSlug') || undefined
-  const search = searchParams.get('search')?.trim() || undefined
+export const GET = authedHandler(async (request: NextRequest) => {
+  const query = parseSearchParams(publicPostsQuerySchema, request.nextUrl.searchParams)
 
   const result = await postsService.findMany({
     status: POST_STATUS.PUBLISHED,
     visibility: POST_VISIBILITY.PUBLIC,
-    tagSlug,
-    search,
-    limit,
-    offset,
+    tagSlug: query.tagSlug,
+    search: query.search,
+    limit: query.limit,
+    offset: query.offset,
     sort: 'newest',
   })
 
   return NextResponse.json({
     posts: result.posts,
     hasMore: result.hasMore,
-    nextOffset: result.hasMore ? offset + result.posts.length : null,
+    nextOffset: result.hasMore ? query.offset + result.posts.length : null,
   })
 })

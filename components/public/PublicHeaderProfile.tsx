@@ -8,7 +8,7 @@ import { UserIcon, CaretDownIcon } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { routes } from '@/lib/routes'
 
-export default function PublicHeaderProfile() {
+export function PublicHeaderProfile() {
   const router = useRouter()
   const [user, setUser] = useState<{ name: string; email: string } | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)

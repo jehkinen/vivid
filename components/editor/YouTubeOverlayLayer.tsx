@@ -136,7 +136,7 @@ function useYouTubeRects(
   return items
 }
 
-export default function YouTubeOverlayLayer({ containerRef }: { containerRef: React.RefObject<HTMLElement | null> }) {
+export function YouTubeOverlayLayer({ containerRef }: { containerRef: React.RefObject<HTMLElement | null> }) {
   const [editor] = useLexicalComposerContext()
   const overlayRef = useRef<HTMLDivElement>(null)
   const items = useYouTubeRects(editor, containerRef)

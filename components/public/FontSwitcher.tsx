@@ -24,7 +24,7 @@ function getStoredFont(): ReadingFontId {
   return 'source'
 }
 
-export default function FontSwitcher() {
+export function FontSwitcher() {
   const [font, setFont] = useState<ReadingFontId>('source')
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)

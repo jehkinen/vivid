@@ -9,7 +9,7 @@ import { usePost, useCreatePost, useUpdatePost, useSoftDeletePost } from '@/hook
 import { useTags, useCreateTag } from '@/hooks/api/use-tags'
 import { slugify } from '@/lib/utils'
 import { TAG_DEFAULT_COLORS } from '@/shared/constants'
-import { usePostSettings } from '@/lib/post-settings-context'
+import { usePostSettings } from '@/components/providers/PostSettingsProvider'
 import type { PostEditorFeaturedMedia } from '@/types/post-editor'
 
 const AUTOSAVE_DELAY_MS = 3000

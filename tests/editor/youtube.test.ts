@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractYouTubeVideoId } from '@/components/editor/nodes/YouTubeNode'
+import { extractYouTubeVideoId } from '@/lib/editor/lexical/youtube-utils'
 
 describe('extractYouTubeVideoId', () => {
   it('returns raw 11-char id', () => {

@@ -1,27 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { UserIcon, CaretDownIcon } from '@phosphor-icons/react'
 import { routes } from '@/lib/routes'
-import { useRoute } from '@/lib/route-context'
+import { useRoute } from '@/components/providers/RouteProvider'
 import { cn } from '@/lib/utils'
-import { authClient, type MeResponse } from '@/lib/api/authClient'
+import { authClient } from '@/lib/api/authClient'
+import { useMe } from '@/hooks/use-me'
 
-export default function AdminSidebarProfile() {
+export function AdminSidebarProfile() {
   const router = useRouter()
   const route = useRoute()
-  const [user, setUser] = useState<MeResponse | null>(null)
+  const { data: user } = useMe()
   const [profileOpen, setProfileOpen] = useState(false)
-
-  useEffect(() => {
-    authClient
-      .me()
-      .then((data) => setUser(data))
-      .catch(() => {})
-  }, [])
 
   const handleSignOut = async () => {
     await authClient.logout()

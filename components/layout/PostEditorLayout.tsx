@@ -1,8 +1,8 @@
 'use client'
 
-import { PostSettingsProvider } from '@/lib/post-settings-context'
+import { PostSettingsProvider } from '@/components/providers/PostSettingsProvider'
 
-export default function PostEditorLayout({ children }: { children: React.ReactNode }) {
+export function PostEditorLayout({ children }: { children: React.ReactNode }) {
   return (
     <PostSettingsProvider>
       <div className="flex flex-col h-screen overflow-hidden">{children}</div>

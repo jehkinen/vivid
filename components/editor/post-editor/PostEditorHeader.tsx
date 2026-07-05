@@ -2,7 +2,7 @@
 
 import { POST_STATUS, type PostStatus } from '@/shared/constants'
 import { cn } from '@/lib/utils'
-import PublicLogo from '@/components/public/PublicLogo'
+import { PublicLogo } from '@/components/public/PublicLogo'
 
 type PostEditorHeaderProps = {
   status: PostStatus
@@ -13,7 +13,7 @@ type PostEditorHeaderProps = {
   onSavePublished: () => void
 }
 
-export default function PostEditorHeader({
+export function PostEditorHeader({
   status,
   resolvedId,
   isSaving,

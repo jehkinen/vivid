@@ -1,45 +1,13 @@
 import { apiRequest } from './request'
 import { POST_SORT_OPTIONS, type PostSortOption } from '@/shared/constants'
-import type { PostEditorFeaturedMedia } from '@/types/post-editor'
+import type {
+  PostSummary,
+  PostWithListRelations,
+  PostListResponse,
+  PostDetail,
+} from '@/types/posts'
 
-export interface PostSummary {
-  id: string
-  title: string
-  slug: string
-  status: string
-  createdAt: string
-  updatedAt: string
-  deletedAt?: string | null
-}
-
-/** Shape returned by list/infinite APIs (includes relations used in admin UI). */
-export type PostWithListRelations = PostSummary & {
-  publishedAt?: string | null
-  plaintext?: string | null
-  visibility?: string | null
-  authors?: Array<{ author: { name?: string | null } }>
-  tags?: Array<{ tag: { id: string; slug: string; name: string; color?: string | null } }>
-  featuredMedia?: { url?: string } | null
-}
-
-export interface PostListResponse {
-  posts: PostWithListRelations[]
-  hasMore: boolean
-}
-
-/** Single post from GET /api/posts?id=… (editor / detail). */
-export interface PostDetail {
-  id: string
-  title?: string | null
-  slug?: string
-  lexical?: string | null
-  plaintext?: string | null
-  status?: string | null
-  visibility?: string | null
-  publishedAt?: string | null
-  tags?: Array<{ tag: { id: string } }>
-  featuredMedia?: PostEditorFeaturedMedia | null
-}
+export type { PostSummary, PostWithListRelations, PostListResponse, PostDetail }
 
 export interface FindPostsParams {
   search?: string

@@ -1,9 +1,9 @@
 import { postsService } from '@/services/posts.service'
 import { tagsService } from '@/services/tags.service'
 import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
-import PublicLayout from '@/components/public/PublicLayout'
-import TagsSidebar from '@/components/public/TagsSidebar'
-import PostListWithLoadMore from '@/components/public/PostListWithLoadMore'
+import { PublicLayout } from '@/components/public/PublicLayout'
+import { TagsSidebar } from '@/components/public/TagsSidebar'
+import { PostListWithLoadMore } from '@/components/public/PostListWithLoadMore'
 
 export default async function HomePage({
   searchParams,

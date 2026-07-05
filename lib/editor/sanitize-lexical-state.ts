@@ -1,17 +1,20 @@
-const ROOT_ELEMENT_TYPES = new Set([
-  'paragraph',
-  'heading',
-  'quote',
-  'list',
-  'code',
-  'image',
-  'gallery',
-  'audio',
+import { LEXICAL_NODE_TYPE } from '@/shared/constants'
+
+const ROOT_ELEMENT_TYPES = new Set<string>([
+  LEXICAL_NODE_TYPE.PARAGRAPH,
+  LEXICAL_NODE_TYPE.HEADING,
+  LEXICAL_NODE_TYPE.QUOTE,
+  LEXICAL_NODE_TYPE.LIST,
+  LEXICAL_NODE_TYPE.CODE,
+  LEXICAL_NODE_TYPE.IMAGE,
+  LEXICAL_NODE_TYPE.GALLERY,
+  LEXICAL_NODE_TYPE.AUDIO,
+  LEXICAL_NODE_TYPE.YOUTUBE,
 ])
 
 const NODE_TYPE_ALIASES: Record<string, string> = {
-  'extended-text': 'text',
-  'extended-heading': 'heading',
+  [LEXICAL_NODE_TYPE.EXTENDED_TEXT]: LEXICAL_NODE_TYPE.TEXT,
+  [LEXICAL_NODE_TYPE.EXTENDED_HEADING]: LEXICAL_NODE_TYPE.HEADING,
 }
 
 function sanitizeNode(node: { type?: string; children?: unknown[] }): typeof node {
@@ -30,10 +33,10 @@ export function sanitizeLexicalRoot(parsed: { root?: { children?: unknown[] } })
   root.children = root.children.map((child: unknown) => {
     const sanitized = sanitizeNode(child as { type?: string; children?: unknown[] })
     const type = sanitized?.type
-    if (type === 'text' || (type && !ROOT_ELEMENT_TYPES.has(type))) {
+    if (type === LEXICAL_NODE_TYPE.TEXT || (type && !ROOT_ELEMENT_TYPES.has(type))) {
       return {
-        type: 'paragraph',
-        children: type === 'text' ? [sanitized] : [],
+        type: LEXICAL_NODE_TYPE.PARAGRAPH,
+        children: type === LEXICAL_NODE_TYPE.TEXT ? [sanitized] : [],
         direction: null,
         format: '',
         indent: 0,

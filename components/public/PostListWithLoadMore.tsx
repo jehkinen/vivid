@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import PostCard from './PostCard'
-import Loader from '@/components/ui/Loader'
+import { PostCard } from './PostCard'
+import { Loader } from '@/components/ui/loader'
 
 interface Post {
   id: string
@@ -23,7 +23,7 @@ interface PostListWithLoadMoreProps {
 
 const PAGE_SIZE = 10
 
-export default function PostListWithLoadMore({
+export function PostListWithLoadMore({
   initialPosts,
   tagSlug,
   search,

@@ -1,6 +1,5 @@
 'use client'
 
-import { $getNodeByKey } from 'lexical'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   DecoratorNode,
@@ -9,10 +8,14 @@ import {
   SerializedLexicalNode,
   Spread,
 } from 'lexical'
-import { ImageBrokenIcon, XIcon } from '@phosphor-icons/react'
+import { ImageBrokenIcon } from '@phosphor-icons/react'
 import { ReactNode, useState, useCallback } from 'react'
 import { IMAGE_CARD_WIDTH, LEXICAL_NODE_TYPE, type ImageCardWidth } from '@/shared/constants'
 import { useMediaUrl } from '@/hooks/use-media-url'
+import { getImageCardWidthClass } from '@/lib/editor/lexical/image-layout'
+import { resolveMediaSrc } from '@/lib/editor/lexical/resolve-media-src'
+import { removeDecoratorNode } from '@/lib/editor/insert-block'
+import { DecoratorRemoveButton } from './shared/DecoratorRemoveButton'
 
 export interface ImagePayload {
   src: string
@@ -50,21 +53,16 @@ function ImageComponent({
   const [editor] = useLexicalComposerContext()
   const [hasError, setHasError] = useState(false)
   const resolvedUrl = useMediaUrl(mediaId)
-  const imgSrc = mediaId ? (resolvedUrl ?? '') : src
+  const urlMap = mediaId && resolvedUrl ? { [mediaId]: resolvedUrl } : {}
+  const imgSrc = resolveMediaSrc(mediaId, src, urlMap)
 
   const handleRemove = useCallback(() => {
     editor.update(() => {
-      const node = $getNodeByKey(nodeKey)
-      if (node && $isImageNode(node)) node.remove()
+      removeDecoratorNode(nodeKey, $isImageNode)
     })
   }, [editor, nodeKey])
 
-  const cardWidthClass =
-    cardWidth === IMAGE_CARD_WIDTH.FULL
-      ? 'w-full'
-      : cardWidth === IMAGE_CARD_WIDTH.WIDE
-        ? 'max-w-4xl mx-auto'
-        : 'max-w-2xl mx-auto'
+  const cardWidthClass = getImageCardWidthClass(cardWidth)
 
   return (
     <figure className={`group relative my-6 ${cardWidthClass}`}>
@@ -85,14 +83,7 @@ function ImageComponent({
           onError={() => setHasError(true)}
         />
       ) : null}
-      <button
-        type="button"
-        onClick={handleRemove}
-        className="absolute right-2 top-2 z-10 rounded p-1.5 bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/70"
-        aria-label="Remove image"
-      >
-        <XIcon size={16} />
-      </button>
+      <DecoratorRemoveButton onClick={handleRemove} ariaLabel="Remove image" />
       {title && (
         <figcaption className="text-sm text-muted-foreground mt-2 text-center">
           {title}

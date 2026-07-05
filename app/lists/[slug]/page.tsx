@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { listsService } from '@/services/lists.service'
-import PublicLayout from '@/components/public/PublicLayout'
-import TagsSidebar from '@/components/public/TagsSidebar'
+import { PublicLayout } from '@/components/public/PublicLayout'
+import { TagsSidebar } from '@/components/public/TagsSidebar'
 import { tagsService } from '@/services/tags.service'
 
 export default async function ListSlugPage({

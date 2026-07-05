@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import InsertBlockPlus from '@/components/editor/InsertBlockPlus'
-import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
+import { InsertBlockPlus } from '@/components/editor/floating/InsertBlockPlus'
+import { ReadingSettingsPanel } from '@/components/public/ReadingSettingsPanel'
 import { MEDIABLE_TYPES } from '@/shared/constants'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -20,7 +20,7 @@ type PostEditorDesktopRailProps = {
   onDeleteClick: () => void
 }
 
-export default function PostEditorDesktopRail({
+export function PostEditorDesktopRail({
   editor,
   resolvedId,
   slug,

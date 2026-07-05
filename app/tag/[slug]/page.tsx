@@ -1,17 +1,14 @@
 import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
 import { postsService } from '@/services/posts.service'
 import { tagsService } from '@/services/tags.service'
 import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
-import PublicLayout from '@/components/public/PublicLayout'
-import TagsSidebar from '@/components/public/TagsSidebar'
-import PostListWithLoadMore from '@/components/public/PostListWithLoadMore'
+import { PublicLayout } from '@/components/public/PublicLayout'
+import { TagsSidebar } from '@/components/public/TagsSidebar'
+import { PostListWithLoadMore } from '@/components/public/PostListWithLoadMore'
 
 export default async function TagPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const tag = await prisma.tag.findUnique({
-    where: { slug },
-  })
+  const tag = await tagsService.findOne(slug)
 
   if (!tag) notFound()
 

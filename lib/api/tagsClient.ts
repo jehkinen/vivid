@@ -1,13 +1,7 @@
 import { apiRequest } from './request'
+import type { TagDto } from '@/types/tags'
 
-export interface TagDto {
-  id: string
-  name: string
-  slug: string
-  color: string | null
-  description: string | null
-  postCount?: number
-}
+export type { TagDto }
 
 export const tagsClient = {
   list() {

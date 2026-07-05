@@ -1,11 +1,11 @@
 'use client'
 
 import { Suspense } from 'react'
-import { useRoute } from '@/lib/route-context'
+import { useRoute } from '@/components/providers/RouteProvider'
 import { getLayoutForRoute, type LayoutKey } from '@/lib/routes'
-import BareLayout from './BareLayout'
-import PostEditorLayout from './PostEditorLayout'
-import AdminSidebarLayout from './AdminSidebarLayout'
+import { BareLayout } from './BareLayout'
+import { PostEditorLayout } from './PostEditorLayout'
+import { AdminSidebarLayout } from './AdminSidebarLayout'
 
 const LAYOUTS: Record<LayoutKey, React.ComponentType<{ children: React.ReactNode }>> = {
   bare: BareLayout,
@@ -21,7 +21,7 @@ function SidebarLayoutFallback() {
   )
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export function AdminLayout({ children }: { children: React.ReactNode }) {
   const route = useRoute()
   const layoutKey = getLayoutForRoute(route.name)
   const Layout = LAYOUTS[layoutKey]

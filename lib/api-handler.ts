@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { ZodError } from 'zod'
 
-type ApiHandler<T = void> = T extends void
+export type ApiHandler<T = void> = T extends void
   ? (request: NextRequest) => Promise<NextResponse>
   : (request: NextRequest, context: T) => Promise<NextResponse>
 

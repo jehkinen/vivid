@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { wrapTextToLines } from '@/components/login/canvasTextLayout'
+import { wrapTextToLines } from '@/lib/login/canvas-text-layout'
 import {
   BOTTOM_CENTER_BLOCKS,
   BOTTOM_LEFT_BLOCKS,
@@ -14,7 +14,7 @@ import {
   RIGHT_MARGIN_BLOCKS,
   TUNNEL_PHRASES,
   type MarginBlock,
-} from '@/components/login/loginQuotes'
+} from '@/lib/login/login-quotes'
 
 const BG = '#0a0c14'
 const MONO = '"Courier New", monospace'
@@ -69,7 +69,7 @@ const CONFIG = {
   serpentScale: 0.95,
 }
 
-export default function PretextLoginBackground() {
+export function PretextLoginBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {

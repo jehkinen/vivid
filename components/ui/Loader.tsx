@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 
-export default function Loader({ className }: { className?: string }) {
+export function Loader({ className }: { className?: string }) {
   return (
     <div className={cn('flex items-center justify-center gap-1.5', className)} aria-hidden>
       {[0, 1, 2].map((i) => (

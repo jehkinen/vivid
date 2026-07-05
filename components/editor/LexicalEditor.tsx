@@ -6,16 +6,16 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import FloatingToolbarPlugin from './FloatingToolbarPlugin'
-import FloatingInsertPlusPlugin, { FloatingPanelContext } from './FloatingInsertPlusPlugin'
-import { EditorFloatingUIProvider } from './EditorFloatingUIContext'
+import { FloatingToolbarPlugin } from './plugins/FloatingToolbarPlugin'
+import { FloatingInsertPlusPlugin, FloatingPanelContext } from './plugins/FloatingInsertPlusPlugin'
+import { EditorFloatingUIProvider } from './floating/EditorFloatingUIContext'
 import { EDITOR_NODES } from './editor-nodes'
 import { MediableProvider } from './MediableContext'
 import { EditorState, type SerializedEditorState, $getRoot, $isDecoratorNode, $isElementNode, $isParagraphNode } from 'lexical'
 import { useEffect, useState, useRef, Component, ReactElement } from 'react'
-import YouTubeOverlayLayer from './YouTubeOverlayLayer'
-import EditorPastePlugin from './EditorPastePlugin'
-import EditorLinkSelectionPlugin from './EditorLinkSelectionPlugin'
+import { YouTubeOverlayLayer } from './YouTubeOverlayLayer'
+import { EditorPastePlugin } from './plugins/EditorPastePlugin'
+import { EditorLinkSelectionPlugin } from './plugins/EditorLinkSelectionPlugin'
 import { $generateHtmlFromNodes } from '@lexical/html'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
@@ -286,7 +286,7 @@ function EditorContentArea({
         <YouTubeOverlayLayer containerRef={containerRef} />
         <HistoryPlugin />
         <FloatingToolbarPlugin onOpenChange={onToolbarOpenChange} />
-        <FloatingInsertPlusPlugin />
+        {renderFloatingPanel === undefined && <FloatingInsertPlusPlugin />}
         <CustomOnChangePlugin onChange={handleChange} />
         </div>
       </FloatingPanelContext.Provider>
@@ -294,7 +294,7 @@ function EditorContentArea({
   )
 }
 
-export default function LexicalEditor({
+export function LexicalEditor({
   initialEditorState,
   onChange,
   placeholder = 'Begin writing your vivid story...',

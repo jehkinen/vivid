@@ -3,7 +3,7 @@ import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode, CodeHighlightNode } from '@lexical/code'
 import { ImageNode } from './nodes/ImageNode'
-import { GalleryNode } from './nodes/gallery-node'
+import { GalleryNode } from './nodes/GalleryNode'
 import { AudioNode } from './nodes/AudioNode'
 import { YouTubeNode } from './nodes/YouTubeNode'
 
@@ -23,12 +23,12 @@ export const EDITOR_NODES = [
 ]
 
 export { ImageNode, $createImageNode, $isImageNode } from './nodes/ImageNode'
-export { GalleryNode, $createGalleryNode, $isGalleryNode } from './nodes/gallery-node'
-export type { GalleryImage, GalleryPayload } from './nodes/gallery-node'
+export { GalleryNode, $createGalleryNode, $isGalleryNode } from './nodes/GalleryNode'
+export type { GalleryImage, GalleryPayload } from './nodes/GalleryNode'
 export { AudioNode, $createAudioNode, $isAudioNode } from './nodes/AudioNode'
 export {
   YouTubeNode,
   $createYouTubeNode,
   $isYouTubeNode,
-  extractYouTubeVideoId,
 } from './nodes/YouTubeNode'
+export { extractYouTubeVideoId } from '@/lib/editor/lexical/youtube-utils'

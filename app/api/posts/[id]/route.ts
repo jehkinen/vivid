@@ -1,63 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { postsService } from '@/services/posts.service'
-import { apiHandler } from '@/lib/api-handler'
-import { postUpdateSchema, validateRequest, idParamSchema } from '@/lib/validators/schemas'
-import { unauthorizedUnlessAuthed } from '@/lib/require-auth-request'
+import { authedHandler } from '@/lib/authed-handler'
+import { nonEmptyPostUpdateSchema } from '@/lib/validators/schemas'
+import { parseJsonBody, parseRouteParams } from '@/lib/validators/parse'
+import { idRouteParamsSchema } from '@/lib/validators/query-schemas'
 
-export const PUT = apiHandler(async (
+export const PUT = authedHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
-  const denied = await unauthorizedUnlessAuthed(request)
-  if (denied) return denied
-
-  const { id } = await params
-  const idValidation = validateRequest(idParamSchema, id)
-
-  if (!idValidation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: idValidation.errors },
-      { status: 400 }
-    )
-  }
-
-  const body = await request.json()
-  if (body === null || typeof body !== 'object' || Object.keys(body).length === 0) {
-    return NextResponse.json(
-      { error: 'Request body must be a non-empty object' },
-      { status: 400 }
-    )
-  }
-  const validation = validateRequest(postUpdateSchema, body)
-
-  if (!validation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: validation.errors },
-      { status: 400 }
-    )
-  }
-
-  const post = await postsService.update(idValidation.data, validation.data)
+  const { id } = await parseRouteParams(idRouteParamsSchema, params)
+  const data = await parseJsonBody(nonEmptyPostUpdateSchema, request)
+  const post = await postsService.update(id, data)
   return NextResponse.json(post)
 })
 
-export const DELETE = apiHandler(async (
-  request: NextRequest,
+export const DELETE = authedHandler(async (
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
-  const denied = await unauthorizedUnlessAuthed(request)
-  if (denied) return denied
-
-  const { id } = await params
-  const idValidation = validateRequest(idParamSchema, id)
-
-  if (!idValidation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: idValidation.errors },
-      { status: 400 }
-    )
-  }
-
-  await postsService.softDelete(idValidation.data)
+  const { id } = await parseRouteParams(idRouteParamsSchema, params)
+  await postsService.softDelete(id)
   return NextResponse.json({ success: true })
 })

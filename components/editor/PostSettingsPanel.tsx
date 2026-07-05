@@ -42,7 +42,7 @@ export interface PostSettingsPanelProps {
   onClose: () => void
 }
 
-export default function PostSettingsPanel(props: PostSettingsPanelProps) {
+export function PostSettingsPanel(props: PostSettingsPanelProps) {
   const {
     slug,
     onSlugChange,

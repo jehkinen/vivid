@@ -91,7 +91,7 @@ void main() {
 }
 `
 
-export default function ShaderBackground() {
+export function ShaderBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {

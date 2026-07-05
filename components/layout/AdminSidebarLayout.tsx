@@ -31,13 +31,13 @@ import {
   PlusIcon,
 } from '@phosphor-icons/react'
 import { useSearchParams } from 'next/navigation'
-import GlobalSearch from '@/components/search/GlobalSearch'
-import PublicLogo from '@/components/public/PublicLogo'
-import { PostSettingsProvider, usePostSettings } from '@/lib/post-settings-context'
+import { GlobalSearch } from '@/components/search/GlobalSearch'
+import { PublicLogo } from '@/components/public/PublicLogo'
+import { PostSettingsProvider, usePostSettings } from '@/components/providers/PostSettingsProvider'
 import { routes } from '@/lib/routes'
-import { useRoute } from '@/lib/route-context'
+import { useRoute } from '@/components/providers/RouteProvider'
 import { ImageIcon as MediaIcon } from '@phosphor-icons/react'
-const AdminSidebarProfile = dynamic(() => import('./AdminSidebarProfile'), { ssr: false })
+const AdminSidebarProfile = dynamic(() => import('./AdminSidebarProfile').then(m => ({ default: m.AdminSidebarProfile })), { ssr: false })
 
 const menuItems = [
   {
@@ -85,7 +85,7 @@ function AdminInsetContent({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function AdminSidebarLayout({ children }: { children: React.ReactNode }) {
+export function AdminSidebarLayout({ children }: { children: React.ReactNode }) {
   const route = useRoute()
   const searchParams = useSearchParams()
   const [searchOpen, setSearchOpen] = useState(false)

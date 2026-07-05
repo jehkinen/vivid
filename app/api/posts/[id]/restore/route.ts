@@ -1,26 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { postsService } from '@/services/posts.service'
-import { apiHandler } from '@/lib/api-handler'
-import { validateRequest, idParamSchema } from '@/lib/validators/schemas'
-import { unauthorizedUnlessAuthed } from '@/lib/require-auth-request'
+import { authedHandler } from '@/lib/authed-handler'
+import { parseRouteParams } from '@/lib/validators/parse'
+import { idRouteParamsSchema } from '@/lib/validators/query-schemas'
 
-export const PATCH = apiHandler(async (
-  request: NextRequest,
+export const PATCH = authedHandler(async (
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
-  const denied = await unauthorizedUnlessAuthed(request)
-  if (denied) return denied
-
-  const { id } = await params
-  const idValidation = validateRequest(idParamSchema, id)
-
-  if (!idValidation.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', errors: idValidation.errors },
-      { status: 400 }
-    )
-  }
-
-  await postsService.restore(idValidation.data)
+  const { id } = await parseRouteParams(idRouteParamsSchema, params)
+  await postsService.restore(id)
   return NextResponse.json({ success: true })
 })

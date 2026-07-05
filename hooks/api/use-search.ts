@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
 
 interface SearchResult {
   posts: Array<{
@@ -27,7 +28,7 @@ async function search(query: string): Promise<SearchResult> {
 
 export function useSearch(query: string) {
   return useQuery({
-    queryKey: ['search', query],
+    queryKey: queryKeys.search.admin(query),
     queryFn: () => search(query),
     enabled: !!query && query.trim().length > 0,
   })
@@ -50,7 +51,7 @@ async function publicSearch(query: string): Promise<{ posts: Array<{ id: string;
 
 export function usePublicSearch(query: string) {
   return useQuery({
-    queryKey: ['publicSearch', query],
+    queryKey: queryKeys.search.public(query),
     queryFn: () => publicSearch(query),
     enabled: !!query && query.trim().length > 0,
   })
@@ -76,7 +77,7 @@ async function publicTagsSearch(query: string): Promise<{
 
 export function usePublicTagsSearch(query: string) {
   return useQuery({
-    queryKey: ['publicTagsSearch', query],
+    queryKey: queryKeys.search.publicTags(query),
     queryFn: () => publicTagsSearch(query),
     enabled: !!query && query.trim().length > 0,
   })

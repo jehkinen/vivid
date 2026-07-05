@@ -3,19 +3,20 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { postsClient, type FindPostsParams, type PostListResponse, type PostSummary } from '@/lib/api/postsClient'
+import { queryKeys } from '@/lib/query-keys'
 
 const POSTS_PAGE_SIZE = 20
 
 export function usePosts(params: FindPostsParams = {}) {
   return useQuery({
-    queryKey: ['posts', params],
+    queryKey: queryKeys.posts.list(params),
     queryFn: () => postsClient.list(params),
   })
 }
 
 export function useInfinitePosts(params: Omit<FindPostsParams, 'limit' | 'offset'> = {}) {
   return useInfiniteQuery({
-    queryKey: ['posts', 'infinite', params],
+    queryKey: queryKeys.posts.infinite(params),
     queryFn: ({ pageParam }) =>
       postsClient.list({
         ...params,
@@ -32,7 +33,7 @@ export function useInfinitePosts(params: Omit<FindPostsParams, 'limit' | 'offset
 
 export function useDeletedPosts() {
   return useQuery({
-    queryKey: ['posts', 'deleted'],
+    queryKey: queryKeys.posts.deleted(),
     queryFn: async () => {
       const result = await postsClient.listDeleted()
       const list = result.posts ?? []
@@ -43,7 +44,7 @@ export function useDeletedPosts() {
 
 export function usePost(id: string) {
   return useQuery({
-    queryKey: ['post', id],
+    queryKey: queryKeys.posts.detail(id),
     queryFn: () => postsClient.get(id, { includeDeleted: true }),
     enabled: !!id,
   })
@@ -54,7 +55,7 @@ export function useCreatePost() {
   return useMutation({
     mutationFn: postsClient.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all })
       toast.success('Post created successfully')
     },
     onError: (error: Error) => {
@@ -69,8 +70,8 @@ export function useUpdatePost() {
     mutationFn: (v: { id: string; data: Record<string, unknown>; silent?: boolean }) =>
       postsClient.update(v.id, v.data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
-      queryClient.invalidateQueries({ queryKey: ['post', variables.id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.detail(variables.id) })
     },
     onError: (error: Error) => {
       toast.error(error.message)
@@ -83,7 +84,7 @@ export function useSoftDeletePost() {
   return useMutation({
     mutationFn: postsClient.softDelete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all })
       toast.success('Post deleted successfully')
     },
     onError: (error: Error) => {
@@ -97,7 +98,7 @@ export function useRestorePost() {
   return useMutation({
     mutationFn: postsClient.restore,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all })
       toast.success('Post restored successfully')
     },
     onError: (error: Error) => {
@@ -111,7 +112,7 @@ export function useHardDeletePost() {
   return useMutation({
     mutationFn: postsClient.hardDelete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all })
       toast.success('Post deleted permanently')
     },
     onError: (error: Error) => {

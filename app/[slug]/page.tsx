@@ -5,11 +5,11 @@ import { postsService } from '@/services/posts.service'
 import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
 import { formatPostDate } from '@/lib/utils'
 import { getAuthCookieName, verifyAuthToken } from '@/lib/auth'
-import PublicLayout from '@/components/public/PublicLayout'
-import PostContent from '@/components/view/PostContent'
-import PostEditButton from '@/components/public/PostEditButton'
-import PostBackButton from '@/components/public/PostBackButton'
-import ReadingSettingsPanel from '@/components/public/ReadingSettingsPanel'
+import { PublicLayout } from '@/components/public/PublicLayout'
+import { PostContent } from '@/components/public/PostContent'
+import { PostEditButton } from '@/components/public/PostEditButton'
+import { PostBackButton } from '@/components/public/PostBackButton'
+import { ReadingSettingsPanel } from '@/components/public/ReadingSettingsPanel'
 
 const RESERVED_SLUGS = ['tag', 'vivid', 'login', 'api']
 

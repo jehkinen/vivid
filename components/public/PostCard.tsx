@@ -21,7 +21,7 @@ interface PostCardProps {
   featuredMedia?: { url?: string | null; thumbUrl?: string | null } | null
 }
 
-export default function PostCard({ title, slug, plaintext, publishedAt, wordCount, tags, featuredMedia }: PostCardProps) {
+export function PostCard({ title, slug, plaintext, publishedAt, wordCount, tags, featuredMedia }: PostCardProps) {
   const excerpt = plaintext ? truncateAtWord(plaintext, EXCERPT_LENGTH) : ''
   const dateStr = formatPostDate(publishedAt)
   const words = wordCount ?? 0

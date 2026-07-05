@@ -12,7 +12,7 @@ interface TagsSidebarProps {
   tags: TagItem[]
 }
 
-export default function TagsSidebar({ tags }: TagsSidebarProps) {
+export function TagsSidebar({ tags }: TagsSidebarProps) {
   return (
     <div className="pb-4 space-y-6">
       <div>
