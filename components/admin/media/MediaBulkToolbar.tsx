@@ -24,7 +24,10 @@ export function MediaBulkToolbar({
   if (pageCount === 0) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2">
+      <span className="text-xs text-muted-foreground">
+        Click to select · Shift+click range · Double-click preview · ⌘/Ctrl+click toggle
+      </span>
       <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
         <input
           type="checkbox"

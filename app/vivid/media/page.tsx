@@ -36,7 +36,7 @@ export default function MediaLibraryPage() {
     handlePrev,
     handleNext,
     openLightbox,
-    toggleSelect,
+    handleItemSelect,
     toggleSelectAllOnPage,
     clearSelection,
     handleConfirmDelete,
@@ -69,16 +69,16 @@ export default function MediaLibraryPage() {
             items={items}
             isLoading={isLoading}
             selectedIds={selectedIds}
-            onToggleSelect={toggleSelect}
-            onItemClick={openLightbox}
+            onItemSelect={handleItemSelect}
+            onItemPreview={openLightbox}
           />
         ) : (
           <MediaGrid
             items={items}
             isLoading={isLoading}
             selectedIds={selectedIds}
-            onToggleSelect={toggleSelect}
-            onItemClick={openLightbox}
+            onItemSelect={handleItemSelect}
+            onItemPreview={openLightbox}
           />
         )}
       </div>
