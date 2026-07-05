@@ -1,19 +1,25 @@
 'use client'
 
 import { useState, useCallback, useMemo, useRef, ReactNode, Fragment } from 'react'
+import Link from 'next/link'
 import { ImageBrokenIcon, MusicNotesIcon } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { LEXICAL_NODE_TYPE } from '@/shared/constants'
+import { getPostIdFromLexicalLinkNode } from '@/lib/editor/post-link-helpers'
 import { Lightbox } from '@/components/ui/lightbox'
 import { collectMediaIds } from '@/lib/lexical-renderer'
 import { useMediaUrls } from '@/hooks/use-media-url'
 import { getImageCardWidthClass } from '@/lib/editor/lexical/image-layout'
 import { resolveMediaSrc } from '@/lib/editor/lexical/resolve-media-src'
+import { PostLinkWithPreview } from '@/components/public/PostLinkWithPreview'
+import type { PostPreviewMeta } from '@/types/post-references'
 
 interface PostContentProps {
   lexicalJson: string | null
   className?: string
   urlMap?: Record<string, string>
+  postSlugMap?: Record<string, string>
+  postPreviewMap?: Record<string, PostPreviewMeta>
 }
 
 type LexJson = Record<string, unknown>
@@ -83,13 +89,33 @@ function parseStyleString(str: string): React.CSSProperties {
 function PostLink({
   href,
   target,
+  postId,
+  postSlugMap,
+  postPreviewMap,
   children,
 }: {
   href: string
   target: string
+  postId?: string
+  postSlugMap?: Record<string, string>
+  postPreviewMap?: Record<string, PostPreviewMeta>
   children: ReactNode
 }) {
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null)
+
+  if (postId) {
+    const slug = postSlugMap?.[postId]
+    if (!slug) {
+      return (
+        <span className="text-muted-foreground line-through">{children}</span>
+      )
+    }
+    return (
+      <PostLinkWithPreview slug={slug} preview={postPreviewMap?.[postId]}>
+        {children}
+      </PostLinkWithPreview>
+    )
+  }
 
   return (
     <a
@@ -140,13 +166,20 @@ const DECORATOR_BLOCK_TYPES: readonly string[] = [
   LEXICAL_NODE_TYPE.GALLERY,
   LEXICAL_NODE_TYPE.AUDIO,
   LEXICAL_NODE_TYPE.YOUTUBE,
+  LEXICAL_NODE_TYPE.POST_CARD,
 ]
 
 function isDecoratorBlock(type: string): boolean {
   return DECORATOR_BLOCK_TYPES.includes(type)
 }
 
-export function PostContent({ lexicalJson, className = '', urlMap: urlMapProp }: PostContentProps) {
+export function PostContent({
+  lexicalJson,
+  className = '',
+  urlMap: urlMapProp,
+  postSlugMap = {},
+  postPreviewMap = {},
+}: PostContentProps) {
   const [lightbox, setLightbox] = useState<{
     images: { src: string; alt?: string }[]
     index: number
@@ -283,6 +316,33 @@ export function PostContent({ lexicalJson, className = '', urlMap: urlMapProp }:
           </figure>
         )
       }
+      if (node.type === LEXICAL_NODE_TYPE.POST_CARD && node.postId) {
+        const postId = String(node.postId)
+        const slug = postSlugMap[postId] ?? (node.slug ? String(node.slug) : null)
+        const title = node.title != null ? String(node.title) : 'Untitled'
+        if (!slug || !postSlugMap[postId]) {
+          return (
+            <figure
+              key={lexicalReactKey(node)}
+              className="my-6 rounded-lg border border-dashed border-border bg-muted/30 p-4 max-w-xl"
+            >
+              <p className="text-sm text-muted-foreground">{title} (unavailable)</p>
+            </figure>
+          )
+        }
+        return (
+          <Link
+            key={lexicalReactKey(node)}
+            href={`/${slug}`}
+            className="my-6 block rounded-lg border border-border bg-card p-4 max-w-xl hover:bg-accent/40 transition-colors"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Post preview
+            </p>
+            <p className="font-semibold text-foreground">{title}</p>
+          </Link>
+        )
+      }
       if (node.type === LEXICAL_NODE_TYPE.TEXT || node.type === LEXICAL_NODE_TYPE.EXTENDED_TEXT) {
         return <span key={lexicalReactKey(node)}>{renderText(node)}</span>
       }
@@ -385,6 +445,9 @@ export function PostContent({ lexicalJson, className = '', urlMap: urlMapProp }:
             key={lexicalReactKey(node)}
             href={String(node.url ?? '#')}
             target={String(node.target ?? '_blank')}
+            postId={getPostIdFromLexicalLinkNode(node)}
+            postSlugMap={postSlugMap}
+            postPreviewMap={postPreviewMap}
           >
             {children}
           </PostLink>

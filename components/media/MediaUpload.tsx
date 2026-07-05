@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type ChangeEvent, type ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { UploadSimpleIcon, CheckIcon, WarningCircleIcon, MusicNotesIcon } from '@phosphor-icons/react'
@@ -30,9 +31,16 @@ interface MediaUploadProps {
   multiple?: boolean
   onUploaded?: (media: UploadResult[]) => void
   buttonLabel?: string
-  buttonIcon?: React.ReactNode
+  buttonIcon?: ReactNode
   buttonClassName?: string
   accept?: string
+  variant?: 'default' | 'featured'
+}
+
+function updateItemAt(items: UploadItem[], index: number, patch: Partial<UploadItem>): UploadItem[] {
+  const next = [...items]
+  next[index] = { ...next[index], ...patch }
+  return next
 }
 
 export function MediaUpload({
@@ -46,6 +54,7 @@ export function MediaUpload({
   buttonIcon,
   buttonClassName,
   accept = 'image/*',
+  variant = 'default',
 }: MediaUploadProps) {
   const [items, setItems] = useState<UploadItem[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -132,7 +141,7 @@ export function MediaUpload({
     const signal = uploadAbortRef.current.signal
 
     toUpload.forEach((_, index) => {
-      setItems((prev) => {
+      setItems((prev: UploadItem[]) => {
         const next = [...prev]
         if (next[index].status !== UPLOAD_ITEM_STATUS.PENDING) return prev
         next[index] = { ...next[index], status: UPLOAD_ITEM_STATUS.UPLOADING, progress: 0 }
@@ -140,31 +149,30 @@ export function MediaUpload({
       })
 
       const onProgress = (p: number) =>
-        setItems((prev) => {
-          const next = [...prev]
-          next[index] = { ...next[index], progress: p }
-          return next
-        })
+        setItems((prev: UploadItem[]) => updateItemAt(prev, index, { progress: p }))
 
       uploadOne(toUpload[index].file, index, signal, onProgress)
         .then((result) => {
-          setItems((prev) => {
-            const next = [...prev]
-            next[index] = { ...next[index], status: UPLOAD_ITEM_STATUS.DONE, progress: 100, result }
-            return next
-          })
+          setItems((prev: UploadItem[]) =>
+            updateItemAt(prev, index, {
+              status: UPLOAD_ITEM_STATUS.DONE,
+              progress: 100,
+              result,
+            })
+          )
         })
         .catch((err: Error) => {
-          setItems((prev) => {
-            const next = [...prev]
-            next[index] = { ...next[index], status: UPLOAD_ITEM_STATUS.ERROR, error: err.message }
-            return next
-          })
+          setItems((prev: UploadItem[]) =>
+            updateItemAt(prev, index, {
+              status: UPLOAD_ITEM_STATUS.ERROR,
+              error: err.message,
+            })
+          )
         })
     })
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
@@ -189,10 +197,48 @@ export function MediaUpload({
   }
 
   const disabled = items.length > 0 || !mediableId
+  const isFeatured = variant === 'featured'
+
+  const openFilePicker = () => {
+    if (disabled) return
+    fileInputRef.current?.click()
+  }
+
+  const uploadProgress = items.length === 1 ? items[0] : null
 
   return (
-    <div className="space-y-4">
+    <div className={isFeatured ? 'mb-3' : 'space-y-4'}>
       {items.length > 0 ? (
+        isFeatured && uploadProgress ? (
+          <div className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-2 py-1.5">
+            {!uploadProgress.file.type.startsWith('audio/') && (
+              <img
+                src={uploadProgress.previewUrl}
+                alt=""
+                className="h-9 w-9 rounded object-cover opacity-80"
+              />
+            )}
+            <div className="flex min-w-[5rem] flex-col gap-1">
+              {uploadProgress.status === UPLOAD_ITEM_STATUS.ERROR ? (
+                <WarningCircleIcon className="h-4 w-4 text-destructive" />
+              ) : uploadProgress.status === UPLOAD_ITEM_STATUS.DONE ? (
+                <CheckIcon className="h-4 w-4 text-green-600" />
+              ) : (
+                <>
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-foreground/70 transition-[width] duration-150 ease-out"
+                      style={{ width: `${uploadProgress.progress}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {uploadProgress.progress}%
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {items.map((item) => {
             const isAudio = item.file.type.startsWith('audio/')
@@ -232,8 +278,9 @@ export function MediaUpload({
             )
           })}
         </div>
+        )
       ) : (
-        <div className={`relative w-full ${disabled ? 'cursor-not-allowed' : ''}`}>
+        <div className={cn(isFeatured ? 'w-fit' : 'w-full')}>
           <input
             ref={fileInputRef}
             type="file"
@@ -241,25 +288,48 @@ export function MediaUpload({
             multiple={multiple}
             onChange={handleFileSelect}
             disabled={disabled}
-            className={`absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 ${disabled ? 'pointer-events-none' : ''}`}
+            className="sr-only"
             aria-label="Select files"
           />
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled}
-            className={['w-full pointer-events-none', buttonClassName].filter(Boolean).join(' ')}
-          >
-            {buttonIcon ? (
-              <span className="mr-2 inline-flex [&>svg]:h-4 [&>svg]:w-4">{buttonIcon}</span>
-            ) : (
-              <UploadSimpleIcon className="mr-2 h-4 w-4" />
-            )}
-            {buttonLabel}
-          </Button>
+          {isFeatured ? (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={openFilePicker}
+              className={cn(
+                'inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors',
+                'border-border/70 bg-muted/25 text-muted-foreground',
+                !disabled &&
+                  'hover:border-border hover:bg-muted/45 hover:text-foreground active:scale-[0.98]',
+                disabled && 'cursor-not-allowed opacity-60'
+              )}
+            >
+              {buttonIcon ? (
+                <span className="inline-flex [&>svg]:h-4 [&>svg]:w-4">{buttonIcon}</span>
+              ) : (
+                <UploadSimpleIcon className="h-4 w-4" />
+              )}
+              <span>{buttonLabel}</span>
+            </button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={disabled}
+              onClick={openFilePicker}
+              className={['w-full cursor-pointer', buttonClassName].filter(Boolean).join(' ')}
+            >
+              {buttonIcon ? (
+                <span className="mr-2 inline-flex [&>svg]:h-4 [&>svg]:w-4">{buttonIcon}</span>
+              ) : (
+                <UploadSimpleIcon className="mr-2 h-4 w-4" />
+              )}
+              {buttonLabel}
+            </Button>
+          )}
         </div>
       )}
-      {!mediableId && items.length === 0 && (
+      {!mediableId && items.length === 0 && !isFeatured && (
         <p className="text-sm text-muted-foreground">
           Please save the post first before uploading media
         </p>

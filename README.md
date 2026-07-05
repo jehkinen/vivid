@@ -42,7 +42,8 @@ The stack is built around **Supabase Postgres** (via Prisma: pooled `DATABASE_UR
 
 ```bash
 git clone https://github.com/jehkinen/vivid.git && cd vivid && npm install
-# copy .env — DATABASE_URL, DIRECT_URL, AUTH_SECRET, S3_* …
+# copy .env — DATABASE_URL, DIRECT_URL, AUTH_SECRET, SECRETS_ENCRYPTION_KEY, S3_* …
+# SECRETS_ENCRYPTION_KEY: openssl rand -base64 32
 npx prisma generate && npx prisma db push
 npm run dev
 ```

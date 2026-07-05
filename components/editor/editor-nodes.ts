@@ -6,6 +6,7 @@ import { ImageNode } from './nodes/ImageNode'
 import { GalleryNode } from './nodes/GalleryNode'
 import { AudioNode } from './nodes/AudioNode'
 import { YouTubeNode } from './nodes/YouTubeNode'
+import { PostCardNode } from './nodes/PostCardNode'
 
 export const EDITOR_NODES = [
   HeadingNode,
@@ -20,6 +21,7 @@ export const EDITOR_NODES = [
   GalleryNode,
   AudioNode,
   YouTubeNode,
+  PostCardNode,
 ]
 
 export { ImageNode, $createImageNode, $isImageNode } from './nodes/ImageNode'
@@ -31,4 +33,9 @@ export {
   $createYouTubeNode,
   $isYouTubeNode,
 } from './nodes/YouTubeNode'
+export {
+  PostCardNode,
+  $createPostCardNode,
+  $isPostCardNode,
+} from './nodes/PostCardNode'
 export { extractYouTubeVideoId } from '@/lib/editor/lexical/youtube-utils'

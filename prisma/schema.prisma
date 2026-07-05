@@ -32,6 +32,8 @@ model Post {
   featuredMedia   Media?       @relation("FeaturedMedia", fields: [featuredMediaId], references: [id])
   tags            PostTag[]
   authors         PostAuthor[]
+  referencesFrom  PostReference[] @relation("PostReferencesFrom")
+  referencesTo    PostReference[] @relation("PostReferencesTo")
 
   @@unique([slug, type])
   @@index([type, status, updatedAt])
@@ -56,6 +58,20 @@ model Tag {
   posts           PostTag[]
 
   @@map("tags")
+  @@schema("vivid_react")
+}
+
+model PostReference {
+  sourcePostId String   @map("source_post_id") @db.VarChar(24)
+  targetPostId String   @map("target_post_id") @db.VarChar(24)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  sourcePost Post @relation("PostReferencesFrom", fields: [sourcePostId], references: [id], onDelete: Cascade)
+  targetPost Post @relation("PostReferencesTo", fields: [targetPostId], references: [id], onDelete: Cascade)
+
+  @@id([sourcePostId, targetPostId])
+  @@index([targetPostId])
+  @@map("post_references")
   @@schema("vivid_react")
 }
 
@@ -87,6 +103,8 @@ model Author {
   facebook     String?      @db.VarChar(2000)
   twitter      String?      @db.VarChar(2000)
   accessibility String?     @db.VarChar(50)
+  openAiKeyEncrypted String? @map("open_ai_key_encrypted") @db.Text
+  openAiKeyHint      String? @map("open_ai_key_hint") @db.VarChar(24)
   status       String       @default("active") @db.VarChar(50)
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")

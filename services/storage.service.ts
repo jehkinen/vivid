@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
-import { SIGNED_URL_CACHE_BUFFER_SECONDS } from '@/shared/constants'
+import { SIGNED_URL_EXPIRES_SECONDS, SIGNED_URL_CACHE_BUFFER_SECONDS } from '@/shared/constants'
 
 const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
@@ -40,7 +40,7 @@ export class StorageService {
     return { key, url }
   }
 
-  async getFileUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  async getFileUrl(key: string, expiresIn: number = SIGNED_URL_EXPIRES_SECONDS): Promise<string> {
     if (IS_PUBLIC) {
       return `${process.env.S3_ENDPOINT}/${BUCKET}/${key}`
     }

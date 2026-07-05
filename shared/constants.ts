@@ -143,6 +143,7 @@ export const LEXICAL_NODE_TYPE = {
   GALLERY: 'gallery',
   AUDIO: 'audio',
   YOUTUBE: 'youtube',
+  POST_CARD: 'post-card',
   TEXT: 'text',
   EXTENDED_TEXT: 'extended-text',
   LINEBREAK: 'linebreak',
@@ -158,6 +159,17 @@ export const LEXICAL_NODE_TYPE = {
 } as const
 
 export type LexicalNodeType = (typeof LEXICAL_NODE_TYPE)[keyof typeof LEXICAL_NODE_TYPE]
+
+export const POST_LINK_FIELD = 'postId' as const
+
+export const POST_LINK_REL_PREFIX = 'vivid-post:' as const
+
+export const POST_REF_TYPE = {
+  INLINE: 'inline',
+  CARD: 'card',
+} as const
+
+export type PostRefType = (typeof POST_REF_TYPE)[keyof typeof POST_REF_TYPE]
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024
 
@@ -187,4 +199,55 @@ export const CACHE_TAGS = {
 
 export const CACHE_REVALIDATE_SECONDS = 60
 
+export const SIGNED_URL_EXPIRES_SECONDS = 3600
+
 export const SIGNED_URL_CACHE_BUFFER_SECONDS = 60
+
+export const OPENAI_IMAGE_MODEL = 'dall-e-3' as const
+
+export const OPENAI_IMAGE_SIZE = '1792x1024' as const
+
+export const OPENAI_IMAGE_RESPONSE_FORMAT = 'b64_json' as const
+
+export const OPENAI_KEY_MIN_LENGTH = 20
+
+export const OPENAI_KEY_PREFIX = 'sk-' as const
+
+export const COVER_STYLE_PRESETS = [
+  {
+    id: 'editorial',
+    label: 'Editorial',
+    promptSuffix: 'Editorial magazine cover style, cinematic lighting, professional photography.',
+  },
+  {
+    id: 'minimal',
+    label: 'Minimal',
+    promptSuffix: 'Minimalist composition, clean negative space, soft muted palette.',
+  },
+  {
+    id: 'moody',
+    label: 'Moody',
+    promptSuffix: 'Moody atmospheric scene, dramatic shadows, rich deep tones.',
+  },
+  {
+    id: 'abstract',
+    label: 'Abstract',
+    promptSuffix: 'Abstract artistic interpretation, bold shapes, expressive texture.',
+  },
+] as const
+
+export type CoverStylePresetId = (typeof COVER_STYLE_PRESETS)[number]['id']
+
+export const COVER_GENERATION_MAX_ATTEMPTS = 5
+
+export const COVER_PROMPT_EXCERPT_MAX = 600
+
+export const COVER_MIN_PLAINTEXT_CHARS = 40
+
+export const API_ERROR_CODE = {
+  OPENAI_NOT_CONFIGURED: 'OPENAI_NOT_CONFIGURED',
+} as const
+
+export type ApiErrorCode = (typeof API_ERROR_CODE)[keyof typeof API_ERROR_CODE]
+
+export const GENERATED_COVER_FILENAME = 'cover-generated.png' as const

@@ -6,6 +6,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { XIcon } from '@phosphor-icons/react'
 import { POST_VISIBILITY, type PostVisibility } from '@/shared/constants'
+import { PostEditorReferencesPanel } from '@/components/editor/post-editor/PostEditorReferencesPanel'
 
 function toDateLocal(iso: string | null): string {
   if (!iso) return ''
@@ -55,6 +56,7 @@ export function PostSettingsPanel(props: PostSettingsPanelProps) {
     tags,
     onCreateTag,
     onClose,
+    postId,
   } = props
   const [timeInputValue, setTimeInputValue] = useState<string>(() => toTimeLocal(publishedAt))
 
@@ -142,6 +144,7 @@ export function PostSettingsPanel(props: PostSettingsPanelProps) {
             className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
+        <PostEditorReferencesPanel postId={postId} />
       </div>
     </aside>
   )

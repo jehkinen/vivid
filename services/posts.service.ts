@@ -7,6 +7,7 @@ import { countWords } from '@/lib/utils'
 import { IMAGE_CONVERSIONS, MEDIABLE_TYPES, POST_SORT_OPTIONS, POST_STATUS, POST_TYPE, POST_VISIBILITY, type PostSortOption } from '@/shared/constants'
 import { mediaService, type MediaService } from './media.service'
 import { storageService } from './storage.service'
+import { postReferencesService } from './post-references.service'
 
 interface CreatePostData {
   title?: string
@@ -247,16 +248,22 @@ export class PostsService {
       tags,
     }
     try {
-      return await prisma.post.create({
-        data: createData,
-        include: {
-          tags: {
-            include: {
-              tag: true,
+      const post = await prisma.$transaction(async (tx) => {
+        return tx.post.create({
+          data: createData,
+          include: {
+            tags: {
+              include: {
+                tag: true,
+              },
             },
           },
-        },
+        })
       })
+      if (data.lexical) {
+        await postReferencesService.syncFromLexical(post.id, data.lexical)
+      }
+      return post
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         throw new Error('Slug must be unique for this post type')
@@ -326,8 +333,10 @@ export class PostsService {
       }
     }
 
+    const shouldSyncRefs = allowContentUpdate && hasLexical
+
     if (data.tagIds !== undefined) {
-      return prisma.$transaction(async (tx) => {
+      const post = await prisma.$transaction(async (tx) => {
         await tx.postTag.deleteMany({ where: { postId: id } })
         if (data.tagIds!.length > 0) {
           await tx.postTag.createMany({
@@ -350,6 +359,28 @@ export class PostsService {
           },
         })
       })
+      if (shouldSyncRefs) {
+        await postReferencesService.syncFromLexical(id, data.lexical ?? null)
+      }
+      return post
+    }
+
+    if (shouldSyncRefs) {
+      const post = await prisma.$transaction(async (tx) => {
+        return tx.post.update({
+          where: { id },
+          data: updateData as Prisma.PostUpdateInput,
+          include: {
+            tags: {
+              include: {
+                tag: true,
+              },
+            },
+          },
+        })
+      })
+      await postReferencesService.syncFromLexical(id, data.lexical ?? null)
+      return post
     }
 
     return prisma.post.update({

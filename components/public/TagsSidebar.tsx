@@ -1,4 +1,9 @@
+'use client'
+
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
+
+const VISIBLE_LIMIT = 20
 
 interface TagItem {
   id: string
@@ -13,6 +18,22 @@ interface TagsSidebarProps {
 }
 
 export function TagsSidebar({ tags }: TagsSidebarProps) {
+  const [expanded, setExpanded] = useState(false)
+
+  const sortedTags = useMemo(
+    () =>
+      tags
+        .filter((tag) => tag.postCount > 0)
+        .sort((a, b) => {
+          const countDiff = b.postCount - a.postCount
+          return countDiff !== 0 ? countDiff : a.name.localeCompare(b.name, 'ru')
+        }),
+    [tags]
+  )
+
+  const visibleTags = expanded ? sortedTags : sortedTags.slice(0, VISIBLE_LIMIT)
+  const hiddenCount = sortedTags.length - VISIBLE_LIMIT
+
   return (
     <div className="pb-4 space-y-6">
       <div>
@@ -20,7 +41,7 @@ export function TagsSidebar({ tags }: TagsSidebarProps) {
           TOPICS
         </h3>
         <ul className="space-y-2">
-          {tags.map((tag) => (
+          {visibleTags.map((tag) => (
             <li key={tag.id}>
               <Link
                 href={`/tag/${tag.slug}`}
@@ -41,6 +62,15 @@ export function TagsSidebar({ tags }: TagsSidebarProps) {
             </li>
           ))}
         </ul>
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {expanded ? 'Show less' : `Show more (${hiddenCount})`}
+          </button>
+        )}
       </div>
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { formatPostDate } from '@/lib/utils'
+import { FeaturedMediaThumbnail } from './FeaturedMediaThumbnail'
 
 const EXCERPT_LENGTH = 200
 
@@ -18,7 +19,7 @@ interface PostCardProps {
   publishedAt: string | Date | null
   wordCount: number | null
   tags?: { tag: { id: string; name: string; slug: string; color?: string | null } }[]
-  featuredMedia?: { url?: string | null; thumbUrl?: string | null } | null
+  featuredMedia?: { id?: string; url?: string | null; thumbUrl?: string | null } | null
 }
 
 export function PostCard({ title, slug, plaintext, publishedAt, wordCount, tags, featuredMedia }: PostCardProps) {
@@ -27,14 +28,21 @@ export function PostCard({ title, slug, plaintext, publishedAt, wordCount, tags,
   const words = wordCount ?? 0
   const tagList = tags?.map((t) => t.tag) ?? []
   const thumbSrc = featuredMedia?.thumbUrl ?? featuredMedia?.url
+  const mediaId = featuredMedia?.id
 
   return (
     <article className="border-b border-border py-8 first:pt-0 flex gap-6">
-      {thumbSrc && (
+      {mediaId ? (
+        <FeaturedMediaThumbnail
+          mediaId={mediaId}
+          initialSrc={thumbSrc}
+          slug={slug}
+        />
+      ) : thumbSrc ? (
         <Link href={`/${slug}`} className="shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-border bg-muted block">
           <img src={thumbSrc} alt="" className="w-full h-full object-cover" width={80} height={80} />
         </Link>
-      )}
+      ) : null}
       <div className="min-w-0 flex-1">
       <h2 className="text-2xl font-bold mb-2">
         <Link href={`/${slug}`} className="text-foreground hover:opacity-80">

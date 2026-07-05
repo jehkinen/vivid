@@ -3,13 +3,16 @@
 import * as React from 'react'
 import type { LexicalEditor } from 'lexical'
 import { insertDecoratorWithTrailingParagraph } from '@/lib/editor/insert-block'
+import { $insertPostLink } from '@/lib/editor/post-link'
 import { $createGalleryNode } from '../nodes/GalleryNode'
 import { $createImageNode } from '../nodes/ImageNode'
 import { $createAudioNode } from '../nodes/AudioNode'
 import { $createYouTubeNode } from '../nodes/YouTubeNode'
+import { $createPostCardNode } from '../nodes/PostCardNode'
 import { extractYouTubeVideoId } from '@/lib/editor/lexical/youtube-utils'
 import { useState } from 'react'
-import { PlusIcon, ImageIcon, SquaresFourIcon, MusicNotesIcon, YoutubeLogo } from '@phosphor-icons/react'
+import { PlusIcon, ImageIcon, SquaresFourIcon, MusicNotesIcon, YoutubeLogo, LinkIcon, ArticleIcon } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,10 +26,14 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { MediaUpload } from '@/components/media/MediaUpload'
+import { PostPickerDialog } from '../PostPickerDialog'
+import type { PostSearchItem } from '@/components/search/PostSearchList'
 import { LEXICAL_NODE_TYPE } from '@/shared/constants'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type InsertBlockType = typeof LEXICAL_NODE_TYPE.IMAGE | typeof LEXICAL_NODE_TYPE.GALLERY | typeof LEXICAL_NODE_TYPE.AUDIO | typeof LEXICAL_NODE_TYPE.YOUTUBE
+
+type PostPickerMode = 'link' | 'card'
 
 function getInsertDialogTitle(type: InsertBlockType): string {
   const titles: Record<InsertBlockType, string> = {
@@ -59,6 +66,36 @@ export function InsertBlockPlus({
   const [blockType, setBlockType] = useState<InsertBlockType | null>(null)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [postPickerOpen, setPostPickerOpen] = useState(false)
+  const [postPickerMode, setPostPickerMode] = useState<PostPickerMode>('link')
+
+  const openPostPicker = (mode: PostPickerMode) => {
+    setPostPickerMode(mode)
+    setPopoverOpen(false)
+    setPostPickerOpen(true)
+  }
+
+  const handlePostSelect = (post: PostSearchItem) => {
+    if (!editor) return
+    editor.update(() => {
+      if (postPickerMode === 'link') {
+        $insertPostLink({
+          postId: post.id,
+          slug: post.slug,
+          title: post.title,
+        })
+      } else {
+        insertDecoratorWithTrailingParagraph(() =>
+          $createPostCardNode({
+            postId: post.id,
+            slug: post.slug,
+            title: post.title,
+          })
+        )
+      }
+    })
+    toast.success(`Linked to "${post.title || 'Untitled'}"`)
+  }
 
   const openDialog = (type: InsertBlockType) => {
     setBlockType(type)
@@ -176,8 +213,31 @@ export function InsertBlockPlus({
             <YoutubeLogo size={16} />
             YouTube
           </button>
+          <div className="text-xs font-medium text-muted-foreground px-2 py-1.5 mt-1 border-t border-border">CONNECT</div>
+          <button
+            type="button"
+            onClick={() => openPostPicker('link')}
+            className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground text-left"
+          >
+            <LinkIcon size={16} />
+            Link to post
+          </button>
+          <button
+            type="button"
+            onClick={() => openPostPicker('card')}
+            className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground text-left"
+          >
+            <ArticleIcon size={16} />
+            Post preview
+          </button>
         </PopoverContent>
       </Popover>
+      <PostPickerDialog
+        open={postPickerOpen}
+        onOpenChange={setPostPickerOpen}
+        excludePostId={mediableId}
+        onSelect={handlePostSelect}
+      />
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>

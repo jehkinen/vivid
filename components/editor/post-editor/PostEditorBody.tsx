@@ -1,11 +1,9 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { LexicalEditor } from '@/components/editor/LexicalEditor'
-import { MediaUpload } from '@/components/media/MediaUpload'
-import { XIcon, Image as ImageIcon } from '@phosphor-icons/react'
+import { FeaturedImagePicker } from '@/components/editor/post-editor/FeaturedImagePicker'
 import type { LexicalEditor as LexicalEditorInstance } from 'lexical'
-import { MEDIA_COLLECTIONS, MEDIABLE_TYPES } from '@/shared/constants'
+import { MEDIABLE_TYPES } from '@/shared/constants'
 import type { PostEditorFeaturedMedia } from '@/types/post-editor'
 
 type PostEditorBodyProps = {
@@ -13,6 +11,9 @@ type PostEditorBodyProps = {
   resolvedId: string | null
   title: string
   lexical: string | null
+  plaintext: string
+  tagNames: string[]
+  openAiConfigured: boolean
   featuredMedia: PostEditorFeaturedMedia
   onTitleChange: (v: string) => void
   onEditorChange: (a: unknown, b: string, lexicalState: string) => void
@@ -28,6 +29,9 @@ export function PostEditorBody({
   resolvedId,
   title,
   lexical,
+  plaintext,
+  tagNames,
+  openAiConfigured,
   featuredMedia,
   onTitleChange,
   onEditorChange,
@@ -42,35 +46,16 @@ export function PostEditorBody({
       <div className="flex">
         <div className="relative flex min-w-0 flex-1 flex-col">
           {resolvedId && (
-            <div className="mb-4">
-              {featuredMedia?.url ? (
-                <div className="relative mb-4 inline-block">
-                  <img
-                    src={featuredMedia.url}
-                    alt={featuredMedia.filename ?? ''}
-                    className="max-h-64 max-w-full rounded-lg object-cover"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => onRemoveFeatured(resolvedId)}
-                  >
-                    <XIcon size={16} />
-                  </Button>
-                </div>
-              ) : (
-                <MediaUpload
-                  mediableType={MEDIABLE_TYPES.POST}
-                  mediableId={resolvedId}
-                  collection={MEDIA_COLLECTIONS.FEATURED}
-                  buttonLabel="Featured Image"
-                  buttonIcon={<ImageIcon size={20} />}
-                  buttonClassName="min-h-[72px] py-4"
-                  onUploaded={(m) => onFeaturedUploaded(resolvedId, m)}
-                />
-              )}
-            </div>
+            <FeaturedImagePicker
+              postId={resolvedId}
+              featuredMedia={featuredMedia}
+              title={title}
+              plaintext={plaintext}
+              tagNames={tagNames}
+              openAiConfigured={openAiConfigured}
+              onRemove={onRemoveFeatured}
+              onUploaded={onFeaturedUploaded}
+            />
           )}
           <input
             type="text"

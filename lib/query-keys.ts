@@ -9,6 +9,7 @@ export const queryKeys = {
     infinite: (params?: unknown) => [...queryKeys.posts.all, 'infinite', params] as const,
     deleted: () => [...queryKeys.posts.all, 'deleted'] as const,
     detail: (id: string) => ['post', id] as const,
+    references: (id: string) => ['post', id, 'references'] as const,
   },
   tags: {
     all: ['tags'] as const,
@@ -28,5 +29,10 @@ export const queryKeys = {
     admin: (query: string) => ['search', query] as const,
     public: (query: string) => ['publicSearch', query] as const,
     publicTags: (query: string) => ['publicTagsSearch', query] as const,
+  },
+  graph: {
+    all: ['graph'] as const,
+    view: (postId?: string, depth?: number) =>
+      [...queryKeys.graph.all, postId ?? 'all', depth ?? 1] as const,
   },
 } as const

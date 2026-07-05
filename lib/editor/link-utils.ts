@@ -20,6 +20,7 @@ import {
   type LinkNode,
 } from '@lexical/link'
 import { $findMatchingParent } from '@lexical/utils'
+import { getPostIdFromLinkNode } from '@/lib/editor/post-link-helpers'
 
 export type SavedLinkSelection = {
   anchorKey: NodeKey
@@ -105,15 +106,18 @@ export function $buildLinkSessionFromKey(linkKey: NodeKey): {
   linkText: string
   linkUrl: string
   savedSelection: null
+  postId?: string
 } | null {
   const node = $getNodeByKey(linkKey)
   if (!node || !$isLinkNode(node)) return null
   if ($isAutoLinkNode(node) && node.getIsUnlinked()) return null
+  const postId = getPostIdFromLinkNode(node)
   return {
     editingLinkKey: linkKey,
     linkText: $getLinkDisplayText(node),
-    linkUrl: node.getURL(),
+    linkUrl: postId ? `Post: ${$getLinkDisplayText(node)}` : node.getURL(),
     savedSelection: null,
+    postId,
   }
 }
 

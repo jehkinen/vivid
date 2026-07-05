@@ -10,6 +10,8 @@ import {
   IMAGE_CONVERSIONS,
   MEDIA_FILTER_TYPES,
   MEDIABLE_TYPES,
+  POST_STATUS,
+  POST_VISIBILITY,
   type MediaFilterType,
 } from '@/shared/constants'
 
@@ -250,6 +252,35 @@ export class MediaService {
     const { basename, ext } = sanitizeFilenameForS3(media.filename)
     const conversionKey = `${media.mediableType.toLowerCase()}/${media.id}/conversions/${basename}-${conversionName}.${ext}`
     return storageService.getFileUrl(conversionKey)
+  }
+
+  async resolveFeaturedThumbForPublicPost(mediaId: string): Promise<string | null> {
+    const post = await prisma.post.findFirst({
+      where: {
+        featuredMediaId: mediaId,
+        status: POST_STATUS.PUBLISHED,
+        visibility: POST_VISIBILITY.PUBLIC,
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+    if (!post) return null
+
+    const media = await prisma.media.findUnique({
+      where: { id: mediaId, deletedAt: null },
+    })
+    if (!media) return null
+
+    const hasThumb =
+      media.generatedConversions &&
+      typeof media.generatedConversions === 'object' &&
+      (media.generatedConversions as Record<string, boolean>)[IMAGE_CONVERSIONS.THUMB]
+
+    if (hasThumb) {
+      return this.getConversionUrl(media, IMAGE_CONVERSIONS.THUMB)
+    }
+
+    return storageService.getFileUrl(media.key)
   }
 
   async getLibrary(options: { page: number; perPage: number; type: MediaFilterType }) {

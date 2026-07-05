@@ -10,6 +10,7 @@ const ROOT_ELEMENT_TYPES = new Set<string>([
   LEXICAL_NODE_TYPE.GALLERY,
   LEXICAL_NODE_TYPE.AUDIO,
   LEXICAL_NODE_TYPE.YOUTUBE,
+  LEXICAL_NODE_TYPE.POST_CARD,
 ])
 
 const NODE_TYPE_ALIASES: Record<string, string> = {
@@ -33,10 +34,20 @@ export function sanitizeLexicalRoot(parsed: { root?: { children?: unknown[] } })
   root.children = root.children.map((child: unknown) => {
     const sanitized = sanitizeNode(child as { type?: string; children?: unknown[] })
     const type = sanitized?.type
-    if (type === LEXICAL_NODE_TYPE.TEXT || (type && !ROOT_ELEMENT_TYPES.has(type))) {
+    if (
+      type === LEXICAL_NODE_TYPE.TEXT ||
+      type === LEXICAL_NODE_TYPE.LINK ||
+      type === LEXICAL_NODE_TYPE.AUTOLINK ||
+      (type && !ROOT_ELEMENT_TYPES.has(type))
+    ) {
       return {
         type: LEXICAL_NODE_TYPE.PARAGRAPH,
-        children: type === LEXICAL_NODE_TYPE.TEXT ? [sanitized] : [],
+        children:
+          type === LEXICAL_NODE_TYPE.TEXT ||
+          type === LEXICAL_NODE_TYPE.LINK ||
+          type === LEXICAL_NODE_TYPE.AUTOLINK
+            ? [sanitized]
+            : [],
         direction: null,
         format: '',
         indent: 0,

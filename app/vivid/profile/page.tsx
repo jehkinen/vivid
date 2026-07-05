@@ -1,94 +1,31 @@
 'use client'
 
 import { useState, useEffect, useId } from 'react'
-import { UserIcon, EyeIcon, EyeSlashIcon } from '@phosphor-icons/react'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { UserIcon } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { PasswordField } from '@/components/auth/PasswordField'
 import { authClient, type MeResponse } from '@/lib/api/authClient'
+import { queryKeys } from '@/lib/query-keys'
 import { cn } from '@/lib/utils'
 
-function PasswordRow({
-  id,
-  label,
-  value,
-  onChange,
-  autoComplete,
-  show,
-  onToggleShow,
-  hint,
-  hintDestructive,
-  minLength,
-  ariaInvalid,
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (v: string) => void
-  autoComplete: string
-  show: boolean
-  onToggleShow: () => void
-  hint?: string
-  hintDestructive?: boolean
-  minLength?: number
-  ariaInvalid?: boolean
-}) {
-  return (
-    <div className="space-y-2">
-      <label htmlFor={id} className="block text-sm font-medium leading-none text-foreground">
-        {label}
-      </label>
-      <div className="relative">
-        <Input
-          id={id}
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoComplete={autoComplete}
-          required
-          minLength={minLength}
-          aria-invalid={ariaInvalid || undefined}
-          className={cn(
-            'h-11 pr-11 bg-background shadow-sm',
-            'border-border/80 hover:border-border',
-            'dark:bg-background/60'
-          )}
-        />
-        <button
-          type="button"
-          onClick={onToggleShow}
-          className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={show ? 'Hide password' : 'Show password'}
-        >
-          {show ? <EyeSlashIcon size={18} weight="regular" /> : <EyeIcon size={18} weight="regular" />}
-        </button>
-      </div>
-      {hint ? (
-        <p
-          className={cn(
-            'text-xs leading-relaxed',
-            hintDestructive ? 'text-destructive' : 'text-muted-foreground'
-          )}
-        >
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
 export default function ProfilePage() {
+  const queryClient = useQueryClient()
   const formTitleId = useId()
+  const openAiTitleId = useId()
   const [user, setUser] = useState<MeResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [openAiKey, setOpenAiKey] = useState('')
   const [formError, setFormError] = useState('')
   const [formSuccess, setFormSuccess] = useState(false)
+  const [openAiError, setOpenAiError] = useState('')
+  const [openAiSuccessPulse, setOpenAiSuccessPulse] = useState(false)
   const [pending, setPending] = useState(false)
-  const [showCurrent, setShowCurrent] = useState(false)
-  const [showNew, setShowNew] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [openAiPending, setOpenAiPending] = useState(false)
 
   useEffect(() => {
     authClient
@@ -115,14 +52,46 @@ export default function ProfilePage() {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      setShowCurrent(false)
-      setShowNew(false)
-      setShowConfirm(false)
       setFormSuccess(true)
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setPending(false)
+    }
+  }
+
+  const handleSaveOpenAiKey = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setOpenAiError('')
+    setOpenAiPending(true)
+    try {
+      const result = await authClient.saveOpenAiKey(openAiKey)
+      setUser((current) => (current ? { ...current, openAi: result.openAi } : current))
+      setOpenAiKey('')
+      setOpenAiSuccessPulse(true)
+      window.setTimeout(() => setOpenAiSuccessPulse(false), 1200)
+      toast.success('OpenAI linked')
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() })
+    } catch (err: unknown) {
+      setOpenAiError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setOpenAiPending(false)
+    }
+  }
+
+  const handleRemoveOpenAiKey = async () => {
+    setOpenAiError('')
+    setOpenAiPending(true)
+    try {
+      const result = await authClient.deleteOpenAiKey()
+      setUser((current) => (current ? { ...current, openAi: result.openAi } : current))
+      setOpenAiKey('')
+      toast.success('OpenAI key removed')
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() })
+    } catch (err: unknown) {
+      setOpenAiError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setOpenAiPending(false)
     }
   }
 
@@ -160,6 +129,69 @@ export default function ProfilePage() {
         </div>
 
         <section
+          aria-labelledby={openAiTitleId}
+          className="rounded-xl border border-border bg-card p-6 shadow-sm"
+        >
+          <header className="mb-6 space-y-1.5">
+            <h2 id={openAiTitleId} className="text-lg font-semibold tracking-tight text-foreground">
+              Integrations
+            </h2>
+            <p className="text-sm text-muted-foreground">Connect OpenAI to generate cover images from your posts.</p>
+          </header>
+
+          <div className="mb-5 flex items-center gap-2">
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium',
+                user.openAi?.configured
+                  ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
+                  : 'border-border/70 bg-muted/25 text-muted-foreground',
+                openAiSuccessPulse && 'animate-pulse'
+              )}
+            >
+              {user.openAi?.configured
+                ? `Connected${user.openAi.hint ? ` · ${user.openAi.hint}` : ''}`
+                : 'Not connected'}
+            </span>
+          </div>
+
+          <form onSubmit={handleSaveOpenAiKey} className="space-y-5">
+            <PasswordField
+              id="openai-api-key"
+              label="OpenAI API key"
+              value={openAiKey}
+              onChange={setOpenAiKey}
+              autoComplete="off"
+              placeholder={user.openAi?.configured ? 'Enter a new key to replace' : 'sk-…'}
+              hint="Encrypted on the server. It will not be shown again after saving."
+            />
+
+            {openAiError ? (
+              <p className="text-sm text-destructive" role="alert">
+                {openAiError}
+              </p>
+            ) : null}
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Button type="submit" disabled={openAiPending || !openAiKey.trim()} className="h-11 px-8 sm:w-auto">
+                {openAiPending ? 'Saving…' : 'Save key'}
+              </Button>
+              {user.openAi?.configured ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={openAiPending}
+                  onClick={handleRemoveOpenAiKey}
+                  className="h-11 px-8 sm:w-auto"
+                >
+                  Remove key
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        </section>
+
+        <section
           aria-labelledby={formTitleId}
           className="rounded-xl border border-border bg-card p-6 shadow-sm"
         >
@@ -173,34 +205,28 @@ export default function ProfilePage() {
           </header>
 
           <form onSubmit={handleChangePassword} className="space-y-5">
-            <PasswordRow
+            <PasswordField
               id="current-password"
               label="Current password"
               value={currentPassword}
               onChange={setCurrentPassword}
               autoComplete="current-password"
-              show={showCurrent}
-              onToggleShow={() => setShowCurrent((s) => !s)}
             />
-            <PasswordRow
+            <PasswordField
               id="new-password"
               label="New password"
               value={newPassword}
               onChange={setNewPassword}
               autoComplete="new-password"
-              show={showNew}
-              onToggleShow={() => setShowNew((s) => !s)}
               minLength={8}
               hint="At least 8 characters."
             />
-            <PasswordRow
+            <PasswordField
               id="confirm-password"
               label="Confirm new password"
               value={confirmPassword}
               onChange={setConfirmPassword}
               autoComplete="new-password"
-              show={showConfirm}
-              onToggleShow={() => setShowConfirm((s) => !s)}
               ariaInvalid={confirmMismatch}
               hint={confirmMismatch ? 'Passwords must match.' : 'Re-enter your new password.'}
               hintDestructive={confirmMismatch}

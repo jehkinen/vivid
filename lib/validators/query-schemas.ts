@@ -79,6 +79,17 @@ export const searchQueryParamsSchema = z
   })
   .transform(({ q }) => ({ query: q }))
 
+export const graphQuerySchema = z.object({
+  postId: idParamSchema.optional(),
+  depth: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(2)
+    .transform((v) => v as 1 | 2)
+    .catch(1),
+})
+
 export const idRouteParamsSchema = z.object({ id: idParamSchema })
 export const slugRouteParamsSchema = z.object({ slug: slugParamSchema })
 export const listItemRouteParamsSchema = z.object({

@@ -12,6 +12,7 @@ export type LinkSession = {
   linkText: string
   linkUrl: string
   editingLinkKey: string | null
+  postId?: string
 }
 
 type EditorFloatingUIContextValue = {

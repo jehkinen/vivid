@@ -7,8 +7,11 @@ import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
 import { formatPostDate } from '@/lib/utils'
 import { getAuthCookieName, verifyAuthToken } from '@/lib/auth'
 import { collectMediaIds } from '@/lib/editor/lexical/collect-media-ids'
+import { extractPostReferenceTargetIds } from '@/lib/editor/lexical/extract-post-references'
+import { postReferencesService } from '@/services/post-references.service'
 import { PublicLayout } from '@/components/public/PublicLayout'
 import { PostContent } from '@/components/public/PostContent'
+import { PostReferencesPanel } from '@/components/public/PostReferencesPanel'
 import { PostEditButton } from '@/components/public/PostEditButton'
 import { PostBackButton } from '@/components/public/PostBackButton'
 import { ReadingSettingsPanel } from '@/components/public/ReadingSettingsPanel'
@@ -52,6 +55,12 @@ export default async function PostBySlugPage({
     : []
 
   const mediaUrlMap = await mediaService.resolveUrlMap(collectMediaIds(post.lexical))
+  const refTargetIds = extractPostReferenceTargetIds(post.lexical)
+  const [references, postSlugMap, postPreviewMap] = await Promise.all([
+    postReferencesService.findForPost(post.id),
+    postReferencesService.findSlugMapByIds(refTargetIds),
+    postReferencesService.findPreviewMapByIds(refTargetIds),
+  ])
 
   return (
     <PublicLayout showReadingSettingsInHeader={false}>
@@ -117,7 +126,13 @@ export default async function PostBySlugPage({
             </figure>
           )}
         </header>
-        <PostContent lexicalJson={post.lexical} urlMap={mediaUrlMap} />
+        <PostContent
+          lexicalJson={post.lexical}
+          urlMap={mediaUrlMap}
+          postSlugMap={postSlugMap}
+          postPreviewMap={postPreviewMap}
+        />
+        <PostReferencesPanel incoming={references.incoming} outgoing={references.outgoing} />
         </article>
       </div>
     </PublicLayout>

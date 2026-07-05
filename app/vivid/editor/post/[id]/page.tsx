@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { PostSettingsPanel } from '@/components/editor/PostSettingsPanel'
 import { PostEditorBackLink } from '@/components/editor/post-editor/PostEditorBackLink'
 import { PostEditorBody } from '@/components/editor/post-editor/PostEditorBody'
@@ -11,6 +11,8 @@ import { PostEditorMobileBar } from '@/components/editor/post-editor/PostEditorM
 import { PostEditorStatusStrip } from '@/components/editor/post-editor/PostEditorStatusStrip'
 import { Loader } from '@/components/ui/loader'
 import { usePostEditorPage } from '@/hooks/use-post-editor-page'
+import { useMe } from '@/hooks/use-me'
+import { extractPlaintextFromLexical } from '@/lib/lexical-utils'
 import { routes } from '@/lib/routes'
 import { POST_STATUS } from '@/shared/constants'
 
@@ -57,6 +59,17 @@ export default function PostEditorPage() {
     setPublishedAt,
     setSelectedTagIds,
   } = usePostEditorPage()
+  const { data: me } = useMe()
+
+  const plaintext = useMemo(() => extractPlaintextFromLexical(lexical), [lexical])
+  const tagNames = useMemo(
+    () =>
+      tagsForSettings
+        .filter((tag) => selectedTagIds.includes(tag.id))
+        .map((tag) => tag.name),
+    [tagsForSettings, selectedTagIds]
+  )
+  const openAiConfigured = me?.openAi?.configured ?? false
 
   const handleConfirmDelete = useCallback(() => {
     if (!resolvedId) return
@@ -104,6 +117,9 @@ export default function PostEditorPage() {
               resolvedId={resolvedId}
               title={title}
               lexical={lexical}
+              plaintext={plaintext}
+              tagNames={tagNames}
+              openAiConfigured={openAiConfigured}
               featuredMedia={featuredMedia}
               onTitleChange={handleTitleChange}
               onEditorChange={handleEditorChange}

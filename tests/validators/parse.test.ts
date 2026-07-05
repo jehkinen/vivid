@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { ZodError } from 'zod'
 import { parseRequest, parseSearchParams } from '@/lib/validators/parse'
-import { postsListQuerySchema } from '@/lib/validators/query-schemas'
+import { postsListQuerySchema, graphQuerySchema } from '@/lib/validators/query-schemas'
 import { idParamSchema } from '@/lib/validators/schemas'
 
 describe('parseRequest', () => {
@@ -39,5 +39,21 @@ describe('parseSearchParams', () => {
     expect(query.offset).toBe(0)
     expect(query.sort).toBe('newest')
     expect(query.includeDeleted).toBe(false)
+  })
+})
+
+describe('graphQuerySchema', () => {
+  it('defaults depth to 1 when missing', () => {
+    const query = parseSearchParams(
+      graphQuerySchema,
+      new URLSearchParams({ postId: 'clh123456789012345678901' })
+    )
+    expect(query.postId).toBe('clh123456789012345678901')
+    expect(query.depth).toBe(1)
+  })
+
+  it('coerces depth within bounds', () => {
+    const query = parseSearchParams(graphQuerySchema, new URLSearchParams({ depth: '2' }))
+    expect(query.depth).toBe(2)
   })
 })

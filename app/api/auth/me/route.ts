@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { getAuthCookieName, verifyAuthToken } from '@/lib/auth'
+import { authorSecretsService } from '@/services/author-secrets.service'
 
 export async function GET() {
   const token = (await cookies()).get(getAuthCookieName())?.value
@@ -21,5 +22,6 @@ export async function GET() {
   if (!author) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
-  return NextResponse.json({ name: author.name, email: author.email })
+  const openAi = await authorSecretsService.getOpenAiStatus(payload.sub)
+  return NextResponse.json({ name: author.name, email: author.email, openAi })
 }

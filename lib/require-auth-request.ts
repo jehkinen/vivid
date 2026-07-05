@@ -14,3 +14,11 @@ export async function unauthorizedUnlessAuthed(request: NextRequest): Promise<Ne
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 }
+
+export async function getAuthedAuthorId(request: NextRequest): Promise<string | NextResponse> {
+  const denied = await unauthorizedUnlessAuthed(request)
+  if (denied) return denied
+  const token = request.cookies.get(getAuthCookieName())!.value
+  const payload = await verifyAuthToken(token)
+  return payload.sub
+}

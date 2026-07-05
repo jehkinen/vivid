@@ -5,6 +5,9 @@ import {
   MEDIABLE_TYPES,
   SLUG_MAX_LENGTH,
   LIST_VISIBILITY,
+  COVER_STYLE_PRESETS,
+  OPENAI_KEY_MIN_LENGTH,
+  OPENAI_KEY_PREFIX,
 } from '@/shared/constants'
 
 const cuidSchema = z.string().length(24).regex(/^[a-z0-9]+$/)
@@ -124,6 +127,33 @@ export const nonEmptyPostUpdateSchema = postUpdateSchema.refine(
   (data) => Object.keys(data).length > 0,
   { message: 'Request body must be a non-empty object' }
 )
+
+const coverStylePresetSchema = z.enum(
+  COVER_STYLE_PRESETS.map((preset) => preset.id) as [
+    (typeof COVER_STYLE_PRESETS)[number]['id'],
+    ...(typeof COVER_STYLE_PRESETS)[number]['id'][],
+  ]
+)
+
+export const openAiKeySchema = z.object({
+  apiKey: z
+    .string()
+    .min(OPENAI_KEY_MIN_LENGTH, 'API key is too short')
+    .refine((value) => value.trim().startsWith(OPENAI_KEY_PREFIX), 'API key must start with sk-'),
+})
+
+export const generateCoverSchema = z.object({
+  stylePreset: coverStylePresetSchema,
+  promptOverride: z.string().max(4000).optional(),
+  draft: z
+    .object({
+      title: z.string().max(2000).optional(),
+      plaintext: z.string().max(20000).optional(),
+      tagNames: z.array(z.string().max(191)).max(20).optional(),
+    })
+    .optional(),
+  replaceMediaId: cuidSchema.optional(),
+})
 
 export function validateRequest<T extends z.ZodTypeAny>(
   schema: T,

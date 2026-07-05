@@ -1,4 +1,5 @@
 import { apiRequest } from './request'
+import type { OpenAiIntegrationStatus } from '@/types/ai'
 
 export interface LoginPayload {
   email: string
@@ -12,6 +13,7 @@ export interface LoginResponse {
 export interface MeResponse {
   name: string | null
   email: string
+  openAi: OpenAiIntegrationStatus
 }
 
 export interface ChangePasswordPayload {
@@ -21,6 +23,10 @@ export interface ChangePasswordPayload {
 
 export interface ChangePasswordResponse {
   success: boolean
+}
+
+export interface SaveOpenAiKeyResponse {
+  openAi: OpenAiIntegrationStatus
 }
 
 export const authClient = {
@@ -50,6 +56,21 @@ export const authClient = {
       path: '/api/auth/change-password',
       method: 'POST',
       body: payload,
+    })
+  },
+
+  saveOpenAiKey(apiKey: string) {
+    return apiRequest<SaveOpenAiKeyResponse>({
+      path: '/api/profile/openai-key',
+      method: 'PUT',
+      body: { apiKey },
+    })
+  },
+
+  deleteOpenAiKey() {
+    return apiRequest<SaveOpenAiKeyResponse>({
+      path: '/api/profile/openai-key',
+      method: 'DELETE',
     })
   },
 }
