@@ -56,6 +56,7 @@ export class MediaService {
         }
 
         await storageService.deleteFilesByPrefix(`${mediableType.toLowerCase()}/${mediaId}/`)
+        storageService.invalidateSignedUrlCacheForPrefix(`${mediableType.toLowerCase()}/${mediaId}/`)
       }
 
       const typePrefix = mediableType.toLowerCase()

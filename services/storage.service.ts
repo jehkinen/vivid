@@ -40,6 +40,14 @@ export class StorageService {
     return { key, url }
   }
 
+  invalidateSignedUrlCacheForPrefix(prefix: string): void {
+    for (const cacheKey of signedUrlCache.keys()) {
+      if (cacheKey.startsWith(prefix)) {
+        signedUrlCache.delete(cacheKey)
+      }
+    }
+  }
+
   async getFileUrl(key: string, expiresIn: number = SIGNED_URL_EXPIRES_SECONDS): Promise<string> {
     if (IS_PUBLIC) {
       return `${process.env.S3_ENDPOINT}/${BUCKET}/${key}`

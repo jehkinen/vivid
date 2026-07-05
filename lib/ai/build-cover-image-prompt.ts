@@ -10,7 +10,7 @@ export function buildCoverImagePrompt(concept: string, stylePreset: CoverStylePr
   const scene = concept.trim()
   const suffix = findPresetSuffix(stylePreset)
   return [
-    'Wide landscape blog cover image.',
+    'Square blog cover image.',
     'No text, no letters, no logos, no watermarks, no captions.',
     scene,
     suffix,

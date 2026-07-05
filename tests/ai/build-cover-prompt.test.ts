@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildCoverPrompt } from '@/lib/ai/build-cover-prompt'
+import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-prompt'
 import { COVER_MIN_PLAINTEXT_CHARS } from '@/shared/constants'
 
 describe('buildCoverPrompt', () => {
@@ -11,7 +11,7 @@ describe('buildCoverPrompt', () => {
     })
     expect(result.sufficient).toBe(true)
     expect(result.sourceParts.title).toBe('My Post')
-    expect(result.prompt).toContain('will be composed on Generate')
+    expect(result.prompt).toBe('')
   })
 
   it('is sufficient when plaintext meets minimum length', () => {
@@ -55,5 +55,19 @@ describe('buildCoverPrompt', () => {
       promptOverride: 'Custom prompt only',
     })
     expect(result.prompt).toBe('Custom prompt only')
+  })
+})
+
+describe('isUsablePromptOverride', () => {
+  it('rejects legacy placeholder prompts', () => {
+    expect(
+      isUsablePromptOverride(
+        'Wide landscape blog cover image will be composed on Generate. Post essence (preview): hello.'
+      )
+    ).toBe(false)
+  })
+
+  it('accepts real prompts', () => {
+    expect(isUsablePromptOverride('Golden light on two silhouettes in embrace.')).toBe(true)
   })
 })

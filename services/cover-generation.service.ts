@@ -1,5 +1,5 @@
 import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
-import { buildCoverPrompt } from '@/lib/ai/build-cover-prompt'
+import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-prompt'
 import { extractCoverConceptLocal } from '@/lib/ai/extract-cover-concept'
 import {
   GENERATED_COVER_FILENAME,
@@ -42,7 +42,11 @@ export class CoverGenerationService {
       throw new Error('Write a title or a few sentences before generating a cover')
     }
 
-    const concept = input.promptOverride?.trim()
+    const promptOverride = isUsablePromptOverride(input.promptOverride)
+      ? input.promptOverride.trim()
+      : undefined
+
+    const concept = promptOverride
       ? undefined
       : await openaiCoverConceptService.extractVisualBrief(apiKey, {
           title,
@@ -50,8 +54,8 @@ export class CoverGenerationService {
           tagNames,
         })
 
-    const prompt = input.promptOverride?.trim()
-      ? input.promptOverride.trim()
+    const prompt = promptOverride
+      ? promptOverride
       : buildCoverImagePrompt(
           concept ?? extractCoverConceptLocal({ title, plaintext, tagNames }) ?? title ?? '',
           input.stylePreset
@@ -65,7 +69,7 @@ export class CoverGenerationService {
         {
           buffer,
           filename: GENERATED_COVER_FILENAME,
-          mimeType: 'image/png',
+          mimeType: 'image/jpeg',
           size: buffer.byteLength,
         },
       ],

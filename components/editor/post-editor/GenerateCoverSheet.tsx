@@ -12,10 +12,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { buildCoverPrompt } from '@/lib/ai/build-cover-prompt'
+import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-prompt'
 import { routes } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useGenerateCover } from '@/hooks/api/use-generate-cover'
+import { invalidateMediaUrlCache, refreshMediaUrl } from '@/hooks/use-media-url'
 import {
   API_ERROR_CODE,
   COVER_GENERATION_MAX_ATTEMPTS,
@@ -80,17 +81,6 @@ export function GenerateCoverSheet({
     [title, plaintext, tagNames, stylePreset, promptOverride, promptEdited]
   )
 
-  const derivedPrompt = useMemo(
-    () =>
-      buildCoverPrompt({
-        title,
-        plaintext,
-        tagNames,
-        stylePreset,
-      }).prompt,
-    [title, plaintext, tagNames, stylePreset]
-  )
-
   const mainIdeaLine =
     lastConcept ??
     promptPreview.sourceParts.concept ??
@@ -100,17 +90,13 @@ export function GenerateCoverSheet({
   const wasOpenRef = useRef(false)
 
   useEffect(() => {
-    if (!open || promptEdited) return
-    setPromptOverride(derivedPrompt)
-  }, [open, derivedPrompt, promptEdited])
-
-  useEffect(() => {
     if (wasOpenRef.current && !open) {
       reset()
       setPreview(null)
       setLastConcept(null)
-      setAttempts(0)
+      setPromptOverride('')
       setPromptEdited(false)
+      setAttempts(0)
       setStylePreset('editorial')
     }
     wasOpenRef.current = open
@@ -120,30 +106,26 @@ export function GenerateCoverSheet({
     setStylePreset(preset)
     setPreview(null)
     setLastConcept(null)
-    if (!promptEdited) {
-      const next = buildCoverPrompt({
-        title,
-        plaintext,
-        tagNames,
-        stylePreset: preset,
-      })
-      setPromptOverride(next.prompt)
-    }
+    setPromptOverride('')
+    setPromptEdited(false)
   }
 
   const handleGenerate = async () => {
     if (!openAiConfigured || !promptPreview.sufficient || attempts >= COVER_GENERATION_MAX_ATTEMPTS) return
     const replaceId = replaceMediaId ?? preview?.id
     setPreview(null)
+    const customPrompt =
+      promptEdited && isUsablePromptOverride(promptOverride) ? promptOverride.trim() : undefined
     const result = await generate(postId, {
       stylePreset,
-      promptOverride: promptEdited ? promptOverride.trim() || undefined : undefined,
+      promptOverride: customPrompt,
       draft: { title, plaintext, tagNames },
       replaceMediaId: replaceId,
     })
     if (result?.media) {
-      const cacheBust = result.media.url.includes('?') ? '&' : '?'
-      setPreview({ ...result.media, url: `${result.media.url}${cacheBust}v=${Date.now()}` })
+      invalidateMediaUrlCache(result.media.id)
+      const url = (await refreshMediaUrl(result.media.id)) ?? result.media.url
+      setPreview({ ...result.media, url })
       if (result.prompt) {
         setPromptOverride(result.prompt)
         setPromptEdited(false)
@@ -232,17 +214,23 @@ export function GenerateCoverSheet({
             <label htmlFor="cover-prompt" className="shrink-0">
               <SectionLabel>Image prompt</SectionLabel>
             </label>
-            <textarea
-              id="cover-prompt"
-              value={promptOverride}
-              onChange={(e) => {
-                setPromptEdited(true)
-                setPromptOverride(e.target.value)
-              }}
-              rows={3}
-              placeholder="Composed automatically on Generate from your post…"
-              className="min-h-[4.5rem] w-full shrink-0 resize-none rounded-md border border-border/80 bg-background px-3 py-2 text-xs leading-relaxed text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+            {attempts === 0 && !promptEdited ? (
+              <p className="rounded-md border border-dashed border-border/70 bg-muted/10 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                Composed from your full post on Generate — scene, light, mood. Appears here after the first run.
+              </p>
+            ) : (
+              <textarea
+                id="cover-prompt"
+                value={promptOverride}
+                onChange={(e) => {
+                  setPromptEdited(true)
+                  setPromptOverride(e.target.value)
+                }}
+                rows={4}
+                placeholder="Edit to fine-tune the next regeneration…"
+                className="min-h-[5.5rem] w-full shrink-0 resize-none rounded-md border border-border/80 bg-background px-3 py-2 text-xs leading-relaxed text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            )}
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-1.5">

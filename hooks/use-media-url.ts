@@ -169,3 +169,8 @@ export async function refreshFeaturedMediaThumbUrl(mediaId: string): Promise<str
   cache.delete(cacheKey(mediaId, 'thumb'))
   return resolveUrl(mediaId, 'thumb')
 }
+
+export async function refreshMediaUrl(mediaId: string): Promise<string | null> {
+  cache.delete(mediaId)
+  return resolveUrl(mediaId, 'full')
+}

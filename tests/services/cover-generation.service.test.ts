@@ -81,6 +81,27 @@ describe('coverGenerationService', () => {
     expect(result.prompt).toContain('Editorial magazine cover style')
   })
 
+  it('ignores legacy placeholder override and uses LLM concept', async () => {
+    findOne.mockResolvedValue({
+      id: 'post1',
+      title: 'Warm reunion',
+      plaintext: 'Long emotional post text '.repeat(20),
+      tags: [],
+    })
+
+    await coverGenerationService.generateCover('author1', 'post1', {
+      stylePreset: 'editorial',
+      promptOverride:
+        'Wide landscape blog cover image will be composed on Generate. Post essence (preview): hello.',
+    })
+
+    expect(extractVisualBrief).toHaveBeenCalled()
+    expect(generateImage).toHaveBeenCalledWith(
+      'sk-test-key-abcdefghijklmnopqrstuvwxyz',
+      expect.stringContaining('Two silhouettes in a tender embrace')
+    )
+  })
+
   it('skips concept extraction when prompt override is set', async () => {
     findOne.mockResolvedValue({
       id: 'post1',

@@ -7,7 +7,7 @@ import type { ExtractCoverConceptInput } from '@/lib/ai/extract-cover-concept'
 
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions'
 
-const CONCEPT_SYSTEM_PROMPT = `You are a visual art director for wide blog cover images.
+const CONCEPT_SYSTEM_PROMPT = `You are a visual art director for square blog cover images.
 
 Read the post (any language). Write ONE scene description in English for an image generator.
 
@@ -17,6 +17,7 @@ Rules:
 - Do NOT repeat the title, tags, opening sentence, or proper names verbatim.
 - Do NOT ask for readable text, names, logos, captions, or watermarks in the image.
 - Avoid literal close-up faces; prefer symbolic or cinematic scenes (silhouettes, hands, hair, light through windows, nature, empty rooms waking up).
+- Compose for a square frame with a clear focal point and balanced edges.
 - Capture the emotional peak of the text (reunion, loss, joy, longing) through environment and body language, not exposition.
 - Maximum 75 words. One paragraph only.
 

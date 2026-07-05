@@ -203,11 +203,15 @@ export const SIGNED_URL_EXPIRES_SECONDS = 3600
 
 export const SIGNED_URL_CACHE_BUFFER_SECONDS = 60
 
-export const OPENAI_IMAGE_MODEL = 'gpt-image-1' as const
+export const OPENAI_IMAGE_MODEL = 'gpt-image-1-mini' as const
 
-export const OPENAI_IMAGE_SIZE = '1536x1024' as const
+export const OPENAI_IMAGE_SIZE = '1024x1024' as const
 
 export const OPENAI_IMAGE_QUALITY = 'low' as const
+
+export const OPENAI_IMAGE_OUTPUT_FORMAT = 'jpeg' as const
+
+export const OPENAI_IMAGE_OUTPUT_COMPRESSION = 85 as const
 
 export const OPENAI_CONCEPT_MODEL = 'gpt-4o-mini' as const
 
@@ -258,4 +262,4 @@ export const API_ERROR_CODE = {
 
 export type ApiErrorCode = (typeof API_ERROR_CODE)[keyof typeof API_ERROR_CODE]
 
-export const GENERATED_COVER_FILENAME = 'cover-generated.png' as const
+export const GENERATED_COVER_FILENAME = 'cover-generated.jpg' as const

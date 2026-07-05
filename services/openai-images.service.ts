@@ -1,4 +1,10 @@
-import { OPENAI_IMAGE_MODEL, OPENAI_IMAGE_QUALITY, OPENAI_IMAGE_SIZE } from '@/shared/constants'
+import {
+  OPENAI_IMAGE_MODEL,
+  OPENAI_IMAGE_OUTPUT_COMPRESSION,
+  OPENAI_IMAGE_OUTPUT_FORMAT,
+  OPENAI_IMAGE_QUALITY,
+  OPENAI_IMAGE_SIZE,
+} from '@/shared/constants'
 
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/generations'
 
@@ -16,6 +22,8 @@ export class OpenAiImagesService {
         n: 1,
         size: OPENAI_IMAGE_SIZE,
         quality: OPENAI_IMAGE_QUALITY,
+        output_format: OPENAI_IMAGE_OUTPUT_FORMAT,
+        output_compression: OPENAI_IMAGE_OUTPUT_COMPRESSION,
       }),
     })
 

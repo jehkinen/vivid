@@ -1,7 +1,4 @@
-import {
-  COVER_MIN_PLAINTEXT_CHARS,
-  COVER_STYLE_PRESETS,
-} from '@/shared/constants'
+import { COVER_MIN_PLAINTEXT_CHARS } from '@/shared/constants'
 import { extractCoverConceptLocal } from '@/lib/ai/extract-cover-concept'
 import type { CoverPromptInput, CoverPromptResult } from '@/types/ai'
 import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
@@ -9,6 +6,14 @@ import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
 function isSufficient(title: string | null | undefined, plaintext: string | null | undefined): boolean {
   if (title?.trim()) return true
   return (plaintext?.trim().length ?? 0) >= COVER_MIN_PLAINTEXT_CHARS
+}
+
+export function isUsablePromptOverride(value: string | null | undefined): value is string {
+  const trimmed = value?.trim()
+  if (!trimmed) return false
+  if (trimmed.includes('will be composed on Generate')) return false
+  if (trimmed.includes('Post essence (preview)')) return false
+  return true
 }
 
 export function buildCoverPrompt(input: CoverPromptInput): CoverPromptResult {
@@ -27,7 +32,7 @@ export function buildCoverPrompt(input: CoverPromptInput): CoverPromptResult {
   }
   const sufficient = isSufficient(input.title, input.plaintext)
 
-  const override = input.promptOverride?.trim()
+  const override = isUsablePromptOverride(input.promptOverride) ? input.promptOverride.trim() : undefined
   if (override) {
     return { prompt: override, sourceParts, sufficient }
   }
@@ -40,17 +45,5 @@ export function buildCoverPrompt(input: CoverPromptInput): CoverPromptResult {
     }
   }
 
-  const preset = COVER_STYLE_PRESETS.find((p) => p.id === input.stylePreset)
-  const parts: string[] = [
-    'Wide landscape blog cover image will be composed on Generate.',
-    'No text, no logos, no watermarks.',
-  ]
-  if (localConcept) parts.push(`Post essence (preview): ${localConcept}.`)
-  if (preset) parts.push(`Style: ${preset.label}.`)
-
-  return {
-    prompt: parts.join(' '),
-    sourceParts,
-    sufficient,
-  }
+  return { prompt: '', sourceParts, sufficient }
 }
