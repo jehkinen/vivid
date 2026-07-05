@@ -120,7 +120,7 @@ export function GenerateCoverSheet({
       invalidateMediaUrlCache(result.media.id)
       const url = (await refreshMediaUrl(result.media.id)) ?? result.media.url
       setPreview({ ...result.media, url })
-      if (result.prompt) {
+      if (result.prompt && !customPrompt) {
         setPromptOverride(result.prompt)
       }
       if (result.concept) {

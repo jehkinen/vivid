@@ -242,6 +242,12 @@ export const COVER_STYLE_PRESETS = [
     label: 'Abstract',
     promptSuffix: 'Abstract artistic interpretation, bold shapes, expressive texture.',
   },
+  {
+    id: 'cartoon',
+    label: 'Cartoon',
+    promptSuffix:
+      'Cartoon illustration style with anime-inspired expressiveness of a high school student character, neat uniform with customized pins, shoulder bag, energetic pose mid-step, clean thin linework, soft cel shading, bright morning hallway background with simplified lockers, airy highlights, upbeat slice-of-life mood, professional character art, 85mm lens, shallow depth of field --ar 4:5',
+  },
 ] as const
 
 export type CoverStylePresetId = (typeof COVER_STYLE_PRESETS)[number]['id']
@@ -250,7 +256,7 @@ export const COVER_GENERATION_MAX_ATTEMPTS = 5
 
 export const COVER_CONCEPT_INPUT_MAX = 5000
 
-export const COVER_CONCEPT_MAX_TOKENS = 180
+export const COVER_CONCEPT_MAX_TOKENS = 240
 
 export const COVER_LOCAL_CONCEPT_MAX = 280
 

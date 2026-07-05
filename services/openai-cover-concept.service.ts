@@ -4,43 +4,46 @@ import {
   OPENAI_CONCEPT_MODEL,
 } from '@/shared/constants'
 import type { ExtractCoverConceptInput } from '@/lib/ai/extract-cover-concept'
+import {
+  parseCoverVisualBriefResponse,
+  type CoverVisualBrief,
+} from '@/lib/ai/parse-cover-visual-brief'
 
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions'
 
-const CONCEPT_SYSTEM_PROMPT = `You are a visual art director for square blog cover images.
+const CONCEPT_SYSTEM_PROMPT = `You turn blog posts into one square cover-image scene.
 
-Read the post (any language). Write ONE scene description in English for an image generator.
+Read the full post in any language. Your job is faithfulness to the author's main idea — not a decorative metaphor.
 
-Translate emotions and metaphors into visible cinema: light quality, season, weather, silhouettes, gestures, textures, color palette, depth of field.
+First find the SINGLE central story beat: what actually happens, what changed, or what the author keeps circling back to.
+Then describe that exact beat as one visible image.
 
-Rules:
-- Do NOT repeat the title, tags, opening sentence, or proper names verbatim.
-- Do NOT ask for readable text, names, logos, captions, or watermarks in the image.
-- Never write "man and woman" or romantic couple framing. Use "two figures", "two people", or silhouettes.
-- For reunions or longing, prefer symbolic distance: figures from behind, side by side, foreheads close, or shadows on a sunlit wall — not tight hugs or body contact.
-- Keep any people modest, fully clothed, and non-sexual; editorial reunion mood, not romance.
-- Avoid literal close-up faces; prefer silhouettes, hands at a distance, hair in light, windows, nature.
-- Compose for a square frame with a clear focal point and balanced edges.
-- Capture the emotional peak through environment and light, not physical intimacy.
-- Maximum 75 words. One paragraph only.
+Reply with JSON only, no markdown:
+{"coreMoment":"One plain English sentence naming the main event.","scene":"One English paragraph: that moment as a cover image."}
 
-Example input mood: dream reunion, spring sunlight after winter, fear of loss, tender embrace.
-Example output: Two distant silhouettes beside a sunlit window, shoulders almost touching, golden spring light on wheat-blonde hair; warmth in the air, hazy dreamlike glow, bittersweet calm, fully clothed, modest editorial scene.`
+Scene rules:
+- The scene MUST depict the central event (a refused gift, a goodbye, a dream reunion, a discovery — whatever the post is really about)
+- Include concrete visible details from the post: objects, gestures, setting, mood
+- Do NOT invent unrelated imagery (random alleys, puzzle boxes, seasons) unless the post is about them
+- Replace proper names with neutral roles (a young woman, a friend, two classmates)
+- No readable text, logos, captions, or watermarks in the image
+- Modest, fully clothed, non-sexual
+- Maximum 80 words in scene`
 
 export class OpenAiCoverConceptService {
-  async extractVisualBrief(apiKey: string, input: ExtractCoverConceptInput): Promise<string> {
+  async extractVisualBrief(apiKey: string, input: ExtractCoverConceptInput): Promise<CoverVisualBrief> {
     const title = input.title?.trim()
     const body = input.plaintext?.trim()?.slice(0, COVER_CONCEPT_INPUT_MAX)
     const tags = input.tagNames?.map((tag) => tag.trim()).filter(Boolean)
 
     const userParts: string[] = [
-      'Compose a cover-image scene from this post.',
-      'Use emotional and visual metaphors from the full text, not just the title.',
+      'Extract one cover image from this post.',
+      'The scene must match the post main idea — the central event, not a side metaphor or mood-only atmosphere.',
     ]
-    if (title) userParts.push(`Title (context only, do not repeat): ${title}`)
+    if (title) userParts.push(`Title (context): ${title}`)
     if (body) userParts.push(`Post:\n${body}`)
     if (tags?.length) {
-      userParts.push(`Tags (mood hints only, do not list): ${tags.join(', ')}`)
+      userParts.push(`Tags (context only): ${tags.join(', ')}`)
     }
 
     const response = await fetch(OPENAI_CHAT_URL, {
@@ -56,7 +59,8 @@ export class OpenAiCoverConceptService {
           { role: 'user', content: userParts.join('\n\n') },
         ],
         max_tokens: COVER_CONCEPT_MAX_TOKENS,
-        temperature: 0.65,
+        temperature: 0.4,
+        response_format: { type: 'json_object' },
       }),
     })
 
@@ -81,7 +85,7 @@ export class OpenAiCoverConceptService {
     if (!content) {
       throw new Error('OpenAI returned no concept summary')
     }
-    return content
+    return parseCoverVisualBriefResponse(content)
   }
 }
 

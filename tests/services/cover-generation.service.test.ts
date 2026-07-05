@@ -41,9 +41,11 @@ describe('coverGenerationService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     requireOpenAiKey.mockResolvedValue('sk-test-key-abcdefghijklmnopqrstuvwxyz')
-    extractVisualBrief.mockResolvedValue(
-      'Two silhouettes in a tender embrace, golden spring sunlight on closed eyes after a long winter, dreamlike warmth.'
-    )
+    extractVisualBrief.mockResolvedValue({
+      coreMoment: 'Two people reunite in a tender embrace after a long separation.',
+      scene:
+        'Two silhouettes in a tender embrace, golden spring sunlight on closed eyes after a long winter, dreamlike warmth.',
+    })
     generateImage.mockResolvedValue(Buffer.from('image'))
     upload.mockResolvedValue([
       { id: 'media1', url: 'https://cdn.example/cover.png', filename: 'cover-generated.png' },

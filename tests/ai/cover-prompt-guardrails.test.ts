@@ -1,20 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import {
-  applyCoverPromptGuardrails,
+  applyAutoCoverPromptGuardrails,
+  normalizeUserCoverPrompt,
   formatOpenAiModerationError,
   isOpenAiModerationBlock,
 } from '@/lib/ai/cover-prompt-guardrails'
 
 describe('cover prompt guardrails', () => {
-  it('appends modest markers when missing', () => {
-    const result = applyCoverPromptGuardrails('Square cover with two silhouettes.')
+  it('appends modest markers to auto prompts when missing', () => {
+    const result = applyAutoCoverPromptGuardrails('Square cover with two silhouettes.')
     expect(result).toContain('Modest fully clothed figures')
     expect(result).toContain('non-sexual')
   })
 
   it('skips append when markers already present', () => {
     const input = 'Modest fully clothed, non-sexual scene.'
-    expect(applyCoverPromptGuardrails(input)).toBe(input)
+    expect(applyAutoCoverPromptGuardrails(input)).toBe(input)
+  })
+
+  it('strips midjourney aspect ratio flags from user prompts', () => {
+    expect(normalizeUserCoverPrompt('Anime scene --ar 4:5')).toBe('Anime scene')
   })
 
   it('detects moderation blocks', () => {

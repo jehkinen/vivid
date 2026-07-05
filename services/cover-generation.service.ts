@@ -1,5 +1,5 @@
 import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
-import { applyCoverPromptGuardrails } from '@/lib/ai/cover-prompt-guardrails'
+import { applyAutoCoverPromptGuardrails, normalizeUserCoverPrompt } from '@/lib/ai/cover-prompt-guardrails'
 import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-prompt'
 import { extractCoverConceptLocal } from '@/lib/ai/extract-cover-concept'
 import {
@@ -47,7 +47,7 @@ export class CoverGenerationService {
       ? input.promptOverride.trim()
       : undefined
 
-    const concept = promptOverride
+    const brief = promptOverride
       ? undefined
       : await openaiCoverConceptService.extractVisualBrief(apiKey, {
           title,
@@ -55,14 +55,17 @@ export class CoverGenerationService {
           tagNames,
         })
 
-    const prompt = applyCoverPromptGuardrails(
-      promptOverride
-        ? promptOverride
-        : buildCoverImagePrompt(
-            concept ?? extractCoverConceptLocal({ title, plaintext, tagNames }) ?? title ?? '',
+    const prompt = promptOverride
+      ? normalizeUserCoverPrompt(promptOverride)
+      : applyAutoCoverPromptGuardrails(
+          buildCoverImagePrompt(
+            brief?.scene ??
+              extractCoverConceptLocal({ title, plaintext, tagNames }) ??
+              title ??
+              '',
             input.stylePreset
           )
-    )
+        )
 
     const buffer = await openaiImagesService.generateImage(apiKey, prompt)
     const results = await mediaService.upload(
@@ -87,8 +90,8 @@ export class CoverGenerationService {
       id: media.id,
       url: media.url,
       filename: media.filename,
-      concept: concept ?? extractCoverConceptLocal({ title, plaintext, tagNames }),
-      prompt,
+      concept: brief?.coreMoment ?? extractCoverConceptLocal({ title, plaintext, tagNames }),
+      prompt: promptOverride ?? prompt,
     }
   }
 }
