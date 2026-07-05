@@ -213,6 +213,8 @@ export const OPENAI_IMAGE_OUTPUT_FORMAT = 'jpeg' as const
 
 export const OPENAI_IMAGE_OUTPUT_COMPRESSION = 85 as const
 
+export const OPENAI_IMAGE_MODERATION = 'low' as const
+
 export const OPENAI_CONCEPT_MODEL = 'gpt-4o-mini' as const
 
 export const OPENAI_KEY_MIN_LENGTH = 20

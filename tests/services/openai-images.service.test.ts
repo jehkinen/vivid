@@ -72,4 +72,25 @@ describe('openaiImagesService', () => {
       'rate limit'
     )
   })
+
+  it('maps moderation block to helpful message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: {
+            message:
+              'Your request was rejected by the safety system. safety_violations=[sexual].',
+          },
+        }),
+      })
+    )
+
+    const { openaiImagesService } = await import('@/services/openai-images.service')
+    await expect(openaiImagesService.generateImage('sk-test', 'prompt')).rejects.toThrow(
+      'silhouettes from behind'
+    )
+  })
 })

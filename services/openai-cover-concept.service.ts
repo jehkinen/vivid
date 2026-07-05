@@ -16,13 +16,16 @@ Translate emotions and metaphors into visible cinema: light quality, season, wea
 Rules:
 - Do NOT repeat the title, tags, opening sentence, or proper names verbatim.
 - Do NOT ask for readable text, names, logos, captions, or watermarks in the image.
-- Avoid literal close-up faces; prefer symbolic or cinematic scenes (silhouettes, hands, hair, light through windows, nature, empty rooms waking up).
+- Never write "man and woman" or romantic couple framing. Use "two figures", "two people", or silhouettes.
+- For reunions or longing, prefer symbolic distance: figures from behind, side by side, foreheads close, or shadows on a sunlit wall — not tight hugs or body contact.
+- Keep any people modest, fully clothed, and non-sexual; editorial reunion mood, not romance.
+- Avoid literal close-up faces; prefer silhouettes, hands at a distance, hair in light, windows, nature.
 - Compose for a square frame with a clear focal point and balanced edges.
-- Capture the emotional peak of the text (reunion, loss, joy, longing) through environment and body language, not exposition.
+- Capture the emotional peak through environment and light, not physical intimacy.
 - Maximum 75 words. One paragraph only.
 
 Example input mood: dream reunion, spring sunlight after winter, fear of loss, tender embrace.
-Example output: Two figures in soft silhouette, foreheads close, golden spring light washing over wheat-blonde hair and closed eyes; warmth radiating from the chest outward; shallow depth, hazy dreamlike glow, bittersweet calm.`
+Example output: Two distant silhouettes beside a sunlit window, shoulders almost touching, golden spring light on wheat-blonde hair; warmth in the air, hazy dreamlike glow, bittersweet calm, fully clothed, modest editorial scene.`
 
 export class OpenAiCoverConceptService {
   async extractVisualBrief(apiKey: string, input: ExtractCoverConceptInput): Promise<string> {

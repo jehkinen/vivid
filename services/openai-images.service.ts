@@ -1,10 +1,12 @@
 import {
   OPENAI_IMAGE_MODEL,
+  OPENAI_IMAGE_MODERATION,
   OPENAI_IMAGE_OUTPUT_COMPRESSION,
   OPENAI_IMAGE_OUTPUT_FORMAT,
   OPENAI_IMAGE_QUALITY,
   OPENAI_IMAGE_SIZE,
 } from '@/shared/constants'
+import { formatOpenAiModerationError } from '@/lib/ai/cover-prompt-guardrails'
 
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/generations'
 
@@ -24,6 +26,7 @@ export class OpenAiImagesService {
         quality: OPENAI_IMAGE_QUALITY,
         output_format: OPENAI_IMAGE_OUTPUT_FORMAT,
         output_compression: OPENAI_IMAGE_OUTPUT_COMPRESSION,
+        moderation: OPENAI_IMAGE_MODERATION,
       }),
     })
 
@@ -36,12 +39,12 @@ export class OpenAiImagesService {
       }
       let message = `OpenAI request failed (${response.status})`
       try {
-        const body = (await response.json()) as { error?: { message?: string } }
+        const body = (await response.json()) as { error?: { message?: string; code?: string } }
         if (body.error?.message) message = body.error.message
       } catch {
         // ignore parse errors
       }
-      throw new Error(message)
+      throw new Error(formatOpenAiModerationError(message))
     }
 
     const payload = (await response.json()) as {

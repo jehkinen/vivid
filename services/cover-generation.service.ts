@@ -1,4 +1,5 @@
 import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
+import { applyCoverPromptGuardrails } from '@/lib/ai/cover-prompt-guardrails'
 import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-prompt'
 import { extractCoverConceptLocal } from '@/lib/ai/extract-cover-concept'
 import {
@@ -54,12 +55,14 @@ export class CoverGenerationService {
           tagNames,
         })
 
-    const prompt = promptOverride
-      ? promptOverride
-      : buildCoverImagePrompt(
-          concept ?? extractCoverConceptLocal({ title, plaintext, tagNames }) ?? title ?? '',
-          input.stylePreset
-        )
+    const prompt = applyCoverPromptGuardrails(
+      promptOverride
+        ? promptOverride
+        : buildCoverImagePrompt(
+            concept ?? extractCoverConceptLocal({ title, plaintext, tagNames }) ?? title ?? '',
+            input.stylePreset
+          )
+    )
 
     const buffer = await openaiImagesService.generateImage(apiKey, prompt)
     const results = await mediaService.upload(
