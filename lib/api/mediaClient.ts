@@ -16,6 +16,7 @@ export interface MediaItem {
   generatedConversions?: Record<string, boolean> | null
   linkedTitle?: string | null
   linkedSlug?: string | null
+  isUsed?: boolean
 }
 
 export interface MediaLibraryResponse {
@@ -32,6 +33,11 @@ export interface MediaLibraryParams {
   type?: MediaFilterType
 }
 
+export type MediaBulkDeleteResponse = {
+  deleted: string[]
+  blocked: Array<{ id: string; reason: string }>
+}
+
 export const mediaClient = {
   library(params: MediaLibraryParams = {}) {
     const page = params.page ?? 1
@@ -43,6 +49,14 @@ export const mediaClient = {
         perPage,
         type: params.type,
       },
+    })
+  },
+
+  bulkDelete(ids: string[]) {
+    return apiRequest<MediaBulkDeleteResponse>({
+      path: '/api/media/bulk-delete',
+      method: 'POST',
+      body: { ids },
     })
   },
 }

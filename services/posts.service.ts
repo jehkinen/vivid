@@ -335,8 +335,10 @@ export class PostsService {
 
     const shouldSyncRefs = allowContentUpdate && hasLexical
 
+    let post
+
     if (data.tagIds !== undefined) {
-      const post = await prisma.$transaction(async (tx) => {
+      post = await prisma.$transaction(async (tx) => {
         await tx.postTag.deleteMany({ where: { postId: id } })
         if (data.tagIds!.length > 0) {
           await tx.postTag.createMany({
@@ -362,11 +364,8 @@ export class PostsService {
       if (shouldSyncRefs) {
         await postReferencesService.syncFromLexical(id, data.lexical ?? null)
       }
-      return post
-    }
-
-    if (shouldSyncRefs) {
-      const post = await prisma.$transaction(async (tx) => {
+    } else if (shouldSyncRefs) {
+      post = await prisma.$transaction(async (tx) => {
         return tx.post.update({
           where: { id },
           data: updateData as Prisma.PostUpdateInput,
@@ -380,20 +379,25 @@ export class PostsService {
         })
       })
       await postReferencesService.syncFromLexical(id, data.lexical ?? null)
-      return post
-    }
-
-    return prisma.post.update({
-      where: { id },
-      data: updateData as Prisma.PostUpdateInput,
-      include: {
-        tags: {
-          include: {
-            tag: true,
+    } else {
+      post = await prisma.post.update({
+        where: { id },
+        data: updateData as Prisma.PostUpdateInput,
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
           },
         },
-      },
-    })
+      })
+    }
+
+    if (data.featuredMediaId) {
+      await this.mediaService.purgeStaleFeaturedCovers(id, data.featuredMediaId)
+    }
+
+    return post
   }
 
   async softDelete(id: string) {

@@ -118,6 +118,7 @@ export const MEDIA_FILTER_TYPES = {
   VIDEO: 'video',
   AUDIO: 'audio',
   DOCUMENT: 'document',
+  UNUSED: 'unused',
 } as const
 
 export type MediaFilterType = (typeof MEDIA_FILTER_TYPES)[keyof typeof MEDIA_FILTER_TYPES]

@@ -60,7 +60,10 @@ export const mediaLibraryQuerySchema = z.object({
     .enum([
       MEDIA_FILTER_TYPES.ALL,
       MEDIA_FILTER_TYPES.IMAGE,
+      MEDIA_FILTER_TYPES.VIDEO,
       MEDIA_FILTER_TYPES.AUDIO,
+      MEDIA_FILTER_TYPES.DOCUMENT,
+      MEDIA_FILTER_TYPES.UNUSED,
     ])
     .catch(MEDIA_FILTER_TYPES.ALL),
 })

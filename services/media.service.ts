@@ -2,6 +2,7 @@ import type { Media, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { generateId } from '@/shared/id'
 import { sanitizeFilenameForS3 } from '@/lib/utils'
+import { collectMediaIds } from '@/lib/editor/lexical/collect-media-ids'
 import { storageService } from './storage.service'
 import { imageProcessingService } from './image-processing.service'
 import {
@@ -201,6 +202,33 @@ export class MediaService {
     await prisma.media.deleteMany({ where: { id } })
   }
 
+  async bulkHardDelete(ids: string[]) {
+    const uniqueIds = [...new Set(ids)]
+    const usedSet = new Set(await this.collectUsedMediaIds())
+    const deleted: string[] = []
+    const blocked: Array<{ id: string; reason: string }> = []
+
+    for (const id of uniqueIds) {
+      if (usedSet.has(id)) {
+        blocked.push({ id, reason: 'Media is in use' })
+        continue
+      }
+
+      const media = await prisma.media.findUnique({
+        where: { id, deletedAt: null },
+      })
+      if (!media) {
+        blocked.push({ id, reason: 'Not found' })
+        continue
+      }
+
+      await this.hardDelete(id)
+      deleted.push(id)
+    }
+
+    return { deleted, blocked }
+  }
+
   async replace(id: string, file: UploadFile) {
     const existingMedia = await prisma.media.findUnique({
       where: { id },
@@ -284,12 +312,50 @@ export class MediaService {
     return storageService.getFileUrl(media.key)
   }
 
+  async purgeStaleFeaturedCovers(postId: string, activeMediaId: string) {
+    await prisma.media.updateMany({
+      where: {
+        mediableType: MEDIABLE_TYPES.POST,
+        mediableId: postId,
+        collection: MEDIA_COLLECTIONS.FEATURED,
+        deletedAt: null,
+        id: { not: activeMediaId },
+      },
+      data: { deletedAt: new Date() },
+    })
+  }
+
+  private lexicalToJsonString(lexical: unknown): string | null {
+    if (lexical == null) return null
+    if (typeof lexical === 'string') return lexical
+    return JSON.stringify(lexical)
+  }
+
+  private async collectUsedMediaIds(): Promise<string[]> {
+    const posts = await prisma.post.findMany({
+      where: { deletedAt: null },
+      select: { featuredMediaId: true, lexical: true },
+    })
+
+    const used = new Set<string>()
+    for (const post of posts) {
+      if (post.featuredMediaId) used.add(post.featuredMediaId)
+      for (const mediaId of collectMediaIds(this.lexicalToJsonString(post.lexical))) {
+        used.add(mediaId)
+      }
+    }
+    return [...used]
+  }
+
   async getLibrary(options: { page: number; perPage: number; type: MediaFilterType }) {
     const { page, perPage, type } = options
 
     const where: Prisma.MediaWhereInput = {
       deletedAt: null,
     }
+
+    const usedIds = await this.collectUsedMediaIds()
+    const usedSet = new Set(usedIds)
 
     if (type === MEDIA_FILTER_TYPES.IMAGE) {
       where.mimeType = { startsWith: 'image/' }
@@ -304,6 +370,10 @@ export class MediaService {
           'application/msword',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ],
+      }
+    } else if (type === MEDIA_FILTER_TYPES.UNUSED) {
+      if (usedIds.length > 0) {
+        where.id = { notIn: usedIds }
       }
     }
 
@@ -325,6 +395,20 @@ export class MediaService {
         where,
       }),
     ])
+
+    const featuredPosts =
+      items.length > 0
+        ? await prisma.post.findMany({
+            where: {
+              featuredMediaId: { in: items.map((item) => item.id) },
+              deletedAt: null,
+            },
+            select: { featuredMediaId: true, title: true, slug: true },
+          })
+        : []
+    const featuredByMediaId = new Map(
+      featuredPosts.map((post) => [post.featuredMediaId!, post])
+    )
 
     const itemsWithUrls = await Promise.all(
       items.map(async (m) => {
@@ -350,21 +434,34 @@ export class MediaService {
         }
 
         const url = await storageService.getFileUrl(m.key)
+        const isUsed = usedSet.has(m.id)
+        const featuredPost = featuredByMediaId.get(m.id)
         let linkedTitle: string | null = null
         let linkedSlug: string | null = null
 
-        if (m.mediableType === MEDIABLE_TYPES.POST) {
+        if (featuredPost) {
+          linkedTitle = featuredPost.title
+          linkedSlug = featuredPost.slug
+        } else if (m.mediableType === MEDIABLE_TYPES.POST) {
           const post = await prisma.post.findUnique({
             where: { id: m.mediableId },
             select: { title: true, slug: true },
           })
           if (post) {
-            linkedTitle = post.title
-            linkedSlug = post.slug
+            if (isUsed) {
+              linkedTitle = post.title
+              linkedSlug = post.slug
+            } else {
+              linkedTitle = `Unused · ${post.title}`
+            }
+          } else if (!isUsed) {
+            linkedTitle = 'Unused'
           }
+        } else if (!isUsed) {
+          linkedTitle = 'Unused'
         }
 
-        return { ...m, url, thumbUrl, linkedTitle, linkedSlug }
+        return { ...m, url, thumbUrl, linkedTitle, linkedSlug, isUsed }
       })
     )
 

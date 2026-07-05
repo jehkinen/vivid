@@ -96,6 +96,10 @@ export const idParamSchema = cuidSchema
 
 export const mediaUrlsSchema = z.object({ ids: z.array(idParamSchema).max(100) })
 
+export const mediaBulkDeleteSchema = z.object({
+  ids: z.array(idParamSchema).min(1).max(100),
+})
+
 export const slugParamSchema = slugSchema
 
 export const listCreateSchema = z.object({

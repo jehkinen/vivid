@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useMedia } from '@/hooks/api/use-media'
+import { useBulkDeleteMedia } from '@/hooks/api/use-bulk-delete-media'
 import type { LightboxSlide } from '@/components/ui/lightbox'
 import { MEDIA_FILTER_TYPES, type MediaFilterType } from '@/shared/constants'
 import {
@@ -14,17 +15,24 @@ export function useMediaAdminPage() {
   const [page, setPage] = useState(1)
   const [type, setType] = useState<MediaFilterType>(MEDIA_FILTER_TYPES.ALL)
   const [view, setView] = useState<'grid' | 'list'>('list')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [lightbox, setLightbox] = useState<{
     images: LightboxSlide[]
     index: number
   } | null>(null)
   const { data, isLoading, isFetching } = useMedia({ page, perPage: MEDIA_PER_PAGE, type })
+  const bulkDelete = useBulkDeleteMedia()
 
   const hasMore = data?.hasMore ?? false
   const items = data?.items ?? []
   const totalBytes = data?.totalStored ?? 0
   const totalCount = data?.total ?? 0
   const usageRatio = Math.min(totalBytes / MEDIA_STORAGE_LIMIT_BYTES, 1)
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [page, type])
 
   const handleTypeChange = useCallback((next: MediaFilterType) => {
     setType(next)
@@ -38,6 +46,47 @@ export function useMediaAdminPage() {
   const handleNext = useCallback(() => {
     if (hasMore) setPage((p) => p + 1)
   }, [hasMore])
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAllOnPage = useCallback(() => {
+    setSelectedIds((current) => {
+      const pageIds = items.map((item) => item.id)
+      const allSelected = pageIds.length > 0 && pageIds.every((id) => current.has(id))
+      if (allSelected) {
+        const next = new Set(current)
+        for (const id of pageIds) next.delete(id)
+        return next
+      }
+      return new Set([...current, ...pageIds])
+    })
+  }, [items])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const allPageSelected = useMemo(
+    () => items.length > 0 && items.every((item) => selectedIds.has(item.id)),
+    [items, selectedIds]
+  )
+
+  const selectedCount = selectedIds.size
+
+  const handleConfirmDelete = useCallback(async () => {
+    const ids = [...selectedIds]
+    if (ids.length === 0) return
+    await bulkDelete.mutateAsync(ids)
+    setDeleteDialogOpen(false)
+    setSelectedIds(new Set())
+  }, [bulkDelete, selectedIds])
 
   const lightboxSlides: LightboxSlide[] = useMemo(
     () =>
@@ -81,11 +130,21 @@ export function useMediaAdminPage() {
     totalCount,
     usageRatio,
     storageLimitBytes: MEDIA_STORAGE_LIMIT_BYTES,
+    selectedIds,
+    selectedCount,
+    allPageSelected,
+    deleteDialogOpen,
+    isDeleting: bulkDelete.isPending,
     setView,
     setLightbox,
+    setDeleteDialogOpen,
     handleTypeChange,
     handlePrev,
     handleNext,
     openLightbox,
+    toggleSelect,
+    toggleSelectAllOnPage,
+    clearSelection,
+    handleConfirmDelete,
   }
 }

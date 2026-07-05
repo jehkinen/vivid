@@ -3,17 +3,27 @@
 import type { MediaItem } from '@/lib/api/mediaClient'
 import { formatBytes, formatDateTime } from '@/lib/utils'
 import { storedBytes } from '@/components/admin/media/media-utils'
+import { cn } from '@/lib/utils'
 
 type MediaListViewProps = {
   items: MediaItem[]
   isLoading: boolean
+  selectedIds: Set<string>
+  onToggleSelect: (itemId: string) => void
   onItemClick: (itemId: string) => void
 }
 
-export function MediaListView({ items, isLoading, onItemClick }: MediaListViewProps) {
+export function MediaListView({
+  items,
+  isLoading,
+  selectedIds,
+  onToggleSelect,
+  onItemClick,
+}: MediaListViewProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-3 border-b bg-muted/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="w-8 shrink-0" aria-hidden />
         <div className="w-12 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">File</div>
         <div className="w-28 shrink-0 text-right">Size</div>
@@ -28,49 +38,72 @@ export function MediaListView({ items, isLoading, onItemClick }: MediaListViewPr
           const mime = item.mimeType || ''
           const isImage = mime.startsWith('image/')
           const bytes = storedBytes(item)
+          const isSelected = selectedIds.has(item.id)
           return (
-            <button
+            <div
               key={item.id}
-              type="button"
-              onClick={() => onItemClick(item.id)}
-              className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/40"
+              className={cn(
+                'flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 transition-colors last:border-b-0',
+                isSelected ? 'bg-muted/50' : 'hover:bg-muted/40'
+              )}
             >
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
-                {isImage ? (
-                  <img
-                    src={item.thumbUrl || item.url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground leading-tight">
-                    {mime.slice(0, 12) || '—'}
-                  </div>
-                )}
+              <div className="flex w-8 shrink-0 items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => onToggleSelect(item.id)}
+                  aria-label={`Select ${item.filename}`}
+                  className="h-4 w-4 rounded border-border accent-foreground"
+                />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium text-sm" title={item.filename}>
-                  {item.filename}
-                </div>
-                <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
-                  {mime || 'unknown type'}
-                  {(item.conversionSize ?? 0) > 0 && item.size != null && (
-                    <span className="hidden sm:inline">
-                      {' · '}
-                      orig {formatBytes(item.size)} + conv {formatBytes(item.conversionSize ?? 0)}
-                    </span>
+              <button
+                type="button"
+                onClick={() => onItemClick(item.id)}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              >
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
+                  {isImage ? (
+                    <img
+                      src={item.thumbUrl || item.url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground leading-tight">
+                      {mime.slice(0, 12) || '—'}
+                    </div>
                   )}
                 </div>
-              </div>
-              <div className="w-28 shrink-0 text-right">
-                <span className="font-mono text-sm font-semibold tabular-nums">
-                  {bytes > 0 ? formatBytes(bytes) : '—'}
-                </span>
-              </div>
-              <div className="hidden w-40 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                {formatDateTime(item.createdAt)}
-              </div>
-            </button>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium text-sm" title={item.filename}>
+                    {item.filename}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
+                    {item.linkedTitle ? (
+                      <span className={item.isUsed === false ? 'text-amber-600 dark:text-amber-500' : undefined}>
+                        {item.linkedTitle}
+                      </span>
+                    ) : (
+                      mime || 'unknown type'
+                    )}
+                    {(item.conversionSize ?? 0) > 0 && item.size != null && (
+                      <span className="hidden sm:inline">
+                        {' · '}
+                        orig {formatBytes(item.size)} + conv {formatBytes(item.conversionSize ?? 0)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="w-28 shrink-0 text-right">
+                  <span className="font-mono text-sm font-semibold tabular-nums">
+                    {bytes > 0 ? formatBytes(bytes) : '—'}
+                  </span>
+                </div>
+                <div className="hidden w-40 shrink-0 text-right text-xs text-muted-foreground sm:block">
+                  {formatDateTime(item.createdAt)}
+                </div>
+              </button>
+            </div>
           )
         })
       )}

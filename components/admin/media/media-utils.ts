@@ -11,6 +11,7 @@ export const MEDIA_TYPE_FILTERS: { value: MediaFilterType; label: string }[] = [
   { value: MEDIA_FILTER_TYPES.VIDEO, label: 'Video' },
   { value: MEDIA_FILTER_TYPES.AUDIO, label: 'Audio' },
   { value: MEDIA_FILTER_TYPES.DOCUMENT, label: 'Documents' },
+  { value: MEDIA_FILTER_TYPES.UNUSED, label: 'Unused' },
 ]
 
 export function storedBytes(item: MediaItem): number {

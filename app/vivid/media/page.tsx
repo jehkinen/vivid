@@ -2,6 +2,8 @@
 
 import { MediaPageHeader } from '@/components/admin/media/MediaPageHeader'
 import { MediaFilters } from '@/components/admin/media/MediaFilters'
+import { MediaBulkToolbar } from '@/components/admin/media/MediaBulkToolbar'
+import { MediaBulkDeleteDialog } from '@/components/admin/media/MediaBulkDeleteDialog'
 import { MediaListView } from '@/components/admin/media/MediaListView'
 import { MediaGrid } from '@/components/admin/media/MediaGrid'
 import { MediaLightbox } from '@/components/admin/media/MediaLightbox'
@@ -22,12 +24,22 @@ export default function MediaLibraryPage() {
     totalCount,
     usageRatio,
     storageLimitBytes,
+    selectedIds,
+    selectedCount,
+    allPageSelected,
+    deleteDialogOpen,
+    isDeleting,
     setView,
     setLightbox,
+    setDeleteDialogOpen,
     handleTypeChange,
     handlePrev,
     handleNext,
     openLightbox,
+    toggleSelect,
+    toggleSelectAllOnPage,
+    clearSelection,
+    handleConfirmDelete,
   } = useMediaAdminPage()
 
   return (
@@ -42,11 +54,32 @@ export default function MediaLibraryPage() {
         onViewChange={setView}
       />
       <MediaFilters type={type} onTypeChange={handleTypeChange} />
+      <MediaBulkToolbar
+        selectedCount={selectedCount}
+        pageCount={items.length}
+        allPageSelected={allPageSelected}
+        isDeleting={isDeleting}
+        onToggleSelectAll={toggleSelectAllOnPage}
+        onClearSelection={clearSelection}
+        onDelete={() => setDeleteDialogOpen(true)}
+      />
       <div className="border rounded-lg overflow-hidden">
         {view === 'list' ? (
-          <MediaListView items={items} isLoading={isLoading} onItemClick={openLightbox} />
+          <MediaListView
+            items={items}
+            isLoading={isLoading}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onItemClick={openLightbox}
+          />
         ) : (
-          <MediaGrid items={items} isLoading={isLoading} onItemClick={openLightbox} />
+          <MediaGrid
+            items={items}
+            isLoading={isLoading}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onItemClick={openLightbox}
+          />
         )}
       </div>
       <MediaLightbox items={items} lightbox={lightbox} onClose={() => setLightbox(null)} />
@@ -56,6 +89,13 @@ export default function MediaLibraryPage() {
         hasMore={hasMore}
         onPrev={handlePrev}
         onNext={handleNext}
+      />
+      <MediaBulkDeleteDialog
+        open={deleteDialogOpen}
+        count={selectedCount}
+        isPending={isDeleting}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )
