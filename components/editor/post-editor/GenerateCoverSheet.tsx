@@ -16,15 +16,21 @@ import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-p
 import { applyCoverStyleToPrompt, rebuildCoverPromptFromScene } from '@/lib/ai/cover-prompt-style'
 import { routes } from '@/lib/routes'
 import { cn } from '@/lib/utils'
-import { useGenerateCover } from '@/hooks/api/use-generate-cover'
+import { useAcceptGeneratedCover, useGenerateCover } from '@/hooks/api/use-generate-cover'
 import { invalidateMediaUrlCache, refreshMediaUrl } from '@/hooks/use-media-url'
 import {
   API_ERROR_CODE,
-  COVER_GENERATION_MAX_ATTEMPTS,
   COVER_STYLE_PRESETS,
 } from '@/shared/constants'
 import type { ApiError } from '@/lib/api/request'
 import type { CoverStylePreset, GenerateCoverMedia } from '@/types/ai'
+
+type PendingCoverPreview = {
+  dataUrl: string
+  base64: string
+  filename: string
+  mimeType: string
+}
 
 type GenerateCoverSheetProps = {
   open: boolean
@@ -65,10 +71,11 @@ export function GenerateCoverSheet({
   const [stylePreset, setStylePreset] = useState<CoverStylePreset>('editorial')
   const [promptOverride, setPromptOverride] = useState('')
   const [attempts, setAttempts] = useState(0)
-  const [preview, setPreview] = useState<GenerateCoverMedia | null>(null)
+  const [preview, setPreview] = useState<PendingCoverPreview | null>(null)
   const [lastConcept, setLastConcept] = useState<string | null>(null)
   const [lastScene, setLastScene] = useState<string | null>(null)
   const { generate, reset, phase, isPending, error } = useGenerateCover()
+  const acceptCover = useAcceptGeneratedCover()
 
   const promptPreview = useMemo(
     () =>
@@ -104,7 +111,6 @@ export function GenerateCoverSheet({
 
   const handleStyleChange = (preset: CoverStylePreset) => {
     setStylePreset(preset)
-    setPreview(null)
     if (lastScene) {
       setPromptOverride(rebuildCoverPromptFromScene(lastScene, preset))
       return
@@ -115,20 +121,22 @@ export function GenerateCoverSheet({
   }
 
   const handleGenerate = async () => {
-    if (!openAiConfigured || !promptPreview.sufficient || attempts >= COVER_GENERATION_MAX_ATTEMPTS) return
-    const replaceId = replaceMediaId ?? preview?.id
+    if (!openAiConfigured || !promptPreview.sufficient) return
     setPreview(null)
     const customPrompt = isUsablePromptOverride(promptOverride) ? promptOverride.trim() : undefined
     const result = await generate(postId, {
       stylePreset,
       promptOverride: customPrompt,
       draft: { title, plaintext, tagNames },
-      replaceMediaId: replaceId,
     })
-    if (result?.media) {
-      invalidateMediaUrlCache(result.media.id)
-      const url = (await refreshMediaUrl(result.media.id)) ?? result.media.url
-      setPreview({ ...result.media, url })
+    if (result?.preview) {
+      const { base64, mimeType, filename } = result.preview
+      setPreview({
+        base64,
+        mimeType,
+        filename,
+        dataUrl: `data:${mimeType};base64,${base64}`,
+      })
       if (result.prompt && !customPrompt) {
         setPromptOverride(result.prompt)
       }
@@ -142,9 +150,18 @@ export function GenerateCoverSheet({
     }
   }
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!preview) return
-    onAccepted(preview)
+    const result = await acceptCover.mutateAsync({
+      postId,
+      body: {
+        previewBase64: preview.base64,
+        replaceMediaId,
+      },
+    })
+    invalidateMediaUrlCache(result.media.id)
+    const url = (await refreshMediaUrl(result.media.id)) ?? result.media.url
+    onAccepted({ ...result.media, url })
     toast.success('Cover set')
     onOpenChange(false)
   }
@@ -158,10 +175,7 @@ export function GenerateCoverSheet({
 
   const activePhase = phaseLabel(phase)
   const canGenerate =
-    openAiConfigured &&
-    promptPreview.sufficient &&
-    attempts < COVER_GENERATION_MAX_ATTEMPTS &&
-    !isPending
+    openAiConfigured && promptPreview.sufficient && !isPending && !acceptCover.isPending
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -239,8 +253,7 @@ export function GenerateCoverSheet({
                 </div>
               ) : preview ? (
                 <img
-                  key={preview.url}
-                  src={preview.url}
+                  src={preview.dataUrl}
                   alt=""
                   className={cn(
                     'h-full w-full object-cover transition-all duration-500',
@@ -290,16 +303,19 @@ export function GenerateCoverSheet({
             )}
           </Button>
           {preview ? (
-            <Button type="button" size="sm" variant="outline" onClick={handleAccept}>
-              Use as cover
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleAccept}
+              disabled={acceptCover.isPending}
+            >
+              {acceptCover.isPending ? 'Saving…' : 'Use as cover'}
             </Button>
           ) : null}
           {attempts > 0 ? (
-            <span
-              className="ml-auto text-[11px] text-muted-foreground tabular-nums"
-              title={`Up to ${COVER_GENERATION_MAX_ATTEMPTS} generations per session`}
-            >
-              Generation {attempts}/{COVER_GENERATION_MAX_ATTEMPTS}
+            <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+              {attempts} generated
             </span>
           ) : null}
         </SheetFooter>

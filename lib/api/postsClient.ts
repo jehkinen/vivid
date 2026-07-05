@@ -6,7 +6,12 @@ import type {
   PostListResponse,
   PostDetail,
 } from '@/types/posts'
-import type { GenerateCoverRequest, GenerateCoverResponse } from '@/types/ai'
+import type {
+  AcceptGeneratedCoverRequest,
+  AcceptGeneratedCoverResponse,
+  GenerateCoverRequest,
+  GenerateCoverResponse,
+} from '@/types/ai'
 
 export type { PostSummary, PostWithListRelations, PostListResponse, PostDetail }
 
@@ -100,6 +105,14 @@ export const postsClient = {
   generateCover(postId: string, body: GenerateCoverRequest) {
     return apiRequest<GenerateCoverResponse>({
       path: `/api/posts/${postId}/generate-cover`,
+      method: 'POST',
+      body,
+    })
+  },
+
+  acceptGeneratedCover(postId: string, body: AcceptGeneratedCoverRequest) {
+    return apiRequest<AcceptGeneratedCoverResponse>({
+      path: `/api/posts/${postId}/accept-generated-cover`,
       method: 'POST',
       body,
     })

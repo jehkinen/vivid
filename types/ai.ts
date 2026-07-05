@@ -33,6 +33,23 @@ export type GenerateCoverRequest = {
   stylePreset: CoverStylePreset
   promptOverride?: string
   draft?: GenerateCoverDraft
+}
+
+export type GenerateCoverPreview = {
+  base64: string
+  mimeType: string
+  filename: string
+}
+
+export type GenerateCoverResponse = {
+  preview: GenerateCoverPreview
+  concept?: string
+  scene?: string
+  prompt?: string
+}
+
+export type AcceptGeneratedCoverRequest = {
+  previewBase64: string
   replaceMediaId?: string
 }
 
@@ -42,11 +59,8 @@ export type GenerateCoverMedia = {
   filename: string
 }
 
-export type GenerateCoverResponse = {
+export type AcceptGeneratedCoverResponse = {
   media: GenerateCoverMedia
-  concept?: string
-  scene?: string
-  prompt?: string
 }
 
 export type OpenAiIntegrationStatus = {

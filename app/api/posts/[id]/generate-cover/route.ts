@@ -21,16 +21,16 @@ export const POST = authedHandler(async (
   const body = await parseJsonBody(generateCoverSchema, request)
 
   try {
-    const media = await coverGenerationService.generateCover(authorId, id, body)
+    const result = await coverGenerationService.generateCover(authorId, id, body)
     return NextResponse.json({
-      media: {
-        id: media.id,
-        url: media.url,
-        filename: media.filename,
+      preview: {
+        base64: result.previewBase64,
+        mimeType: result.mimeType,
+        filename: result.filename,
       },
-      concept: media.concept,
-      scene: media.scene,
-      prompt: media.prompt,
+      concept: result.concept,
+      scene: result.scene,
+      prompt: result.prompt,
     })
   } catch (error) {
     if (error instanceof OpenAiNotConfiguredError) {

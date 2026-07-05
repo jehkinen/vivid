@@ -1,8 +1,3 @@
-const MODERATION_SAFE_MARKERS = ['non-sexual', 'modest', 'fully clothed'] as const
-
-const AUTO_PROMPT_GUARD_SUFFIX =
-  'Modest fully clothed figures, non-sexual editorial art.' as const
-
 export function normalizeUserCoverPrompt(prompt: string): string {
   return prompt
     .replace(/\s--ar\s+\d+:\d+/gi, '')
@@ -10,12 +5,7 @@ export function normalizeUserCoverPrompt(prompt: string): string {
 }
 
 export function applyAutoCoverPromptGuardrails(prompt: string): string {
-  const normalized = prompt.trim()
-  const lower = normalized.toLowerCase()
-  if (MODERATION_SAFE_MARKERS.every((marker) => lower.includes(marker))) {
-    return normalized
-  }
-  return `${normalized} ${AUTO_PROMPT_GUARD_SUFFIX}`
+  return prompt.trim()
 }
 
 export function isOpenAiModerationBlock(message: string): boolean {

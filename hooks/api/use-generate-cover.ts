@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { postsClient } from '@/lib/api/postsClient'
-import type { GenerateCoverRequest, GenerateCoverResponse } from '@/types/ai'
+import type { AcceptGeneratedCoverRequest, GenerateCoverRequest, GenerateCoverResponse } from '@/types/ai'
 
 export type GenerateCoverPhase = 'idle' | 'reading' | 'painting' | 'finishing' | 'done' | 'error'
 
@@ -56,4 +56,11 @@ export function useGenerateCover() {
     error,
     data,
   }
+}
+
+export function useAcceptGeneratedCover() {
+  return useMutation({
+    mutationFn: ({ postId, body }: { postId: string; body: AcceptGeneratedCoverRequest }) =>
+      postsClient.acceptGeneratedCover(postId, body),
+  })
 }

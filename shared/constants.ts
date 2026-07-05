@@ -253,8 +253,6 @@ export const COVER_STYLE_PRESETS = [
 
 export type CoverStylePresetId = (typeof COVER_STYLE_PRESETS)[number]['id']
 
-export const COVER_GENERATION_MAX_ATTEMPTS = 5
-
 export const COVER_CONCEPT_INPUT_MAX = 5000
 
 export const COVER_CONCEPT_MAX_TOKENS = 240

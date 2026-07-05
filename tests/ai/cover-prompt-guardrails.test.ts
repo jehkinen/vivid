@@ -7,14 +7,8 @@ import {
 } from '@/lib/ai/cover-prompt-guardrails'
 
 describe('cover prompt guardrails', () => {
-  it('appends modest markers to auto prompts when missing', () => {
-    const result = applyAutoCoverPromptGuardrails('Square cover with two silhouettes.')
-    expect(result).toContain('Modest fully clothed figures')
-    expect(result).toContain('non-sexual')
-  })
-
-  it('skips append when markers already present', () => {
-    const input = 'Modest fully clothed, non-sexual scene.'
+  it('passes auto prompts through unchanged', () => {
+    const input = 'Square cover with two silhouettes.'
     expect(applyAutoCoverPromptGuardrails(input)).toBe(input)
   })
 

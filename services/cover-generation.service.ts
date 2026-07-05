@@ -8,7 +8,7 @@ import {
   MEDIA_COLLECTIONS,
   MEDIABLE_TYPES,
 } from '@/shared/constants'
-import type { GenerateCoverRequest } from '@/types/ai'
+import type { AcceptGeneratedCoverRequest, GenerateCoverRequest } from '@/types/ai'
 import { authorSecretsService, OpenAiNotConfiguredError } from './author-secrets.service'
 import { mediaService } from './media.service'
 import { openaiCoverConceptService } from './openai-cover-concept.service'
@@ -69,6 +69,24 @@ export class CoverGenerationService {
         )
 
     const buffer = await openaiImagesService.generateImage(apiKey, prompt)
+
+    return {
+      previewBase64: buffer.toString('base64'),
+      mimeType: 'image/jpeg',
+      filename: GENERATED_COVER_FILENAME,
+      concept: brief?.coreMoment ?? extractCoverConceptLocal({ title, plaintext, tagNames }),
+      scene: brief?.scene,
+      prompt,
+    }
+  }
+
+  async acceptGeneratedCover(postId: string, input: AcceptGeneratedCoverRequest) {
+    const post = await postsService.findOne({ id: postId, includeDeleted: true })
+    if (!post) {
+      throw new Error('Post not found')
+    }
+
+    const buffer = Buffer.from(input.previewBase64, 'base64')
     const results = await mediaService.upload(
       MEDIABLE_TYPES.POST,
       postId,
@@ -91,9 +109,6 @@ export class CoverGenerationService {
       id: media.id,
       url: media.url,
       filename: media.filename,
-      concept: brief?.coreMoment ?? extractCoverConceptLocal({ title, plaintext, tagNames }),
-      scene: brief?.scene,
-      prompt,
     }
   }
 }

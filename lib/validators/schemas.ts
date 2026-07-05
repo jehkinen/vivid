@@ -156,6 +156,10 @@ export const generateCoverSchema = z.object({
       tagNames: z.array(z.string().max(191)).max(20).optional(),
     })
     .optional(),
+})
+
+export const acceptGeneratedCoverSchema = z.object({
+  previewBase64: z.string().min(1).max(3_000_000),
   replaceMediaId: cuidSchema.optional(),
 })
 
