@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { API_ERROR_CODE, MEDIA_COLLECTIONS, MEDIABLE_TYPES } from '@/shared/constants'
 
-const { findOne, requireOpenAiKey, generateImage, upload } = vi.hoisted(() => ({
+const { findOne, requireOpenAiKey, extractVisualBrief, generateImage, upload } = vi.hoisted(() => ({
   findOne: vi.fn(),
   requireOpenAiKey: vi.fn(),
+  extractVisualBrief: vi.fn(),
   generateImage: vi.fn(),
   upload: vi.fn(),
 }))
@@ -22,6 +23,10 @@ vi.mock('@/services/author-secrets.service', () => ({
   },
 }))
 
+vi.mock('@/services/openai-cover-concept.service', () => ({
+  openaiCoverConceptService: { extractVisualBrief },
+}))
+
 vi.mock('@/services/openai-images.service', () => ({
   openaiImagesService: { generateImage },
 }))
@@ -36,6 +41,9 @@ describe('coverGenerationService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     requireOpenAiKey.mockResolvedValue('sk-test-key-abcdefghijklmnopqrstuvwxyz')
+    extractVisualBrief.mockResolvedValue(
+      'Two silhouettes in a tender embrace, golden spring sunlight on closed eyes after a long winter, dreamlike warmth.'
+    )
     generateImage.mockResolvedValue(Buffer.from('image'))
     upload.mockResolvedValue([
       { id: 'media1', url: 'https://cdn.example/cover.png', filename: 'cover-generated.png' },
@@ -49,49 +57,31 @@ describe('coverGenerationService', () => {
     ).rejects.toThrow('Post not found')
   })
 
-  it('throws when openai key is missing', async () => {
+  it('builds image prompt from LLM concept without title duplication', async () => {
     findOne.mockResolvedValue({
       id: 'post1',
-      title: 'Title',
-      plaintext: 'Enough content here for cover generation to proceed.',
-      tags: [],
-    })
-    const err = new Error('missing')
-    Object.assign(err, { code: API_ERROR_CODE.OPENAI_NOT_CONFIGURED })
-    requireOpenAiKey.mockRejectedValue(err)
-    await expect(
-      coverGenerationService.generateCover('author1', 'post1', { stylePreset: 'editorial' })
-    ).rejects.toMatchObject({ code: API_ERROR_CODE.OPENAI_NOT_CONFIGURED })
-  })
-
-  it('uses draft content over post fields', async () => {
-    findOne.mockResolvedValue({
-      id: 'post1',
-      title: 'Old title',
-      plaintext: 'old body',
-      tags: [{ tag: { name: 'OldTag' } }],
+      title: 'Warm reunion',
+      plaintext: 'Long emotional post text '.repeat(20),
+      tags: [{ tag: { name: 'dreams' } }],
     })
 
-    await coverGenerationService.generateCover('author1', 'post1', {
-      stylePreset: 'minimal',
-      draft: {
-        title: 'Draft title',
-        plaintext: 'Draft body with enough characters for generation.',
-        tagNames: ['NewTag'],
-      },
+    const result = await coverGenerationService.generateCover('author1', 'post1', {
+      stylePreset: 'editorial',
     })
 
+    expect(extractVisualBrief).toHaveBeenCalled()
     expect(generateImage).toHaveBeenCalledWith(
       'sk-test-key-abcdefghijklmnopqrstuvwxyz',
-      expect.stringContaining('Draft title')
+      expect.stringContaining('Two silhouettes in a tender embrace')
     )
     expect(generateImage).toHaveBeenCalledWith(
       'sk-test-key-abcdefghijklmnopqrstuvwxyz',
-      expect.stringContaining('NewTag')
+      expect.not.stringContaining('Topic:')
     )
+    expect(result.prompt).toContain('Editorial magazine cover style')
   })
 
-  it('passes replaceMediaId to media upload', async () => {
+  it('skips concept extraction when prompt override is set', async () => {
     findOne.mockResolvedValue({
       id: 'post1',
       title: 'Title',
@@ -101,34 +91,13 @@ describe('coverGenerationService', () => {
 
     await coverGenerationService.generateCover('author1', 'post1', {
       stylePreset: 'editorial',
-      replaceMediaId: 'old-media',
+      promptOverride: 'Custom visual prompt',
     })
 
-    expect(upload).toHaveBeenCalledWith(
-      MEDIABLE_TYPES.POST,
-      'post1',
-      expect.any(Array),
-      {
-        collection: MEDIA_COLLECTIONS.FEATURED,
-        replaceMediaId: 'old-media',
-      }
+    expect(extractVisualBrief).not.toHaveBeenCalled()
+    expect(generateImage).toHaveBeenCalledWith(
+      'sk-test-key-abcdefghijklmnopqrstuvwxyz',
+      'Custom visual prompt'
     )
-  })
-
-  it('returns uploaded media summary', async () => {
-    findOne.mockResolvedValue({
-      id: 'post1',
-      title: 'Title',
-      plaintext: null,
-      tags: [],
-    })
-
-    await expect(
-      coverGenerationService.generateCover('author1', 'post1', { stylePreset: 'abstract' })
-    ).resolves.toEqual({
-      id: 'media1',
-      url: 'https://cdn.example/cover.png',
-      filename: 'cover-generated.png',
-    })
   })
 })

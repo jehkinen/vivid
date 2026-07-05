@@ -20,6 +20,27 @@ describe('openaiImagesService', () => {
     expect(buffer.toString()).toBe('png-data')
   })
 
+  it('returns image buffer from url response', async () => {
+    const imageBytes = Buffer.from('png-from-url')
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: [{ url: 'https://example.com/image.png' }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => imageBytes,
+        })
+    )
+
+    const { openaiImagesService } = await import('@/services/openai-images.service')
+    const buffer = await openaiImagesService.generateImage('sk-test', 'prompt')
+    expect(buffer.toString()).toBe('png-from-url')
+  })
+
   it('maps 401 to invalid key message', async () => {
     vi.stubGlobal(
       'fetch',

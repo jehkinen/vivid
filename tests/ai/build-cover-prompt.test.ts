@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildCoverPrompt } from '@/lib/ai/build-cover-prompt'
-import { COVER_MIN_PLAINTEXT_CHARS, COVER_PROMPT_EXCERPT_MAX } from '@/shared/constants'
+import { COVER_MIN_PLAINTEXT_CHARS } from '@/shared/constants'
 
 describe('buildCoverPrompt', () => {
   it('is sufficient when title is present', () => {
@@ -11,7 +11,7 @@ describe('buildCoverPrompt', () => {
     })
     expect(result.sufficient).toBe(true)
     expect(result.sourceParts.title).toBe('My Post')
-    expect(result.prompt).toContain('Topic: My Post')
+    expect(result.prompt).toContain('will be composed on Generate')
   })
 
   it('is sufficient when plaintext meets minimum length', () => {
@@ -22,7 +22,7 @@ describe('buildCoverPrompt', () => {
       stylePreset: 'minimal',
     })
     expect(result.sufficient).toBe(true)
-    expect(result.sourceParts.excerpt).toBe(plaintext)
+    expect(result.sourceParts.concept).toBeTruthy()
   })
 
   it('is insufficient when content is too short', () => {
@@ -34,25 +34,17 @@ describe('buildCoverPrompt', () => {
     expect(result.sufficient).toBe(false)
   })
 
-  it('truncates long plaintext in excerpt', () => {
-    const plaintext = 'word '.repeat(200)
+  it('uses AI concept for final image prompt without title duplication', () => {
     const result = buildCoverPrompt({
       title: 'Title',
-      plaintext,
+      plaintext: 'word '.repeat(200),
       stylePreset: 'abstract',
+      concept: 'Two silhouettes embracing in golden spring sunlight, dreamlike haze.',
     })
-    expect(result.sourceParts.excerpt!.length).toBeLessThanOrEqual(COVER_PROMPT_EXCERPT_MAX + 1)
-  })
-
-  it('includes tag names in prompt and sourceParts', () => {
-    const result = buildCoverPrompt({
-      title: 'Title',
-      plaintext: 'Some body text that is long enough for context here.',
-      tagNames: ['Travel', 'Notes'],
-      stylePreset: 'editorial',
-    })
-    expect(result.sourceParts.tags).toEqual(['Travel', 'Notes'])
-    expect(result.prompt).toContain('Themes: Travel, Notes')
+    expect(result.prompt).toContain('Two silhouettes embracing')
+    expect(result.prompt).not.toContain('Topic:')
+    expect(result.prompt).not.toContain('Themes:')
+    expect(result.prompt).toContain('Abstract artistic interpretation')
   })
 
   it('uses promptOverride when provided', () => {
@@ -63,18 +55,5 @@ describe('buildCoverPrompt', () => {
       promptOverride: 'Custom prompt only',
     })
     expect(result.prompt).toBe('Custom prompt only')
-  })
-
-  it('applies style preset suffix', () => {
-    const editorial = buildCoverPrompt({
-      title: 'Title',
-      stylePreset: 'editorial',
-    })
-    const abstract = buildCoverPrompt({
-      title: 'Title',
-      stylePreset: 'abstract',
-    })
-    expect(editorial.prompt).toContain('Editorial magazine cover style')
-    expect(abstract.prompt).toContain('Abstract artistic interpretation')
   })
 })

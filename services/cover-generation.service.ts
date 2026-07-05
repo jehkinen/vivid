@@ -1,4 +1,6 @@
+import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
 import { buildCoverPrompt } from '@/lib/ai/build-cover-prompt'
+import { extractCoverConceptLocal } from '@/lib/ai/extract-cover-concept'
 import {
   GENERATED_COVER_FILENAME,
   MEDIA_COLLECTIONS,
@@ -7,6 +9,7 @@ import {
 import type { GenerateCoverRequest } from '@/types/ai'
 import { authorSecretsService, OpenAiNotConfiguredError } from './author-secrets.service'
 import { mediaService } from './media.service'
+import { openaiCoverConceptService } from './openai-cover-concept.service'
 import { openaiImagesService } from './openai-images.service'
 import { postsService } from './posts.service'
 
@@ -28,17 +31,31 @@ export class CoverGenerationService {
       post.tags?.map((entry) => entry.tag.name).filter(Boolean) ??
       []
 
-    const { prompt, sufficient } = buildCoverPrompt({
+    const sufficient = buildCoverPrompt({
       title,
       plaintext,
       tagNames,
       stylePreset: input.stylePreset,
-      promptOverride: input.promptOverride,
-    })
+    }).sufficient
 
     if (!sufficient) {
       throw new Error('Write a title or a few sentences before generating a cover')
     }
+
+    const concept = input.promptOverride?.trim()
+      ? undefined
+      : await openaiCoverConceptService.extractVisualBrief(apiKey, {
+          title,
+          plaintext,
+          tagNames,
+        })
+
+    const prompt = input.promptOverride?.trim()
+      ? input.promptOverride.trim()
+      : buildCoverImagePrompt(
+          concept ?? extractCoverConceptLocal({ title, plaintext, tagNames }) ?? title ?? '',
+          input.stylePreset
+        )
 
     const buffer = await openaiImagesService.generateImage(apiKey, prompt)
     const results = await mediaService.upload(
@@ -63,6 +80,8 @@ export class CoverGenerationService {
       id: media.id,
       url: media.url,
       filename: media.filename,
+      concept: concept ?? extractCoverConceptLocal({ title, plaintext, tagNames }),
+      prompt,
     }
   }
 }

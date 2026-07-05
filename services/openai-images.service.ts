@@ -1,8 +1,4 @@
-import {
-  OPENAI_IMAGE_MODEL,
-  OPENAI_IMAGE_RESPONSE_FORMAT,
-  OPENAI_IMAGE_SIZE,
-} from '@/shared/constants'
+import { OPENAI_IMAGE_MODEL, OPENAI_IMAGE_QUALITY, OPENAI_IMAGE_SIZE } from '@/shared/constants'
 
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/generations'
 
@@ -19,7 +15,7 @@ export class OpenAiImagesService {
         prompt,
         n: 1,
         size: OPENAI_IMAGE_SIZE,
-        response_format: OPENAI_IMAGE_RESPONSE_FORMAT,
+        quality: OPENAI_IMAGE_QUALITY,
       }),
     })
 
@@ -41,13 +37,20 @@ export class OpenAiImagesService {
     }
 
     const payload = (await response.json()) as {
-      data?: Array<{ b64_json?: string }>
+      data?: Array<{ b64_json?: string; url?: string }>
     }
-    const b64 = payload.data?.[0]?.b64_json
-    if (!b64) {
-      throw new Error('OpenAI returned no image data')
+    const item = payload.data?.[0]
+    if (item?.b64_json) {
+      return Buffer.from(item.b64_json, 'base64')
     }
-    return Buffer.from(b64, 'base64')
+    if (item?.url) {
+      const imageResponse = await fetch(item.url)
+      if (!imageResponse.ok) {
+        throw new Error('Failed to download generated image')
+      }
+      return Buffer.from(await imageResponse.arrayBuffer())
+    }
+    throw new Error('OpenAI returned no image data')
   }
 }
 

@@ -1,16 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { postsClient } from '@/lib/api/postsClient'
-import type { GenerateCoverRequest, GenerateCoverMedia } from '@/types/ai'
+import type { GenerateCoverRequest, GenerateCoverResponse } from '@/types/ai'
 
 export type GenerateCoverPhase = 'idle' | 'reading' | 'painting' | 'finishing' | 'done' | 'error'
 
 export function useGenerateCover() {
   const [phase, setPhase] = useState<GenerateCoverPhase>('idle')
 
-  const mutation = useMutation({
+  const { mutateAsync, reset: resetMutation, isPending, error, data } = useMutation({
     mutationFn: ({ postId, body }: { postId: string; body: GenerateCoverRequest }) =>
       postsClient.generateCover(postId, body),
     onMutate: () => {
@@ -25,33 +25,35 @@ export function useGenerateCover() {
     },
   })
 
-  const generate = async (postId: string, body: GenerateCoverRequest): Promise<GenerateCoverMedia | null> => {
-    setPhase('reading')
-    const readingTimer = window.setTimeout(() => {
-      setPhase((current) => (current === 'reading' ? 'painting' : current))
-    }, 2000)
-
-    try {
-      const result = await mutation.mutateAsync({ postId, body })
-      return result.media
-    } catch {
-      return null
-    } finally {
-      window.clearTimeout(readingTimer)
-    }
-  }
-
-  const reset = () => {
+  const reset = useCallback(() => {
     setPhase('idle')
-    mutation.reset()
-  }
+    resetMutation()
+  }, [resetMutation])
+
+  const generate = useCallback(
+    async (postId: string, body: GenerateCoverRequest): Promise<GenerateCoverResponse | null> => {
+      setPhase('reading')
+      const readingTimer = window.setTimeout(() => {
+        setPhase((current) => (current === 'reading' ? 'painting' : current))
+      }, 2000)
+
+      try {
+        return await mutateAsync({ postId, body })
+      } catch {
+        return null
+      } finally {
+        window.clearTimeout(readingTimer)
+      }
+    },
+    [mutateAsync]
+  )
 
   return {
     generate,
     reset,
     phase,
-    isPending: mutation.isPending,
-    error: mutation.error,
-    data: mutation.data?.media ?? null,
+    isPending,
+    error,
+    data,
   }
 }

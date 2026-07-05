@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { CircleNotchIcon, SparkleIcon } from '@phosphor-icons/react'
 import { toast } from 'sonner'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -42,6 +43,12 @@ function phaseLabel(phase: string): string | null {
   return null
 }
 
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{children}</p>
+  )
+}
+
 export function GenerateCoverSheet({
   open,
   onOpenChange,
@@ -58,6 +65,7 @@ export function GenerateCoverSheet({
   const [promptEdited, setPromptEdited] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const [preview, setPreview] = useState<GenerateCoverMedia | null>(null)
+  const [lastConcept, setLastConcept] = useState<string | null>(null)
   const { generate, reset, phase, isPending, error } = useGenerateCover()
 
   const promptPreview = useMemo(
@@ -72,25 +80,46 @@ export function GenerateCoverSheet({
     [title, plaintext, tagNames, stylePreset, promptOverride, promptEdited]
   )
 
-  useEffect(() => {
-    if (!open) return
-    if (!promptEdited) {
-      setPromptOverride(promptPreview.prompt)
-    }
-  }, [open, promptPreview.prompt, promptEdited])
+  const derivedPrompt = useMemo(
+    () =>
+      buildCoverPrompt({
+        title,
+        plaintext,
+        tagNames,
+        stylePreset,
+      }).prompt,
+    [title, plaintext, tagNames, stylePreset]
+  )
+
+  const mainIdeaLine =
+    lastConcept ??
+    promptPreview.sourceParts.concept ??
+    promptPreview.sourceParts.title ??
+    promptPreview.sourceParts.tags?.join(', ')
+
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
-    if (!open) {
+    if (!open || promptEdited) return
+    setPromptOverride(derivedPrompt)
+  }, [open, derivedPrompt, promptEdited])
+
+  useEffect(() => {
+    if (wasOpenRef.current && !open) {
       reset()
       setPreview(null)
+      setLastConcept(null)
       setAttempts(0)
       setPromptEdited(false)
       setStylePreset('editorial')
     }
+    wasOpenRef.current = open
   }, [open, reset])
 
   const handleStyleChange = (preset: CoverStylePreset) => {
     setStylePreset(preset)
+    setPreview(null)
+    setLastConcept(null)
     if (!promptEdited) {
       const next = buildCoverPrompt({
         title,
@@ -104,14 +133,24 @@ export function GenerateCoverSheet({
 
   const handleGenerate = async () => {
     if (!openAiConfigured || !promptPreview.sufficient || attempts >= COVER_GENERATION_MAX_ATTEMPTS) return
-    const media = await generate(postId, {
+    const replaceId = replaceMediaId ?? preview?.id
+    setPreview(null)
+    const result = await generate(postId, {
       stylePreset,
-      promptOverride: promptOverride.trim() || undefined,
+      promptOverride: promptEdited ? promptOverride.trim() || undefined : undefined,
       draft: { title, plaintext, tagNames },
-      replaceMediaId: replaceMediaId ?? preview?.id,
+      replaceMediaId: replaceId,
     })
-    if (media) {
-      setPreview(media)
+    if (result?.media) {
+      const cacheBust = result.media.url.includes('?') ? '&' : '?'
+      setPreview({ ...result.media, url: `${result.media.url}${cacheBust}v=${Date.now()}` })
+      if (result.prompt) {
+        setPromptOverride(result.prompt)
+        setPromptEdited(false)
+      }
+      if (result.concept) {
+        setLastConcept(result.concept)
+      }
       setAttempts((count) => count + 1)
     }
   }
@@ -139,59 +178,45 @@ export function GenerateCoverSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader className="pb-2">
+      <SheetContent
+        side="right"
+        title="Generate cover"
+        className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
+      >
+        <SheetHeader className="shrink-0 border-b border-border/60 px-5 py-4 pr-12">
           <SheetTitle className="text-base">Generate cover</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-5 pb-6">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-5 py-4">
           {!openAiConfigured ? (
-            <div className="rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+            <div className="shrink-0 rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
               Add your OpenAI API key in{' '}
               <Link href={routes.VIVID_PROFILE.path} className="text-foreground underline underline-offset-2">
                 Profile
-              </Link>{' '}
-              to generate covers.
+              </Link>
+              .
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Used from your post</p>
-            <div className="flex flex-wrap gap-2">
-              {promptPreview.sourceParts.title ? (
-                <span className="rounded-full border border-border/70 bg-muted/25 px-2.5 py-1 text-xs text-foreground">
-                  {promptPreview.sourceParts.title}
-                </span>
-              ) : null}
-              {promptPreview.sourceParts.excerpt ? (
-                <span className="max-w-full truncate rounded-full border border-border/70 bg-muted/25 px-2.5 py-1 text-xs text-muted-foreground">
-                  {promptPreview.sourceParts.excerpt}
-                </span>
-              ) : null}
-              {promptPreview.sourceParts.tags?.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-border/70 bg-muted/25 px-2.5 py-1 text-xs text-muted-foreground"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-            {!promptPreview.sufficient ? (
-              <p className="text-xs text-muted-foreground">Write a title or a few sentences before generating.</p>
-            ) : null}
+          <div className="shrink-0 space-y-1.5">
+            <SectionLabel>Main idea</SectionLabel>
+            {mainIdeaLine ? (
+              <p className="line-clamp-2 text-sm leading-snug text-foreground">{mainIdeaLine}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Write a title or a few sentences first.</p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Style</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="shrink-0 space-y-1.5">
+            <SectionLabel>Style</SectionLabel>
+            <div className="flex flex-wrap gap-1.5">
               {COVER_STYLE_PRESETS.map((preset) => (
                 <button
                   key={preset.id}
                   type="button"
                   onClick={() => handleStyleChange(preset.id)}
                   className={cn(
-                    'rounded-full border px-3 py-1.5 text-sm transition-colors',
+                    'rounded-full border px-2.5 py-1 text-xs transition-colors',
                     stylePreset === preset.id
                       ? 'border-foreground/30 bg-muted/50 text-foreground'
                       : 'border-border/70 bg-muted/20 text-muted-foreground hover:text-foreground'
@@ -203,9 +228,9 @@ export function GenerateCoverSheet({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="cover-prompt" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Prompt
+          <div className="flex min-h-0 shrink flex-col gap-1.5">
+            <label htmlFor="cover-prompt" className="shrink-0">
+              <SectionLabel>Image prompt</SectionLabel>
             </label>
             <textarea
               id="cover-prompt"
@@ -214,40 +239,40 @@ export function GenerateCoverSheet({
                 setPromptEdited(true)
                 setPromptOverride(e.target.value)
               }}
-              rows={5}
-              className="w-full resize-y rounded-md border border-border/80 bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              rows={3}
+              placeholder="Composed automatically on Generate from your post…"
+              className="min-h-[4.5rem] w-full shrink-0 resize-none rounded-md border border-border/80 bg-background px-3 py-2 text-xs leading-relaxed text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
-            <div className="relative aspect-[16/9] overflow-hidden rounded-lg border border-border/70 bg-muted/20">
-              {preview ? (
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+            <SectionLabel>Preview</SectionLabel>
+            <div className="relative min-h-[7rem] flex-1 overflow-hidden rounded-lg border border-border/70 bg-muted/20">
+              {isPending ? (
+                <div className="flex h-full min-h-[7rem] flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <CircleNotchIcon className="h-5 w-5 animate-spin" />
+                  {activePhase ? <span>{activePhase}</span> : null}
+                </div>
+              ) : preview ? (
                 <img
+                  key={preview.url}
                   src={preview.url}
                   alt=""
                   className={cn(
                     'h-full w-full object-cover transition-all duration-500',
-                    phase === 'done' || phase === 'finishing'
-                      ? 'scale-100 opacity-100 ring-2 ring-foreground/15'
-                      : 'scale-100 opacity-100'
+                    phase === 'done' || phase === 'finishing' ? 'ring-2 ring-foreground/15' : ''
                   )}
                 />
-              ) : isPending ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <CircleNotchIcon className="h-6 w-6 animate-spin" />
-                  {activePhase ? <span>{activePhase}</span> : null}
-                </div>
               ) : (
-                <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                  Generated cover will appear here
+                <div className="flex h-full min-h-[7rem] items-center justify-center px-4 text-center text-xs text-muted-foreground">
+                  Image appears here
                 </div>
               )}
             </div>
           </div>
 
           {error ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <div className="shrink-0 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {error.message}
               {isNotConfigured ? (
                 <>
@@ -259,38 +284,41 @@ export function GenerateCoverSheet({
               ) : null}
             </div>
           ) : null}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" onClick={handleGenerate} disabled={!canGenerate}>
-              {isPending ? (
-                <>
-                  <CircleNotchIcon className="mr-2 h-4 w-4 animate-spin" />
-                  Generating…
-                </>
-              ) : preview ? (
-                <>
-                  <CircleNotchIcon className="mr-2 h-4 w-4" />
-                  Regenerate
-                </>
-              ) : (
-                <>
-                  <SparkleIcon className="mr-2 h-4 w-4" />
-                  Generate
-                </>
-              )}
-            </Button>
-            {preview ? (
-              <Button type="button" variant="outline" onClick={handleAccept}>
-                Use as cover
-              </Button>
-            ) : null}
-            {attempts > 0 ? (
-              <span className="text-xs text-muted-foreground tabular-nums">
-                Attempt {attempts}/{COVER_GENERATION_MAX_ATTEMPTS}
-              </span>
-            ) : null}
-          </div>
         </div>
+
+        <SheetFooter className="shrink-0 flex-row items-center justify-start gap-2 border-t border-border/60 px-5 py-4">
+          <Button type="button" size="sm" onClick={handleGenerate} disabled={!canGenerate}>
+            {isPending ? (
+              <>
+                <CircleNotchIcon className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Generating…
+              </>
+            ) : preview ? (
+              <>
+                <CircleNotchIcon className="mr-1.5 h-3.5 w-3.5" />
+                Regenerate
+              </>
+            ) : (
+              <>
+                <SparkleIcon className="mr-1.5 h-3.5 w-3.5" />
+                Generate
+              </>
+            )}
+          </Button>
+          {preview ? (
+            <Button type="button" size="sm" variant="outline" onClick={handleAccept}>
+              Use as cover
+            </Button>
+          ) : null}
+          {attempts > 0 ? (
+            <span
+              className="ml-auto text-[11px] text-muted-foreground tabular-nums"
+              title={`Up to ${COVER_GENERATION_MAX_ATTEMPTS} generations per session`}
+            >
+              Generation {attempts}/{COVER_GENERATION_MAX_ATTEMPTS}
+            </span>
+          ) : null}
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

@@ -4,7 +4,7 @@ export type CoverStylePreset = (typeof COVER_STYLE_PRESETS)[number]['id']
 
 export type CoverPromptSourceParts = {
   title?: string
-  excerpt?: string
+  concept?: string
   tags?: string[]
 }
 
@@ -14,6 +14,7 @@ export type CoverPromptInput = {
   tagNames?: string[]
   stylePreset: CoverStylePreset
   promptOverride?: string
+  concept?: string
 }
 
 export type CoverPromptResult = {
@@ -43,6 +44,8 @@ export type GenerateCoverMedia = {
 
 export type GenerateCoverResponse = {
   media: GenerateCoverMedia
+  concept?: string
+  prompt?: string
 }
 
 export type OpenAiIntegrationStatus = {

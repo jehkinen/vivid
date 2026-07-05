@@ -203,11 +203,13 @@ export const SIGNED_URL_EXPIRES_SECONDS = 3600
 
 export const SIGNED_URL_CACHE_BUFFER_SECONDS = 60
 
-export const OPENAI_IMAGE_MODEL = 'dall-e-3' as const
+export const OPENAI_IMAGE_MODEL = 'gpt-image-1' as const
 
-export const OPENAI_IMAGE_SIZE = '1792x1024' as const
+export const OPENAI_IMAGE_SIZE = '1536x1024' as const
 
-export const OPENAI_IMAGE_RESPONSE_FORMAT = 'b64_json' as const
+export const OPENAI_IMAGE_QUALITY = 'low' as const
+
+export const OPENAI_CONCEPT_MODEL = 'gpt-4o-mini' as const
 
 export const OPENAI_KEY_MIN_LENGTH = 20
 
@@ -240,7 +242,13 @@ export type CoverStylePresetId = (typeof COVER_STYLE_PRESETS)[number]['id']
 
 export const COVER_GENERATION_MAX_ATTEMPTS = 5
 
-export const COVER_PROMPT_EXCERPT_MAX = 600
+export const COVER_CONCEPT_INPUT_MAX = 5000
+
+export const COVER_CONCEPT_MAX_TOKENS = 180
+
+export const COVER_LOCAL_CONCEPT_MAX = 280
+
+export const COVER_LEAD_SENTENCES_MAX = 3
 
 export const COVER_MIN_PLAINTEXT_CHARS = 40
 

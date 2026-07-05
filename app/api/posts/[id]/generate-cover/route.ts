@@ -22,7 +22,15 @@ export const POST = authedHandler(async (
 
   try {
     const media = await coverGenerationService.generateCover(authorId, id, body)
-    return NextResponse.json({ media })
+    return NextResponse.json({
+      media: {
+        id: media.id,
+        url: media.url,
+        filename: media.filename,
+      },
+      concept: media.concept,
+      prompt: media.prompt,
+    })
   } catch (error) {
     if (error instanceof OpenAiNotConfiguredError) {
       return NextResponse.json(
