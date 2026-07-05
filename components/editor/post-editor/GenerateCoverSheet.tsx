@@ -63,7 +63,6 @@ export function GenerateCoverSheet({
 }: GenerateCoverSheetProps) {
   const [stylePreset, setStylePreset] = useState<CoverStylePreset>('editorial')
   const [promptOverride, setPromptOverride] = useState('')
-  const [promptEdited, setPromptEdited] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const [preview, setPreview] = useState<GenerateCoverMedia | null>(null)
   const [lastConcept, setLastConcept] = useState<string | null>(null)
@@ -76,9 +75,8 @@ export function GenerateCoverSheet({
         plaintext,
         tagNames,
         stylePreset,
-        promptOverride: promptEdited ? promptOverride : undefined,
       }),
-    [title, plaintext, tagNames, stylePreset, promptOverride, promptEdited]
+    [title, plaintext, tagNames, stylePreset]
   )
 
   const mainIdeaLine =
@@ -95,7 +93,6 @@ export function GenerateCoverSheet({
       setPreview(null)
       setLastConcept(null)
       setPromptOverride('')
-      setPromptEdited(false)
       setAttempts(0)
       setStylePreset('editorial')
     }
@@ -106,16 +103,13 @@ export function GenerateCoverSheet({
     setStylePreset(preset)
     setPreview(null)
     setLastConcept(null)
-    setPromptOverride('')
-    setPromptEdited(false)
   }
 
   const handleGenerate = async () => {
     if (!openAiConfigured || !promptPreview.sufficient || attempts >= COVER_GENERATION_MAX_ATTEMPTS) return
     const replaceId = replaceMediaId ?? preview?.id
     setPreview(null)
-    const customPrompt =
-      promptEdited && isUsablePromptOverride(promptOverride) ? promptOverride.trim() : undefined
+    const customPrompt = isUsablePromptOverride(promptOverride) ? promptOverride.trim() : undefined
     const result = await generate(postId, {
       stylePreset,
       promptOverride: customPrompt,
@@ -128,7 +122,6 @@ export function GenerateCoverSheet({
       setPreview({ ...result.media, url })
       if (result.prompt) {
         setPromptOverride(result.prompt)
-        setPromptEdited(false)
       }
       if (result.concept) {
         setLastConcept(result.concept)
@@ -214,23 +207,14 @@ export function GenerateCoverSheet({
             <label htmlFor="cover-prompt" className="shrink-0">
               <SectionLabel>Image prompt</SectionLabel>
             </label>
-            {attempts === 0 && !promptEdited ? (
-              <p className="rounded-md border border-dashed border-border/70 bg-muted/10 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-                Composed from your full post on Generate — scene, light, mood. Appears here after the first run.
-              </p>
-            ) : (
-              <textarea
-                id="cover-prompt"
-                value={promptOverride}
-                onChange={(e) => {
-                  setPromptEdited(true)
-                  setPromptOverride(e.target.value)
-                }}
-                rows={4}
-                placeholder="Edit to fine-tune the next regeneration…"
-                className="min-h-[5.5rem] w-full shrink-0 resize-none rounded-md border border-border/80 bg-background px-3 py-2 text-xs leading-relaxed text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            )}
+            <textarea
+              id="cover-prompt"
+              value={promptOverride}
+              onChange={(e) => setPromptOverride(e.target.value)}
+              rows={5}
+              placeholder="Write your prompt here, or leave empty to compose from your post on Generate…"
+              className="min-h-[6rem] w-full shrink-0 resize-none rounded-md border border-border/80 bg-background px-3 py-2 text-xs leading-relaxed text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-1.5">
