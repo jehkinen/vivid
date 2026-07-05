@@ -4,6 +4,7 @@ import { authedHandler } from '@/lib/authed-handler'
 import { nonEmptyPostUpdateSchema } from '@/lib/validators/schemas'
 import { parseJsonBody, parseRouteParams } from '@/lib/validators/parse'
 import { idRouteParamsSchema } from '@/lib/validators/query-schemas'
+import { invalidatePublishedTagsCache } from '@/lib/cache-invalidation'
 
 export const PUT = authedHandler(async (
   request: NextRequest,
@@ -12,6 +13,7 @@ export const PUT = authedHandler(async (
   const { id } = await parseRouteParams(idRouteParamsSchema, params)
   const data = await parseJsonBody(nonEmptyPostUpdateSchema, request)
   const post = await postsService.update(id, data)
+  invalidatePublishedTagsCache()
   return NextResponse.json(post)
 })
 
@@ -21,5 +23,6 @@ export const DELETE = authedHandler(async (
 ) => {
   const { id } = await parseRouteParams(idRouteParamsSchema, params)
   await postsService.softDelete(id)
+  invalidatePublishedTagsCache()
   return NextResponse.json({ success: true })
 })

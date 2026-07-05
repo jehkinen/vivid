@@ -1,5 +1,5 @@
 import { apiRequest } from './request'
-import type { TagDto } from '@/types/tags'
+import type { TagDto, MergeTagsResult } from '@/types/tags'
 
 export type { TagDto }
 
@@ -40,7 +40,7 @@ export const tagsClient = {
   },
 
   merge(sourceTagId: string, targetTagId: string) {
-    return apiRequest<Record<string, unknown>>({
+    return apiRequest<MergeTagsResult>({
       path: '/api/tags/merge',
       method: 'POST',
       body: { sourceTagId, targetTagId },

@@ -44,6 +44,7 @@ interface FindPostsParams {
   sort?: PostSortOption
   includeDeleted?: boolean
   deletedOnly?: boolean
+  includeAuthors?: boolean
   limit?: number
   offset?: number
 }
@@ -153,23 +154,42 @@ export class PostsService {
         : (SORT_ORDER_BY[sort] ?? { updatedAt: 'desc' })
     const limit = params.limit ?? 20
     const offset = params.offset ?? 0
+    const includeAuthors = params.includeAuthors ?? false
 
     const raw = await prisma.post.findMany({
       where,
       orderBy,
       skip: offset,
       take: limit + 1,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        plaintext: true,
+        wordCount: true,
+        publishedAt: true,
+        status: true,
+        visibility: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+        featuredMediaId: true,
         tags: {
           include: {
             tag: true,
           },
         },
-        authors: {
-          include: {
-            author: true,
-          },
-        },
+        ...(includeAuthors
+          ? {
+              authors: {
+                include: {
+                  author: {
+                    select: { name: true },
+                  },
+                },
+              },
+            }
+          : {}),
       },
     })
 

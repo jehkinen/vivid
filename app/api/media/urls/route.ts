@@ -6,14 +6,6 @@ import { mediaService } from '@/services/media.service'
 
 export const POST = authedHandler(async (request: NextRequest) => {
   const { ids } = await parseJsonBody(mediaUrlsSchema, request)
-  const uniqueIds = [...new Set(ids)]
-  if (uniqueIds.length === 0) {
-    return NextResponse.json({ urls: {} })
-  }
-  const list = await mediaService.findManyByIds(uniqueIds)
-  const urls: Record<string, string> = {}
-  for (const m of list) {
-    urls[m.id] = m.url
-  }
+  const urls = await mediaService.resolveUrlMap(ids)
   return NextResponse.json({ urls })
 })

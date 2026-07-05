@@ -4,6 +4,7 @@ import { authedHandler } from '@/lib/authed-handler'
 import { tagUpdateSchema } from '@/lib/validators/schemas'
 import { parseJsonBody, parseRouteParams } from '@/lib/validators/parse'
 import { slugRouteParamsSchema } from '@/lib/validators/query-schemas'
+import { invalidatePublishedTagsCache } from '@/lib/cache-invalidation'
 
 export const GET = authedHandler(async (
   _request: NextRequest,
@@ -34,6 +35,7 @@ export const PUT = authedHandler(async (
   }
 
   const updatedTag = await tagsService.update(tag.id, data)
+  invalidatePublishedTagsCache()
   return NextResponse.json(updatedTag)
 })
 
@@ -48,5 +50,6 @@ export const DELETE = authedHandler(async (
   }
 
   await tagsService.delete(tag.id)
+  invalidatePublishedTagsCache()
   return NextResponse.json({ success: true })
 })

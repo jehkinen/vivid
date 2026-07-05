@@ -4,6 +4,7 @@ import { authedHandler } from '@/lib/authed-handler'
 import { postCreateSchema } from '@/lib/validators/schemas'
 import { parseJsonBody, parseSearchParams } from '@/lib/validators/parse'
 import { postsListQuerySchema } from '@/lib/validators/query-schemas'
+import { invalidatePublishedTagsCache } from '@/lib/cache-invalidation'
 
 export const GET = authedHandler(async (request: NextRequest) => {
   const query = parseSearchParams(postsListQuerySchema, request.nextUrl.searchParams)
@@ -28,6 +29,7 @@ export const GET = authedHandler(async (request: NextRequest) => {
     authorIds: query.authorIds?.length ? query.authorIds : undefined,
     sort: query.sort,
     deletedOnly,
+    includeAuthors: true,
     limit: query.limit,
     offset: query.offset,
   })
@@ -38,5 +40,6 @@ export const GET = authedHandler(async (request: NextRequest) => {
 export const POST = authedHandler(async (request: NextRequest) => {
   const data = await parseJsonBody(postCreateSchema, request)
   const post = await postsService.create(data)
+  invalidatePublishedTagsCache()
   return NextResponse.json(post)
 })

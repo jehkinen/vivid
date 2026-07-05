@@ -11,10 +11,12 @@ export default async function ListSlugPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const list = await listsService.findBySlug(slug)
+  const [list, tagsWithCount] = await Promise.all([
+    listsService.findBySlug(slug),
+    tagsService.findManyWithPublishedPostCount(),
+  ])
   if (!list) notFound()
 
-  const tagsWithCount = await tagsService.findManyWithPublishedPostCount()
   const tags = tagsWithCount
     .filter((t) => (t.postCount ?? 0) > 0)
     .map((t) => ({

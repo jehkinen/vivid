@@ -13,6 +13,7 @@ import { resolveMediaSrc } from '@/lib/editor/lexical/resolve-media-src'
 interface PostContentProps {
   lexicalJson: string | null
   className?: string
+  urlMap?: Record<string, string>
 }
 
 type LexJson = Record<string, unknown>
@@ -111,7 +112,7 @@ function PostLink({
           }
         }
         const selection = window.getSelection()
-        if (selection && !selection.isCollapsed()) {
+        if (selection && !selection.isCollapsed) {
           e.preventDefault()
         }
       }}
@@ -145,7 +146,7 @@ function isDecoratorBlock(type: string): boolean {
   return DECORATOR_BLOCK_TYPES.includes(type)
 }
 
-export function PostContent({ lexicalJson, className = '' }: PostContentProps) {
+export function PostContent({ lexicalJson, className = '', urlMap: urlMapProp }: PostContentProps) {
   const [lightbox, setLightbox] = useState<{
     images: { src: string; alt?: string }[]
     index: number
@@ -156,14 +157,25 @@ export function PostContent({ lexicalJson, className = '' }: PostContentProps) {
   }, [])
 
   const mediaIds = useMemo(() => collectMediaIds(lexicalJson ?? ''), [lexicalJson])
-  const urlMap = useMediaUrls(mediaIds)
+  const fetchedUrlMap = useMediaUrls(urlMapProp ? [] : mediaIds)
+  const urlMap = urlMapProp ?? fetchedUrlMap
 
-  if (!lexicalJson) return <div className={className} />
+  const parsedRoot = useMemo(() => {
+    if (!lexicalJson) return null
+    try {
+      const parsed = JSON.parse(lexicalJson)
+      const root = parsed?.root
+      if (!root?.children) return null
+      return root
+    } catch {
+      return null
+    }
+  }, [lexicalJson])
+
+  if (!lexicalJson || !parsedRoot) return <div className={className} />
 
   try {
-    const parsed = JSON.parse(lexicalJson)
-    const root = parsed?.root
-    if (!root?.children) return <div className={className} />
+    const root = parsedRoot
 
     const renderNode = (node: LexJson): ReactNode => {
       if (node.type === LEXICAL_NODE_TYPE.IMAGE) {

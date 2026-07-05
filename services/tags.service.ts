@@ -1,6 +1,7 @@
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { generateId } from '@/shared/id'
-import { TAG_DEFAULT_COLORS } from '@/shared/constants'
+import { TAG_DEFAULT_COLORS, CACHE_TAGS, CACHE_REVALIDATE_SECONDS } from '@/shared/constants'
 import { POST_STATUS } from '@/shared/constants'
 
 export interface MergeTagsResult {
@@ -20,6 +21,31 @@ interface UpdateTagData {
   slug?: string
 }
 
+async function findManyWithPublishedPostCountRaw() {
+  const counts = await prisma.postTag.groupBy({
+    by: ['tagId'],
+    where: {
+      post: {
+        status: POST_STATUS.PUBLISHED,
+        deletedAt: null,
+      },
+    },
+    _count: { postId: true },
+  })
+  const countByTagId = Object.fromEntries(counts.map((c) => [c.tagId, c._count.postId]))
+  const tags = await prisma.tag.findMany({ orderBy: { name: 'asc' } })
+  return tags.map((tag) => ({
+    ...tag,
+    postCount: countByTagId[tag.id] ?? 0,
+  }))
+}
+
+const getPublishedTagsWithCount = unstable_cache(
+  findManyWithPublishedPostCountRaw,
+  ['published-tags-with-count'],
+  { revalidate: CACHE_REVALIDATE_SECONDS, tags: [CACHE_TAGS.PUBLISHED_TAGS] }
+)
+
 export class TagsService {
   async findMany() {
     const tags = await prisma.tag.findMany({
@@ -38,22 +64,7 @@ export class TagsService {
   }
 
   async findManyWithPublishedPostCount() {
-    const counts = await prisma.postTag.groupBy({
-      by: ['tagId'],
-      where: {
-        post: {
-          status: POST_STATUS.PUBLISHED,
-          deletedAt: null,
-        },
-      },
-      _count: { postId: true },
-    })
-    const countByTagId = Object.fromEntries(counts.map((c) => [c.tagId, c._count.postId]))
-    const tags = await prisma.tag.findMany({ orderBy: { name: 'asc' } })
-    return tags.map((tag) => ({
-      ...tag,
-      postCount: countByTagId[tag.id] ?? 0,
-    }))
+    return getPublishedTagsWithCount()
   }
 
   async findOne(slug: string) {

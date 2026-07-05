@@ -2,9 +2,11 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { postsService } from '@/services/posts.service'
+import { mediaService } from '@/services/media.service'
 import { POST_STATUS, POST_VISIBILITY } from '@/shared/constants'
 import { formatPostDate } from '@/lib/utils'
 import { getAuthCookieName, verifyAuthToken } from '@/lib/auth'
+import { collectMediaIds } from '@/lib/editor/lexical/collect-media-ids'
 import { PublicLayout } from '@/components/public/PublicLayout'
 import { PostContent } from '@/components/public/PostContent'
 import { PostEditButton } from '@/components/public/PostEditButton'
@@ -48,6 +50,8 @@ export default async function PostBySlugPage({
   const tags = 'tags' in post && Array.isArray(post.tags)
     ? (post.tags as { tag: { id: string; name: string; slug: string; color?: string | null } }[]).map((t) => t.tag)
     : []
+
+  const mediaUrlMap = await mediaService.resolveUrlMap(collectMediaIds(post.lexical))
 
   return (
     <PublicLayout showReadingSettingsInHeader={false}>
@@ -113,7 +117,7 @@ export default async function PostBySlugPage({
             </figure>
           )}
         </header>
-        <PostContent lexicalJson={post.lexical} />
+        <PostContent lexicalJson={post.lexical} urlMap={mediaUrlMap} />
         </article>
       </div>
     </PublicLayout>

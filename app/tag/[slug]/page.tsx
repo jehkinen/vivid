@@ -6,23 +6,25 @@ import { PublicLayout } from '@/components/public/PublicLayout'
 import { TagsSidebar } from '@/components/public/TagsSidebar'
 import { PostListWithLoadMore } from '@/components/public/PostListWithLoadMore'
 
+export const revalidate = 60
+
 export default async function TagPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const tag = await tagsService.findOne(slug)
+  const [tag, tagsWithCount] = await Promise.all([
+    tagsService.findOne(slug),
+    tagsService.findManyWithPublishedPostCount(),
+  ])
 
   if (!tag) notFound()
 
-  const [postsResult, tagsWithCount] = await Promise.all([
-    postsService.findMany({
-      status: POST_STATUS.PUBLISHED,
-      visibility: POST_VISIBILITY.PUBLIC,
-      tagSlug: slug,
-      limit: 10,
-      offset: 0,
-      sort: 'newest',
-    }),
-    tagsService.findManyWithPublishedPostCount(),
-  ])
+  const postsResult = await postsService.findMany({
+    status: POST_STATUS.PUBLISHED,
+    visibility: POST_VISIBILITY.PUBLIC,
+    tagSlug: slug,
+    limit: 10,
+    offset: 0,
+    sort: 'newest',
+  })
   const posts = postsResult.posts
 
   const postCount = tagsWithCount.find((t) => t.slug === slug)?.postCount ?? 0

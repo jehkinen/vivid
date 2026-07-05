@@ -6,3 +6,8 @@ export interface TagDto {
   description: string | null
   postCount?: number
 }
+
+export interface MergeTagsResult {
+  mergedPostCount: number
+  targetTagSlug: string
+}

@@ -180,3 +180,11 @@ export const INPUT_INSERT_TYPES = {
   PASTE: 'insertFromPaste',
   PASTE_AS_QUOTATION: 'insertFromPasteAsQuotation',
 } as const
+
+export const CACHE_TAGS = {
+  PUBLISHED_TAGS: 'published-tags',
+} as const
+
+export const CACHE_REVALIDATE_SECONDS = 60
+
+export const SIGNED_URL_CACHE_BUFFER_SECONDS = 60

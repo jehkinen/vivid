@@ -156,6 +156,17 @@ export class MediaService {
     )
   }
 
+  async resolveUrlMap(ids: string[]): Promise<Record<string, string>> {
+    const uniqueIds = [...new Set(ids.filter(Boolean))]
+    if (uniqueIds.length === 0) return {}
+    const list = await this.findManyByIds(uniqueIds)
+    const urls: Record<string, string> = {}
+    for (const m of list) {
+      urls[m.id] = m.url
+    }
+    return urls
+  }
+
   async softDelete(id: string) {
     return prisma.media.update({
       where: { id },

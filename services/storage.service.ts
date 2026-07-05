@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
+import { SIGNED_URL_CACHE_BUFFER_SECONDS } from '@/shared/constants'
 
 const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
@@ -14,6 +15,8 @@ const s3Client = new S3Client({
 
 const BUCKET = process.env.S3_BUCKET
 const IS_PUBLIC = process.env.S3_PUBLIC_BUCKET === 'true'
+
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>()
 
 export class StorageService {
   async uploadFile(
@@ -42,12 +45,23 @@ export class StorageService {
       return `${process.env.S3_ENDPOINT}/${BUCKET}/${key}`
     }
 
+    const cacheKey = `${key}:${expiresIn}`
+    const cached = signedUrlCache.get(cacheKey)
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.url
+    }
+
     const command = new GetObjectCommand({
       Bucket: BUCKET,
       Key: key,
     })
 
-    return await getSignedUrl(s3Client, command, { expiresIn })
+    const url = await getSignedUrl(s3Client, command, { expiresIn })
+    signedUrlCache.set(cacheKey, {
+      url,
+      expiresAt: Date.now() + (expiresIn - SIGNED_URL_CACHE_BUFFER_SECONDS) * 1000,
+    })
+    return url
   }
 
   async deleteFile(key: string): Promise<void> {
