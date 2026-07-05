@@ -1,5 +1,6 @@
 import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
 import { applyAutoCoverPromptGuardrails, normalizeUserCoverPrompt } from '@/lib/ai/cover-prompt-guardrails'
+import { applyCoverStyleToPrompt } from '@/lib/ai/cover-prompt-style'
 import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-prompt'
 import { extractCoverConceptLocal } from '@/lib/ai/extract-cover-concept'
 import {
@@ -56,7 +57,7 @@ export class CoverGenerationService {
         })
 
     const prompt = promptOverride
-      ? normalizeUserCoverPrompt(promptOverride)
+      ? applyCoverStyleToPrompt(normalizeUserCoverPrompt(promptOverride), input.stylePreset)
       : applyAutoCoverPromptGuardrails(
           buildCoverImagePrompt(
             brief?.scene ??
@@ -91,7 +92,8 @@ export class CoverGenerationService {
       url: media.url,
       filename: media.filename,
       concept: brief?.coreMoment ?? extractCoverConceptLocal({ title, plaintext, tagNames }),
-      prompt: promptOverride ?? prompt,
+      scene: brief?.scene,
+      prompt,
     }
   }
 }

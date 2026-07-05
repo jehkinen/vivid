@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { buildCoverPrompt, isUsablePromptOverride } from '@/lib/ai/build-cover-prompt'
+import { applyCoverStyleToPrompt, rebuildCoverPromptFromScene } from '@/lib/ai/cover-prompt-style'
 import { routes } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import { useGenerateCover } from '@/hooks/api/use-generate-cover'
@@ -66,6 +67,7 @@ export function GenerateCoverSheet({
   const [attempts, setAttempts] = useState(0)
   const [preview, setPreview] = useState<GenerateCoverMedia | null>(null)
   const [lastConcept, setLastConcept] = useState<string | null>(null)
+  const [lastScene, setLastScene] = useState<string | null>(null)
   const { generate, reset, phase, isPending, error } = useGenerateCover()
 
   const promptPreview = useMemo(
@@ -92,6 +94,7 @@ export function GenerateCoverSheet({
       reset()
       setPreview(null)
       setLastConcept(null)
+      setLastScene(null)
       setPromptOverride('')
       setAttempts(0)
       setStylePreset('editorial')
@@ -102,7 +105,13 @@ export function GenerateCoverSheet({
   const handleStyleChange = (preset: CoverStylePreset) => {
     setStylePreset(preset)
     setPreview(null)
-    setLastConcept(null)
+    if (lastScene) {
+      setPromptOverride(rebuildCoverPromptFromScene(lastScene, preset))
+      return
+    }
+    if (isUsablePromptOverride(promptOverride)) {
+      setPromptOverride(applyCoverStyleToPrompt(promptOverride, preset))
+    }
   }
 
   const handleGenerate = async () => {
@@ -122,6 +131,9 @@ export function GenerateCoverSheet({
       setPreview({ ...result.media, url })
       if (result.prompt && !customPrompt) {
         setPromptOverride(result.prompt)
+      }
+      if (result.scene) {
+        setLastScene(result.scene)
       }
       if (result.concept) {
         setLastConcept(result.concept)

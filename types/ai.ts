@@ -45,6 +45,7 @@ export type GenerateCoverMedia = {
 export type GenerateCoverResponse = {
   media: GenerateCoverMedia
   concept?: string
+  scene?: string
   prompt?: string
 }
 

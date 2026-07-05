@@ -29,6 +29,7 @@ export const POST = authedHandler(async (
         filename: media.filename,
       },
       concept: media.concept,
+      scene: media.scene,
       prompt: media.prompt,
     })
   } catch (error) {

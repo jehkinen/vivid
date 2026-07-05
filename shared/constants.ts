@@ -246,7 +246,7 @@ export const COVER_STYLE_PRESETS = [
     id: 'cartoon',
     label: 'Cartoon',
     promptSuffix:
-      'Cartoon illustration style with anime-inspired expressiveness of a high school student character, neat uniform with customized pins, shoulder bag, energetic pose mid-step, clean thin linework, soft cel shading, bright morning hallway background with simplified lockers, airy highlights, upbeat slice-of-life mood, professional character art, 85mm lens, shallow depth of field --ar 4:5',
+      'Bold cartoon illustration, clean thin linework, soft cel shading, expressive stylized characters, not photorealistic.',
   },
 ] as const
 
