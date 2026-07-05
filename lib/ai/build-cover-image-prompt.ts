@@ -7,6 +7,12 @@ export const COVER_IMAGE_PROMPT_PREFIX = [
   'Emotionally resonant, visually striking.',
 ].join(' ')
 
+export const COVER_IMAGE_PROMPT_PREFIX_VARIANTS = [
+  COVER_IMAGE_PROMPT_PREFIX,
+  'Square blog cover hero image, centerpiece composition. No text, no letters, no logos, no watermarks, no captions. Visually striking, emotionally resonant, publication-ready.',
+  'Square blog cover image. No text, no letters, no logos, no watermarks, no captions.',
+] as const
+
 export const COVER_IMAGE_PROMPT_GUARDRAIL =
   'Modest fully clothed figures, non-sexual editorial art.'
 

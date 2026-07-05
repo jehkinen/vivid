@@ -27,4 +27,15 @@ describe('cover prompt style', () => {
     expect(next).toContain('Editorial magazine cover style')
     expect(next).not.toContain('cartoon')
   })
+
+  it('strips legacy prefix when swapping style on old saved overrides', () => {
+    const legacy =
+      'Square blog cover image. No text, no letters, no logos, no watermarks, no captions. A young man on a balcony at sunset. Bold cartoon illustration, clean thin linework, soft cel shading, expressive stylized characters, not photorealistic.'
+    const next = applyCoverStyleToPrompt(legacy, 'editorial')
+    expect(next).toContain('A young man on a balcony at sunset')
+    expect(next).toContain('Editorial magazine cover style')
+    expect(next).toContain('centerpiece composition')
+    expect(next).not.toContain('Square blog cover image. No text')
+    expect(next).not.toContain('cartoon')
+  })
 })
