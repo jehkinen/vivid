@@ -91,7 +91,14 @@ export class PostsService {
 
     if (post?.featuredMedia && post.featuredMedia.deletedAt == null) {
       const url = await storageService.getFileUrl(post.featuredMedia.key)
-      return { ...post, featuredMedia: { ...post.featuredMedia, url } }
+      const hasThumb =
+        post.featuredMedia.generatedConversions &&
+        typeof post.featuredMedia.generatedConversions === 'object' &&
+        (post.featuredMedia.generatedConversions as Record<string, boolean>)[IMAGE_CONVERSIONS.THUMB]
+      const thumbUrl = hasThumb
+        ? await this.mediaService.getConversionUrl(post.featuredMedia, IMAGE_CONVERSIONS.THUMB)
+        : undefined
+      return { ...post, featuredMedia: { ...post.featuredMedia, url, thumbUrl } }
     }
     if (post?.featuredMedia) {
       return { ...post, featuredMedia: null }

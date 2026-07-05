@@ -165,6 +165,16 @@ export function useMediaUrls(ids: string[]): Record<string, string> {
   return urlMap
 }
 
+export async function refreshPublicFeaturedMediaUrl(mediaId: string): Promise<string | null> {
+  cache.delete(mediaId)
+  const res = await fetch(`/api/public/media/${mediaId}`)
+  if (!res.ok) return null
+  const data = (await res.json()) as { url?: string }
+  const url = data.url ?? null
+  if (url) writeCachedUrl(mediaId, url)
+  return url
+}
+
 export async function refreshFeaturedMediaThumbUrl(mediaId: string): Promise<string | null> {
   cache.delete(cacheKey(mediaId, 'thumb'))
   return resolveUrl(mediaId, 'thumb')

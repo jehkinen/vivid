@@ -15,6 +15,7 @@ import { PostReferencesPanel } from '@/components/public/PostReferencesPanel'
 import { PostEditButton } from '@/components/public/PostEditButton'
 import { PostBackButton } from '@/components/public/PostBackButton'
 import { ReadingSettingsPanel } from '@/components/public/ReadingSettingsPanel'
+import { FeaturedCoverImage } from '@/components/public/FeaturedCoverImage'
 
 const RESERVED_SLUGS = ['tag', 'vivid', 'login', 'api']
 
@@ -107,23 +108,21 @@ export default async function PostBySlugPage({
             {post.title || 'Untitled'}
           </h1>
           {'featuredMedia' in post && (post.featuredMedia as { url?: string })?.url && (
-            <figure className="mt-6 -mx-4 sm:mx-0">
-              <img
-                src={(post.featuredMedia as { url: string }).url}
-                alt={
-                  (post.featuredMedia as { meta?: { alt?: string }; filename?: string }).meta?.alt ??
-                  (post.featuredMedia as { filename?: string }).filename ??
-                  post.title ??
-                  ''
-                }
-                className="w-full rounded-lg"
-              />
-              {(post.featuredMedia as { meta?: { caption?: string } }).meta?.caption && (
-                <figcaption className="mt-2 text-sm text-muted-foreground text-center">
-                  {(post.featuredMedia as { meta?: { caption?: string } }).meta!.caption}
-                </figcaption>
-              )}
-            </figure>
+            <FeaturedCoverImage
+              mediaId={(post.featuredMedia as { id: string }).id}
+              initialUrl={(post.featuredMedia as { url: string }).url}
+              thumbUrl={(post.featuredMedia as { thumbUrl?: string | null }).thumbUrl}
+              alt={
+                (post.featuredMedia as { meta?: { alt?: string }; filename?: string }).meta?.alt ??
+                (post.featuredMedia as { filename?: string }).filename ??
+                post.title ??
+                ''
+              }
+              caption={
+                (post.featuredMedia as { meta?: { caption?: string } }).meta?.caption ?? null
+              }
+              preview={isPreview}
+            />
           )}
         </header>
         <PostContent

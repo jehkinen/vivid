@@ -291,7 +291,7 @@ export class MediaService {
     return storageService.getFileUrl(conversionKey)
   }
 
-  async resolveFeaturedThumbForPublicPost(mediaId: string): Promise<string | null> {
+  private async findPublicFeaturedMedia(mediaId: string) {
     const post = await prisma.post.findFirst({
       where: {
         featuredMediaId: mediaId,
@@ -303,9 +303,19 @@ export class MediaService {
     })
     if (!post) return null
 
-    const media = await prisma.media.findUnique({
+    return prisma.media.findUnique({
       where: { id: mediaId, deletedAt: null },
     })
+  }
+
+  async resolvePublicFeaturedMediaUrl(mediaId: string): Promise<string | null> {
+    const media = await this.findPublicFeaturedMedia(mediaId)
+    if (!media) return null
+    return storageService.getFileUrl(media.key)
+  }
+
+  async resolveFeaturedThumbForPublicPost(mediaId: string): Promise<string | null> {
+    const media = await this.findPublicFeaturedMedia(mediaId)
     if (!media) return null
 
     const hasThumb =
