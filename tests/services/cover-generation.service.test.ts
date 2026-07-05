@@ -120,7 +120,11 @@ describe('coverGenerationService', () => {
     expect(extractVisualBrief).not.toHaveBeenCalled()
     expect(generateImage).toHaveBeenCalledWith(
       'sk-test-key-abcdefghijklmnopqrstuvwxyz',
-      'Custom visual prompt'
+      expect.stringContaining('Custom visual prompt')
+    )
+    expect(generateImage).toHaveBeenCalledWith(
+      'sk-test-key-abcdefghijklmnopqrstuvwxyz',
+      expect.stringContaining('Editorial magazine cover style')
     )
   })
 })
