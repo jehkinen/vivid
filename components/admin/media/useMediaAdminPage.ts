@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useMedia } from '@/hooks/api/use-media'
 import { useBulkDeleteMedia } from '@/hooks/api/use-bulk-delete-media'
+import { refreshMediaUrl } from '@/hooks/use-media-url'
 import type { LightboxSlide } from '@/components/ui/lightbox'
 import { MEDIA_FILTER_TYPES, type MediaFilterType } from '@/shared/constants'
 import {
@@ -97,18 +98,20 @@ export function useMediaAdminPage() {
     selectionAnchorRef.current = null
   }, [bulkDelete, selectedIds])
 
-  const lightboxSlides: LightboxSlide[] = useMemo(
-    () =>
+  const buildLightboxSlides = useCallback(
+    (fullUrlOverrides: Record<string, string> = {}): LightboxSlide[] =>
       items.map((item) => {
         const mime = item.mimeType || ''
         const isImage = mime.startsWith('image/')
+        const fullUrl = fullUrlOverrides[item.id] ?? item.url
         const thumb = item.thumbUrl
-        const hasThumb = Boolean(thumb && thumb !== item.url)
+        const previewSrc =
+          isImage && thumb && thumb !== fullUrl ? thumb : null
         return {
-          src: item.url,
+          src: fullUrl,
           alt: item.filename,
           mimeType: item.mimeType,
-          previewSrc: isImage && hasThumb ? thumb : null,
+          previewSrc,
         }
       }),
     [items]
@@ -116,14 +119,35 @@ export function useMediaAdminPage() {
 
   const openLightbox = useCallback(
     (itemId: string) => {
-      if (lightboxSlides.length === 0) return
+      if (items.length === 0) return
       const index = items.findIndex((it) => it.id === itemId)
+      if (index < 0) return
+
       setLightbox({
-        images: lightboxSlides,
-        index: index >= 0 ? index : 0,
+        images: buildLightboxSlides(),
+        index,
+      })
+
+      const item = items[index]
+      const needsFullUrl =
+        Boolean(item.thumbUrl) &&
+        item.url === item.thumbUrl &&
+        (item.mimeType || '').startsWith('image/')
+
+      if (!needsFullUrl) return
+
+      refreshMediaUrl(itemId).then((fullUrl) => {
+        if (!fullUrl) return
+        setLightbox((current) => {
+          if (!current || current.index !== index) return current
+          return {
+            ...current,
+            images: buildLightboxSlides({ [itemId]: fullUrl }),
+          }
+        })
       })
     },
-    [items, lightboxSlides]
+    [items, buildLightboxSlides]
   )
 
   return {

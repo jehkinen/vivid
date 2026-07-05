@@ -8,6 +8,7 @@ import { IMAGE_CONVERSIONS, MEDIABLE_TYPES, POST_SORT_OPTIONS, POST_STATUS, POST
 import { mediaService, type MediaService } from './media.service'
 import { storageService } from './storage.service'
 import { postReferencesService } from './post-references.service'
+import { invalidateUsedMediaIdsCache } from '@/lib/media-used-ids-cache'
 
 interface CreatePostData {
   title?: string
@@ -395,6 +396,10 @@ export class PostsService {
 
     if (data.featuredMediaId) {
       await this.mediaService.purgeStaleFeaturedCovers(id, data.featuredMediaId)
+    }
+
+    if (data.featuredMediaId !== undefined || data.lexical !== undefined) {
+      invalidateUsedMediaIdsCache()
     }
 
     return post

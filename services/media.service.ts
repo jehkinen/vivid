@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { generateId } from '@/shared/id'
 import { sanitizeFilenameForS3 } from '@/lib/utils'
 import { collectMediaIds } from '@/lib/editor/lexical/collect-media-ids'
+import { getCachedUsedMediaIds, invalidateUsedMediaIdsCache } from '@/lib/media-used-ids-cache'
 import { storageService } from './storage.service'
 import { imageProcessingService } from './image-processing.service'
 import {
@@ -204,9 +205,14 @@ export class MediaService {
 
   async bulkHardDelete(ids: string[]) {
     const uniqueIds = [...new Set(ids)]
-    const usedSet = new Set(await this.collectUsedMediaIds())
-    const deleted: string[] = []
+    const usedSet = await getCachedUsedMediaIds(() => this.collectUsedMediaIds())
+    const pendingDeletes: string[] = []
     const blocked: Array<{ id: string; reason: string }> = []
+
+    const mediaRows = await prisma.media.findMany({
+      where: { id: { in: uniqueIds }, deletedAt: null },
+    })
+    const mediaById = new Map(mediaRows.map((row) => [row.id, row]))
 
     for (const id of uniqueIds) {
       if (usedSet.has(id)) {
@@ -214,19 +220,21 @@ export class MediaService {
         continue
       }
 
-      const media = await prisma.media.findUnique({
-        where: { id, deletedAt: null },
-      })
-      if (!media) {
+      if (!mediaById.has(id)) {
         blocked.push({ id, reason: 'Not found' })
         continue
       }
 
-      await this.hardDelete(id)
-      deleted.push(id)
+      pendingDeletes.push(id)
     }
 
-    return { deleted, blocked }
+    await Promise.all(pendingDeletes.map((id) => this.hardDelete(id)))
+
+    if (pendingDeletes.length > 0) {
+      invalidateUsedMediaIdsCache()
+    }
+
+    return { deleted: pendingDeletes, blocked }
   }
 
   async replace(id: string, file: UploadFile) {
@@ -347,6 +355,24 @@ export class MediaService {
     return [...used]
   }
 
+  private buildThumbKey(media: Pick<Media, 'key'>, conversionName: string): string | null {
+    const lastDot = media.key.lastIndexOf('.')
+    const hasExt = lastDot > media.key.lastIndexOf('/')
+    const ext = hasExt ? media.key.slice(lastDot) : ''
+    const baseKey = hasExt ? media.key.slice(0, lastDot) : media.key
+    const lastSlash = baseKey.lastIndexOf('/')
+    const prefix = lastSlash >= 0 ? baseKey.slice(0, lastSlash) : ''
+    const baseName = lastSlash >= 0 ? baseKey.slice(lastSlash + 1) : baseKey
+    return `${prefix}/conversions/${baseName}-${conversionName}${ext}`
+  }
+
+  private mediaHasThumb(media: Pick<Media, 'mimeType' | 'generatedConversions'>): boolean {
+    const mime = media.mimeType || ''
+    if (!mime.startsWith('image/')) return false
+    if (!media.generatedConversions || typeof media.generatedConversions !== 'object') return false
+    return Boolean((media.generatedConversions as Record<string, boolean>)[IMAGE_CONVERSIONS.THUMB])
+  }
+
   async getLibrary(options: { page: number; perPage: number; type: MediaFilterType }) {
     const { page, perPage, type } = options
 
@@ -354,8 +380,8 @@ export class MediaService {
       deletedAt: null,
     }
 
-    const usedIds = await this.collectUsedMediaIds()
-    const usedSet = new Set(usedIds)
+    const usedSet = await getCachedUsedMediaIds(() => this.collectUsedMediaIds())
+    const usedIds = [...usedSet]
 
     if (type === MEDIA_FILTER_TYPES.IMAGE) {
       where.mimeType = { startsWith: 'image/' }
@@ -396,11 +422,12 @@ export class MediaService {
       }),
     ])
 
+    const itemIds = items.map((item) => item.id)
     const featuredPosts =
-      items.length > 0
+      itemIds.length > 0
         ? await prisma.post.findMany({
             where: {
-              featuredMediaId: { in: items.map((item) => item.id) },
+              featuredMediaId: { in: itemIds },
               deletedAt: null,
             },
             select: { featuredMediaId: true, title: true, slug: true },
@@ -410,60 +437,83 @@ export class MediaService {
       featuredPosts.map((post) => [post.featuredMediaId!, post])
     )
 
-    const itemsWithUrls = await Promise.all(
-      items.map(async (m) => {
-        const mime = m.mimeType || ''
-        const isImage = mime.startsWith('image/')
-        const hasThumb =
-          isImage &&
-          m.generatedConversions &&
-          typeof m.generatedConversions === 'object' &&
-          (m.generatedConversions as Record<string, boolean>)[IMAGE_CONVERSIONS.THUMB]
-
-        let thumbUrl: string | null = null
-        if (hasThumb) {
-          const lastDot = m.key.lastIndexOf('.')
-          const hasExt = lastDot > m.key.lastIndexOf('/')
-          const ext = hasExt ? m.key.slice(lastDot) : ''
-          const baseKey = hasExt ? m.key.slice(0, lastDot) : m.key
-          const lastSlash = baseKey.lastIndexOf('/')
-          const prefix = lastSlash >= 0 ? baseKey.slice(0, lastSlash) : ''
-          const baseName = lastSlash >= 0 ? baseKey.slice(lastSlash + 1) : baseKey
-          const thumbKey = `${prefix}/conversions/${baseName}-${IMAGE_CONVERSIONS.THUMB}${ext}`
-          thumbUrl = await storageService.getFileUrl(thumbKey)
-        }
-
-        const url = await storageService.getFileUrl(m.key)
-        const isUsed = usedSet.has(m.id)
-        const featuredPost = featuredByMediaId.get(m.id)
-        let linkedTitle: string | null = null
-        let linkedSlug: string | null = null
-
-        if (featuredPost) {
-          linkedTitle = featuredPost.title
-          linkedSlug = featuredPost.slug
-        } else if (m.mediableType === MEDIABLE_TYPES.POST) {
-          const post = await prisma.post.findUnique({
-            where: { id: m.mediableId },
-            select: { title: true, slug: true },
+    const postMediableIds = [
+      ...new Set(
+        items
+          .filter(
+            (item) =>
+              item.mediableType === MEDIABLE_TYPES.POST &&
+              item.mediableId &&
+              !featuredByMediaId.has(item.id)
+          )
+          .map((item) => item.mediableId as string)
+      ),
+    ]
+    const linkedPosts =
+      postMediableIds.length > 0
+        ? await prisma.post.findMany({
+            where: { id: { in: postMediableIds }, deletedAt: null },
+            select: { id: true, title: true, slug: true },
           })
-          if (post) {
-            if (isUsed) {
-              linkedTitle = post.title
-              linkedSlug = post.slug
-            } else {
-              linkedTitle = `Unused · ${post.title}`
-            }
-          } else if (!isUsed) {
-            linkedTitle = 'Unused'
+        : []
+    const postById = new Map(linkedPosts.map((post) => [post.id, post]))
+
+    const urlKeys: string[] = []
+    const urlKeyByItemId = new Map<string, string>()
+    const thumbKeyByItemId = new Map<string, string>()
+
+    for (const item of items) {
+      const hasThumb = this.mediaHasThumb(item)
+      if (hasThumb) {
+        const thumbKey = this.buildThumbKey(item, IMAGE_CONVERSIONS.THUMB)
+        if (thumbKey) {
+          thumbKeyByItemId.set(item.id, thumbKey)
+          urlKeys.push(thumbKey)
+          urlKeyByItemId.set(item.id, thumbKey)
+        }
+      } else {
+        urlKeys.push(item.key)
+        urlKeyByItemId.set(item.id, item.key)
+      }
+    }
+
+    const uniqueUrlKeys = [...new Set(urlKeys)]
+    const signedUrls = await Promise.all(
+      uniqueUrlKeys.map(async (key) => [key, await storageService.getFileUrl(key)] as const)
+    )
+    const urlByKey = new Map(signedUrls)
+
+    const itemsWithUrls = items.map((m) => {
+      const listKey = urlKeyByItemId.get(m.id)
+      const url = listKey ? urlByKey.get(listKey) ?? '' : ''
+      const thumbKey = thumbKeyByItemId.get(m.id)
+      const thumbUrl = thumbKey ? urlByKey.get(thumbKey) ?? null : null
+      const isUsed = usedSet.has(m.id)
+      const featuredPost = featuredByMediaId.get(m.id)
+      let linkedTitle: string | null = null
+      let linkedSlug: string | null = null
+
+      if (featuredPost) {
+        linkedTitle = featuredPost.title
+        linkedSlug = featuredPost.slug
+      } else if (m.mediableType === MEDIABLE_TYPES.POST) {
+        const post = m.mediableId ? postById.get(m.mediableId) : undefined
+        if (post) {
+          if (isUsed) {
+            linkedTitle = post.title
+            linkedSlug = post.slug
+          } else {
+            linkedTitle = `Unused · ${post.title}`
           }
         } else if (!isUsed) {
           linkedTitle = 'Unused'
         }
+      } else if (!isUsed) {
+        linkedTitle = 'Unused'
+      }
 
-        return { ...m, url, thumbUrl, linkedTitle, linkedSlug, isUsed }
-      })
-    )
+      return { ...m, url, thumbUrl, linkedTitle, linkedSlug, isUsed }
+    })
 
     const hasMore = skip + items.length < total
     const sumOriginal = totalSize._sum.size ?? 0

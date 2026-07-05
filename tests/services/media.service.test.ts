@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MEDIA_FILTER_TYPES } from '@/shared/constants'
+import { invalidateUsedMediaIdsCache } from '@/lib/media-used-ids-cache'
 
 const {
   findMany,
@@ -52,6 +53,7 @@ import { mediaService } from '@/services/media.service'
 describe('mediaService.getLibrary', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    invalidateUsedMediaIdsCache()
     findMany.mockResolvedValue([])
     count.mockResolvedValue(0)
     aggregate.mockResolvedValue({ _sum: { size: 0, conversionSize: 0 } })
@@ -123,9 +125,15 @@ describe('mediaService.purgeStaleFeaturedCovers', () => {
 describe('mediaService.bulkHardDelete', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    invalidateUsedMediaIdsCache()
     postFindMany.mockResolvedValue([{ featuredMediaId: 'used1', lexical: null }])
+    findMany.mockImplementation(async ({ where }: { where?: { id?: { in?: string[] } } }) => {
+      const ids = where?.id?.in ?? []
+      return ids
+        .filter((id) => id === 'used1' || id === 'orphan1')
+        .map((id) => ({ id, mediableType: 'post', deletedAt: null }))
+    })
     findUnique.mockImplementation(async ({ where }: { where: { id: string } }) => {
-      if (where.id === 'used1') return { id: 'used1', mediableType: 'post', deletedAt: null }
       if (where.id === 'orphan1') return { id: 'orphan1', mediableType: 'post', deletedAt: null }
       return null
     })
