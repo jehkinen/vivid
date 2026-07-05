@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/command'
 import { FileTextIcon, TagIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
-import { useSearch, usePublicSearch, usePublicTagsSearch } from '@/hooks/api/use-search'
+import { useSearch } from '@/hooks/api/use-search'
+import { usePublicSearchResults } from '@/hooks/api/use-public-search-results'
 
 const DEBOUNCE_MS = 300
 
@@ -172,11 +173,7 @@ function SearchDialogPublic({
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { data: publicResults, isLoading: publicLoading } = usePublicSearch(debouncedQuery)
-  const { data: publicTagsResult, isLoading: publicTagsLoading } = usePublicTagsSearch(debouncedQuery)
-  const posts = publicResults?.posts ?? []
-  const tags = publicTagsResult?.tags ?? []
-  const isLoading = publicLoading || publicTagsLoading
+  const { posts, tags, isLoading } = usePublicSearchResults(debouncedQuery)
   const labels = LABELS.public
 
   useEffect(() => {
