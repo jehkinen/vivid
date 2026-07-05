@@ -9,7 +9,7 @@ describe('buildCoverImagePrompt', () => {
     )
     expect(prompt).toContain('No text')
     expect(prompt).toContain('Warm golden light')
-    expect(prompt).toContain('Square blog cover image')
+    expect(prompt).toContain('Square blog cover image, centerpiece composition')
     expect(prompt).toContain('Editorial magazine cover style')
   })
 })

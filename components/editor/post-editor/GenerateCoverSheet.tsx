@@ -68,7 +68,7 @@ export function GenerateCoverSheet({
   replaceMediaId,
   onAccepted,
 }: GenerateCoverSheetProps) {
-  const [stylePreset, setStylePreset] = useState<CoverStylePreset>('editorial')
+  const [stylePreset, setStylePreset] = useState<CoverStylePreset>('digital-painting')
   const [promptOverride, setPromptOverride] = useState('')
   const [attempts, setAttempts] = useState(0)
   const [preview, setPreview] = useState<PendingCoverPreview | null>(null)
@@ -105,7 +105,7 @@ export function GenerateCoverSheet({
       setLastScene(null)
       setPromptOverride('')
       setAttempts(0)
-      setStylePreset('editorial')
+      setStylePreset('digital-painting')
     }
     wasOpenRef.current = open
   }, [open, reset, acceptCover])

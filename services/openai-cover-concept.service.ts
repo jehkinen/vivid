@@ -24,6 +24,8 @@ Reply with JSON only, no markdown:
 Scene rules:
 - The scene MUST depict the central event (a refused gift, a goodbye, a dream reunion, a discovery — whatever the post is really about)
 - Include concrete visible details from the post: objects, gestures, setting, mood
+- Describe lighting, color mood, and atmosphere that match the post feeling
+- Use vivid sensory details: textures, light direction, time of day, season, weather
 - Do NOT invent unrelated imagery (random alleys, puzzle boxes, seasons) unless the post is about them
 - Replace proper names with neutral roles (a young woman, a friend, two classmates)
 - No readable text, logos, captions, or watermarks in the image

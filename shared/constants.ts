@@ -208,11 +208,11 @@ export const OPENAI_IMAGE_MODEL = 'gpt-image-1-mini' as const
 
 export const OPENAI_IMAGE_SIZE = '1024x1024' as const
 
-export const OPENAI_IMAGE_QUALITY = 'low' as const
+export const OPENAI_IMAGE_QUALITY = 'medium' as const
 
 export const OPENAI_IMAGE_OUTPUT_FORMAT = 'jpeg' as const
 
-export const OPENAI_IMAGE_OUTPUT_COMPRESSION = 85 as const
+export const OPENAI_IMAGE_OUTPUT_COMPRESSION = 90 as const
 
 export const OPENAI_IMAGE_MODERATION = 'low' as const
 
@@ -223,6 +223,12 @@ export const OPENAI_KEY_MIN_LENGTH = 20
 export const OPENAI_KEY_PREFIX = 'sk-' as const
 
 export const COVER_STYLE_PRESETS = [
+  {
+    id: 'digital-painting',
+    label: 'Digital Painting',
+    promptSuffix:
+      'Cinematic film still, dramatic side lighting, volumetric light rays, moody atmosphere, shallow depth of field, professional color grade, 35mm lens aesthetic. Digital painting, breathtaking concept art, painterly brushwork, rich saturated color, in the style of Atey Ghailan, Greg Rutkowski, Greg Tocchini, and James Gilleard, high detail, not photorealistic.',
+  },
   {
     id: 'editorial',
     label: 'Editorial',

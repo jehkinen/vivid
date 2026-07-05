@@ -1,12 +1,22 @@
 import { COVER_STYLE_PRESETS } from '@/shared/constants'
 import type { CoverStylePreset } from '@/types/ai'
-import { buildCoverImagePrompt } from '@/lib/ai/build-cover-image-prompt'
+import {
+  COVER_IMAGE_PROMPT_GUARDRAIL,
+  COVER_IMAGE_PROMPT_PREFIX,
+  buildCoverImagePrompt,
+} from '@/lib/ai/build-cover-image-prompt'
 import { normalizeUserCoverPrompt } from '@/lib/ai/cover-prompt-guardrails'
 
-const AUTO_PREFIX =
-  /^Square blog cover image\.\s*No text, no letters, no logos, no watermarks, no captions\.\s*/i
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
-const GUARDRAIL_SUFFIX = /\s*Modest fully clothed figures, non-sexual editorial art\.?\s*$/i
+const AUTO_PREFIX = new RegExp(`^${escapeRegex(COVER_IMAGE_PROMPT_PREFIX)}\\s*`, 'i')
+
+const GUARDRAIL_SUFFIX = new RegExp(
+  `\\s*${escapeRegex(COVER_IMAGE_PROMPT_GUARDRAIL)}\\.?\\s*$`,
+  'i'
+)
 
 function allStyleSuffixes(): string[] {
   return COVER_STYLE_PRESETS.map((preset) => preset.promptSuffix)
